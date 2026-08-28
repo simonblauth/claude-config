@@ -1,0 +1,53 @@
+# claude-config
+
+My Claude Code setup: user instructions, rules, and a curated set of skills
+vendored from other people's repos under names I chose.
+
+## Why it works this way
+
+Skill names are mine, not upstream's. `tdd` is currently superpowers'
+`test-driven-development`; swapping in a different one means editing one line of
+`sources.tsv` and re-vendoring, with no name to relearn and no CLAUDE.md edit.
+
+Nothing is symlinked. `install` copies, so bare Windows works without
+Developer Mode.
+
+Nothing auto-applies. `check` reports and stops.
+
+## Commands
+
+    python cc.py vendor [name ...]   fetch upstream, record sha + content hash
+    python cc.py install             copy this repo into the Claude config dir
+    python cc.py check [--daily]     report drift, change nothing
+
+`check` reports two things: an upstream skill whose content moved past the
+recorded hash, and an installed file that no longer matches this repo. It runs
+from a SessionStart hook, at most once every 24 hours.
+
+## New machine
+
+    git clone git@github.com:<you>/claude-config.git ~/Projects/claude-config
+    cd ~/Projects/claude-config && python cc.py install
+
+`install` fills this machine's Python path and repo path into the hook command,
+so the same `settings.json` works on Arch, WSL, and Windows.
+
+## Machine-local rules
+
+`~/.claude/rules/` holds both kinds of file. Anything in this repo's `rules/`
+is copied there and managed. Anything else you drop in is left alone: `install`
+only deletes paths recorded in its own manifest. Work-only rules go there
+untracked, with `paths:` frontmatter so they load only for matching files.
+
+The one gap: `settings.json` has no user-level local override, so it is a single
+tracked file. A machine that needs different settings needs another answer.
+
+## Editing a skill
+
+Edit it here, then `python cc.py install`. Editing the copy under `~/.claude`
+works until the next install overwrites it, and `check` will tell you first.
+
+Upstream edits that survive re-vendoring belong in `patches/<name>.patch`.
+`patches/reflect.patch` drops a Codex platform note that references a pstack
+file this repo does not vendor. If a patch stops applying, `vendor` says so
+instead of silently skipping it.

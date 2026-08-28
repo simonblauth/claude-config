@@ -1,0 +1,13 @@
+# canonical	repo	path	ref	sha	content
+systematic-debugging	https://github.com/obra/superpowers.git	skills/systematic-debugging	main	b36e0829c6d0140e93cfef2ca599b1b07d4a7797	e4263f70f52de028
+tdd	https://github.com/obra/superpowers.git	skills/test-driven-development	main	b36e0829c6d0140e93cfef2ca599b1b07d4a7797	0ff8639af929add2
+verification-before-completion	https://github.com/obra/superpowers.git	skills/verification-before-completion	main	b36e0829c6d0140e93cfef2ca599b1b07d4a7797	d8a53168f152b616
+writing-skills	https://github.com/obra/superpowers.git	skills/writing-skills	main	b36e0829c6d0140e93cfef2ca599b1b07d4a7797	36da006f1b840220
+grilling	https://github.com/mattpocock/skills.git	skills/productivity/grilling	main	6654f6b60cd9d5be8b54c6fafe44346dabeb3b76	d5833e50e0081bbf
+writing-for-agents	https://github.com/mattpocock/skills.git	skills/productivity/writing-for-agents	main	6654f6b60cd9d5be8b54c6fafe44346dabeb3b76	dc53f07d1f662137
+wait-what	https://github.com/mattpocock/skills.git	skills/productivity/wait-what	main	6654f6b60cd9d5be8b54c6fafe44346dabeb3b76	d8c5157780c8b493
+handoff	https://github.com/mattpocock/skills.git	skills/productivity/handoff	main	6654f6b60cd9d5be8b54c6fafe44346dabeb3b76	fe287d0ae54ed66c
+improve-codebase-architecture	https://github.com/mattpocock/skills.git	skills/engineering/improve-codebase-architecture	main	6654f6b60cd9d5be8b54c6fafe44346dabeb3b76	86096700ab48a5fb
+unslop	https://github.com/michael-denyer/pstack-claude.git	plugins/pstack/skills/unslop	main	c2ade4bba14fb4706857286afb5528bc2244bf44	6cdf10ec993f8a45
+technical-writing	https://github.com/michael-denyer/pstack-claude.git	plugins/pstack/skills/technical-writing	main	c2ade4bba14fb4706857286afb5528bc2244bf44	63dde1ee42c02c45
+reflect	https://github.com/michael-denyer/pstack-claude.git	plugins/pstack/skills/reflect	main	c2ade4bba14fb4706857286afb5528bc2244bf44	24751e6b1ee9260f
