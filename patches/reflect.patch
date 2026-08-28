@@ -1,0 +1,11 @@
+--- a/SKILL.md
++++ b/SKILL.md
+@@ -8,8 +8,6 @@
+ 
+ Mine the current conversation for durable learnings, then route them into skill edits.
+ 
+-**Platform note.** On Codex or another non-Claude runtime, the Claude tool names, `claude-*` slugs, and Claude built-in skills named below are Claude defaults. Resolve them via [`codex-tools.md`](../poteto-mode/references/codex-tools.md).
+-
+ ## When to invoke
+ 
+ - The user said "reflect" or "/reflect".
