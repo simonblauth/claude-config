@@ -68,4 +68,7 @@ Some general principles:
 - **Modular**: break code into small, reusable functions. Each function should do one thing and do it well.
 
 Language-specific rules live in `~/.claude/rules/` (path-scoped; loaded only when working with matching files).
- 
+
+## Documentation
+
+- The main README of a repository is meant for humans to quickly read and understand. Keep it concise and meaningful. Examples are welcome. If the scope becomes too large, create separate documentation files and link to them from the README.
