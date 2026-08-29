@@ -20,9 +20,14 @@ Nothing auto-applies. `check` reports and stops.
     python cc.py install             copy this repo into the Claude config dir
     python cc.py check [--daily]     report drift, change nothing
 
-`check` reports two things: an upstream skill whose content moved past the
-recorded hash, and an installed file that no longer matches this repo. It runs
-from a SessionStart hook, at most once every 24 hours.
+`check` reports three things and fixes none of them:
+
+- this repo is dirty, behind `origin`, or holds commits you never pushed
+- an installed file under `~/.claude` no longer matches this repo
+- an upstream skill's content moved past the recorded hash
+
+The middle one is why a machine that never pulls still gets told. It runs from a
+SessionStart hook, at most once every 24 hours. `--local-only` skips the network.
 
 ## New machine
 

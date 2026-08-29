@@ -277,21 +277,55 @@ def cmd_check(args) -> int:
     cfg.mkdir(parents=True, exist_ok=True)
     stamp.write_text(str(int(time.time())), encoding="utf-8")
 
+    repo = check_repo(args.local_only)
     local = check_local(cfg)
     upstream = check_upstream() if not args.local_only else []
 
-    if not local and not upstream:
+    if not repo and not local and not upstream:
         if not args.quiet:
             print("claude-config: no drift")
         return 0
 
     print("claude-config drift")
+    for line in repo:
+        print(f"  repo      {line}")
     for line in local:
         print(f"  local     {line}")
     for line in upstream:
         print(f"  upstream  {line}")
-    print(f"  repo      {REPO}")
+    print(f"  at        {REPO}")
     return 0
+
+
+def check_repo(offline: bool) -> list[str]:
+    """Is this repo dirty, or out of step with its remote?"""
+    out = []
+    try:
+        dirty = run(["git", "status", "--porcelain"], cwd=REPO)
+    except RuntimeError:
+        return ["not a git repo, skipping repo checks"]
+    if dirty:
+        out.append(f"{len(dirty.splitlines())} uncommitted change(s) here")
+    if offline:
+        return out
+    try:
+        tracked = run(["git", "rev-parse", "--abbrev-ref", "--symbolic-full-name",
+                       "@{upstream}"], cwd=REPO)
+    except RuntimeError:
+        out.append("branch tracks no remote, nothing to compare")
+        return out
+    try:
+        run(["git", "fetch", "--quiet"], cwd=REPO)
+    except RuntimeError as e:
+        out.append(f"fetch failed ({e.args[0].splitlines()[-1]})")
+        return out
+    behind, ahead = run(["git", "rev-list", "--left-right", "--count",
+                         f"{tracked}...HEAD"], cwd=REPO).split()
+    if int(behind):
+        out.append(f"{behind} commit(s) behind {tracked}, git pull then install")
+    if int(ahead):
+        out.append(f"{ahead} commit(s) ahead of {tracked}, not pushed")
+    return out
 
 
 def check_local(cfg: Path) -> list[str]:
