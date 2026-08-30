@@ -27,20 +27,18 @@
 - Never read, print, log, or commit credential material: `.env*` files, `*.pem`, `*.key`, SSH keys, API tokens, connection strings, Key Vault values.
 - Refer to secrets by name or environment variable, never by value. If a task appears to require a secret's actual value, stop and ask the user instead of retrieving it.
 
-## Work like a scientist — hypothesis → falsify → reproduce → record
+## Work like a scientist
 
-Default for investigative work: debugging, unexpected behavior, "why does X happen?", performance/security/correctness assertions, and **any report claiming an issue was found**. State the hypothesis (from code evidence, research, or the prompt). Research deeper before acting. Run an experiment designed to *falsify* it, not confirm it — assumptions are hypotheses, never conclusions. Reproduce the result before trusting it. Record what was run and observed (commands, outputs, file:line). No claim, fix, or "done" without an experiment that survived a falsification attempt.
+Investigative work belongs to the skills, not to a summary in this file. For debugging, unexpected behavior, "why does X happen?", a performance, security, or correctness assertion, or any report claiming an issue was found, load the skill that owns the discipline and follow its body. `systematic-debugging` owns bugs and unexpected behavior, `tdd` owns implementation, `verification-before-completion` owns claims of done. This file deliberately restates none of them.
 
-Route through existing skills as the mechanism, don't reinvent: `systematic-debugging` (bugs/unexpected behavior), `tdd` (features/fixes), `verification-before-completion` (before claiming done).
+**Rigor is proportional:** the skill's full procedure for investigations, bug diagnoses, and perf/security/correctness assertions; lightweight hypothesis-then-verify for small edits.
 
-**Rigor is proportional:** full loop (reproduce + record) for investigations, bug diagnoses, perf/security/correctness assertions; lightweight hypothesis-then-verify for small edits.
-
-This is the positive half of "No speculative comments or doc claims" below — the procedure that earns the right to write a claim that section otherwise forbids.
+This is the positive half of "No speculative comments or doc claims" below. Working the skill's procedure earns the right to write a claim that section otherwise forbids.
 
 **Exceptions:**
 
-- **Clearly formulated feature requests.** When the user asks to add or tweak functionality and the request is unambiguous, do not put the request itself through the loop — no hypothesizing about whether the feature is warranted or attempting to falsify the premise. Implement it. The loop still applies to claims made along the way: "this works" / "done" still requires verification (lightweight — run it, check the output), and any bug discovered *during* implementation goes back through the full loop.
-- **Creative tasks.** Brainstorming, naming, copy, visual/UX taste, open-ended design are not falsifiable — the user may say "creative" to opt out. If a task looks creative and the user hasn't flagged it, ask one clarifying question before defaulting to the scientific loop.
+- **Clearly formulated feature requests.** When the user asks to add or tweak functionality and the request is unambiguous, implement it. Do not hypothesize about whether the feature is warranted or attempt to falsify the premise. "This works" and "done" still require verification, and any bug discovered during implementation gets the full investigative treatment.
+- **Creative tasks.** Brainstorming, naming, copy, visual/UX taste, and open-ended design are not falsifiable; the user may say "creative" to opt out. If a task looks creative and the user has not flagged it, ask one clarifying question before reaching for the skills above.
 
 ## No speculative comments or doc claims
 
