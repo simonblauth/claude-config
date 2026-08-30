@@ -1,6 +1,6 @@
 ---
 name: unslop
-description: Cut AI tells from any writing. Must always apply.
+description: Use when about to write a commit message, PR or MR description, README or other doc prose, issue body, review comment, or report to the user. Anything a human will read, in code sessions too.
 menu-description: clean up writing by removing AI tells
 ---
 

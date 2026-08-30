@@ -1,6 +1,6 @@
 ---
 name: verification-before-completion
-description: Use when about to claim work is complete, fixed, or passing, before committing or creating PRs - requires running verification commands and confirming output before making any success claims; evidence before assertions always
+description: Use before every commit, history rewrite, or PR, and before claiming work is complete, fixed, or passing, or stating any success. Each commit in a series counts.
 ---
 
 # Verification Before Completion
@@ -46,6 +46,9 @@ Skip any step = lying, not verifying
 | Regression test works | Red-green cycle verified | Test passes once |
 | Agent completed | VCS diff shows changes | Agent reports "success" |
 | Requirements met | Line-by-line checklist | Tests passing |
+| Commit contents right | git show --stat: only intended files | git add -A without reviewing what it staged |
+| Commits signed | git log --format="%h %G? %s": G on each | Signing enabled in config |
+| Branch state known | Fresh git status/log output | Session-start snapshot |
 
 ## Red Flags - STOP
 
@@ -103,13 +106,20 @@ Skip any step = lying, not verifying
 ❌ Trust agent report
 ```
 
+**Commits (each one, and again after any history rewrite):**
+```
+✅ [git show --stat HEAD] [See: only the files you meant to touch] "Committed"
+✅ [git log --format="%h %G? %s"] [See: G on every commit] "Signed"
+❌ git add -A, commit, "committed and signed" (contents and signatures unchecked)
+```
+
 ## When To Apply
 
 **ALWAYS before:**
 - ANY variation of success/completion claims
 - ANY expression of satisfaction
 - ANY positive statement about work state
-- Committing, PR creation, task completion
+- Each commit in a series, history rewrites, PR creation, task completion
 - Moving to next task
 - Delegating to agents
 

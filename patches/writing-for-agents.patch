@@ -1,0 +1,20 @@
+diff --git a/SKILL.md b/SKILL.md
+index a37608d..53e8b42 100644
+--- a/SKILL.md
++++ b/SKILL.md
+@@ -1,6 +1,6 @@
+ ---
+ name: writing-for-agents
+-description: Writing documents for agents. Use when creating or editing skills, or modifying AGENTS.md or CLAUDE.md.
++description: Use when creating or editing any document an agent consumes, such as a SKILL.md, an AGENTS.md or CLAUDE.md, or a doc they point to. A one-line edit mid-task counts.
+ ---
+ 
+ Reference for writing any document an agent consumes: a skill, an `AGENTS.md` / `CLAUDE.md`, a doc reached by a pointer. The packaging differs; the writing does not: the same levers make each one predictable, since the agent takes the same _process_ every run rather than producing the same output.
+@@ -16,6 +16,7 @@ A pointer does two jobs: state what the material is, and list the **branches** t
+ - **Front-load the leading word**: the pointer is where it does its triggering work.
+ - **One trigger per branch.** Synonyms that rename a single branch are one branch written twice; collapse them and keep only genuinely distinct branches.
+ - **Cut identity the body already carries.**
++- **Point, never paraphrase.** A restatement good enough to act on gets acted on: the agent satisfies the summary, the target never loads, and every rule past the restatement is silently lost. An `AGENTS.md` that routes to a skill names it and its trigger, nothing more.
+ 
+ ## The two loads
+ 
