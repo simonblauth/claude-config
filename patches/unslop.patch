@@ -1,12 +1,12 @@
 diff --git a/SKILL.md b/SKILL.md
-index bb4bae1..f517ec9 100644
+index bb4bae1..b4a8941 100644
 --- a/SKILL.md
 +++ b/SKILL.md
 @@ -1,6 +1,6 @@
  ---
  name: unslop
 -description: Cut AI tells from any writing. Must always apply.
-+description: Use when about to write a commit message, PR or MR description, README or other doc prose, issue body, review comment, or report to the user. Anything a human will read, in code sessions too.
++description: Use when about to write a commit message, PR or MR description, README or other doc prose, issue body, review comment, or any reply to the user. Anything a human reads, chat included. Always applies.
  menu-description: clean up writing by removing AI tells
  ---
  

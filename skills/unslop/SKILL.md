@@ -1,6 +1,6 @@
 ---
 name: unslop
-description: Use when about to write a commit message, PR or MR description, README or other doc prose, issue body, review comment, or report to the user. Anything a human will read, in code sessions too.
+description: Use when about to write a commit message, PR or MR description, README or other doc prose, issue body, review comment, or any reply to the user. Anything a human reads, chat included. Always applies.
 menu-description: clean up writing by removing AI tells
 ---
 
