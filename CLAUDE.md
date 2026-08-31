@@ -57,6 +57,19 @@ Acceptable verification, in order of preference:
 
 If none of those are possible in the current environment, say so explicitly and hedge ("I can't verify this from here — based on training data, …") rather than asserting with confidence. If the user pushes back on a factual claim, do not double down — verify and correct.
 
+## Surface friction, don't absorb it
+
+Auto memory is off (`autoMemoryEnabled: false`), deliberately: a workaround saved to memory is invisible to the user, so it silently becomes permanent while the problem behind it goes unfixed.
+
+When the environment turns out to be broken, outdated, or surprising — a CLI years older than the docs being checked against, a config form the tool silently ignores, a setup step nothing documents — say so in the same turn. Lead with the root cause and the fix that removes it, not the detour around it. Most such problems are fixable once and globally; a workaround adopted quietly charges every later session the same toll and hides the reason.
+
+When a workaround is genuinely needed, write it where a human will see it:
+
+- Repo-specific → that repo's `CLAUDE.md`, or its `docs/` when it needs room.
+- Machine- or setup-specific → `~/.claude/rules/`.
+
+Record what would make the workaround unnecessary, so it can be deleted once that lands instead of outliving the problem.
+
 ## Code style
 
 Follow existing style in the codebase, or rules stated in project-specific CLAUDE.md files.
