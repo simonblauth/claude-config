@@ -100,8 +100,18 @@ def clone(repo: str, ref: str) -> Path:
 
 
 def remote_sha(repo: str, ref: str) -> str:
+    """Commit at one exact ref. A bare name also matches ls-remote at slash
+    boundaries, so refs/heads/<something>/main answers to `main` too."""
     out = run(["git", "ls-remote", repo, ref])
-    return out.split()[0] if out else ""
+    by_name = {}
+    for line in out.splitlines():
+        sha, _, name = line.partition("\t")
+        by_name[name] = sha
+    # An annotated tag's own sha is not the commit clone would check out.
+    for name in (f"refs/tags/{ref}^{{}}", f"refs/heads/{ref}", f"refs/tags/{ref}", ref):
+        if name in by_name:
+            return by_name[name]
+    return ""
 
 
 def rename_map(sources: list[Source]) -> dict[str, str]:
