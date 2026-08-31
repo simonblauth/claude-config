@@ -1,13 +1,21 @@
 {
   "permissions": {
     "allow": [
-      "Bash(ls:*)",
-      "Bash(grep:*)",
-      "Bash(git status:*)",
-      "Bash(git log:*)",
-      "Bash(git diff:*)",
-      "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(ls *)",
+      "Bash(grep *)",
+      "Bash(git status *)",
+      "Bash(git log *)",
+      "Bash(git diff *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git checkout *)",
+      "Bash(git show *)",
+      "Bash(git switch *)"
+    ],
+    "deny": [
+      "Bash(az *)",
+      "Bash(pwsh *)",
+      "Bash(powershell.exe *)"
     ]
   },
   "model": "opus",
