@@ -11,3 +11,5 @@ improve-codebase-architecture	https://github.com/mattpocock/skills.git	skills/en
 unslop	https://github.com/michael-denyer/pstack-claude.git	plugins/pstack/skills/unslop	main	c2ade4bba14fb4706857286afb5528bc2244bf44	6cdf10ec993f8a45
 technical-writing	https://github.com/michael-denyer/pstack-claude.git	plugins/pstack/skills/technical-writing	main	c2ade4bba14fb4706857286afb5528bc2244bf44	63dde1ee42c02c45
 reflect	https://github.com/michael-denyer/pstack-claude.git	plugins/pstack/skills/reflect	main	c2ade4bba14fb4706857286afb5528bc2244bf44	24751e6b1ee9260f
+codebase-design	https://github.com/mattpocock/skills.git	skills/engineering/codebase-design	main	6654f6b60cd9d5be8b54c6fafe44346dabeb3b76	826e65f8d718794b
+domain-modeling	https://github.com/mattpocock/skills.git	skills/engineering/domain-modeling	main	6654f6b60cd9d5be8b54c6fafe44346dabeb3b76	2cc88b237a4704f9
