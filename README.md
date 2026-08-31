@@ -47,6 +47,16 @@ untracked, with `paths:` frontmatter so they load only for matching files.
 The one gap: `settings.json` has no user-level local override, so it is a single
 tracked file. A machine that needs different settings needs another answer.
 
+## Permission rules
+
+Write Bash permission rules in space form — `Bash(uv run pytest *)`, not
+`Bash(uv run pytest:*)`. The VSCode extension (observed on 2.1.195) silently
+fails to match the colon form when the prefix is more than one word: every
+matching command still prompts, and adding more colon rules changes nothing.
+The standalone CLI matches both, so the forms are not interchangeable in
+practice. Space form is also what the permission dialog writes when you pick
+"Yes, don't ask again".
+
 ## Editing a skill
 
 Edit it here, then `python cc.py install`. Editing the copy under `~/.claude`
