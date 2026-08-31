@@ -18,6 +18,7 @@
       "Bash(powershell.exe *)"
     ]
   },
+  "autoMemoryEnabled": false,
   "model": "opus",
   "effortLevel": "xhigh",
   "tui": "fullscreen",
