@@ -128,7 +128,18 @@ def rewrite_refs(root: Path, mapping: dict[str, str], upstream: str, canonical: 
     return touched
 
 
-def find_dangling(root: Path) -> set[str]:
+# rewrite_refs has already renamed every superpowers: ref we vendored, so a
+# surviving prefix is itself the evidence. Refs that name a skill bare need
+# looking up instead.
+PREFIXED_REF = re.compile(r"superpowers:[a-z0-9-]+")
+NAMED_REF = (
+    re.compile(r'Skill tool with "([a-z0-9-]+)"'),
+    # A slash ref needs a hyphen to be a skill name rather than `/tmp`.
+    re.compile(r"`/([a-z0-9-]+-[a-z0-9-]+)`"),
+)
+
+
+def find_dangling(root: Path, canonical: set[str]) -> set[str]:
     """Refs to skills we did not vendor, left pointing at nothing."""
     found = set()
     for f in root.rglob("*"):
@@ -138,8 +149,9 @@ def find_dangling(root: Path) -> set[str]:
             text = f.read_text(encoding="utf-8")
         except (UnicodeDecodeError, OSError):
             continue
-        for m in re.finditer(r"superpowers:[a-z0-9-]+", text):
-            found.add(m.group(0))
+        found |= set(PREFIXED_REF.findall(text))
+        for pattern in NAMED_REF:
+            found |= {n for n in pattern.findall(text) if n not in canonical}
     return found
 
 
@@ -158,6 +170,7 @@ def cmd_vendor(args) -> int:
     sources = read_sources()
     wanted = set(args.names) if args.names else {s.name for s in sources}
     mapping = rename_map(sources)
+    canonical = {s.name for s in sources}
     SKILLS.mkdir(exist_ok=True)
     changed = False
 
@@ -180,7 +193,7 @@ def cmd_vendor(args) -> int:
         # SKILL.md frontmatter carries the upstream dir name; ours is canonical.
         touched = rewrite_refs(dest, mapping, Path(s.path).name, s.name)
         note = apply_patch(s.name, dest)
-        dangling = find_dangling(dest)
+        dangling = find_dangling(dest, canonical)
 
         if s.sha != sha or s.content != pristine:
             changed = True
