@@ -4,6 +4,7 @@ tdd	https://github.com/obra/superpowers.git	skills/test-driven-development	main	
 verification-before-completion	https://github.com/obra/superpowers.git	skills/verification-before-completion	main	b36e0829c6d0140e93cfef2ca599b1b07d4a7797	d8a53168f152b616
 writing-skills	https://github.com/obra/superpowers.git	skills/writing-skills	main	b36e0829c6d0140e93cfef2ca599b1b07d4a7797	36da006f1b840220
 grilling	https://github.com/mattpocock/skills.git	skills/productivity/grilling	main	6654f6b60cd9d5be8b54c6fafe44346dabeb3b76	d5833e50e0081bbf
+grill-me	https://github.com/mattpocock/skills.git	skills/productivity/grill-me	main	6654f6b60cd9d5be8b54c6fafe44346dabeb3b76	14c292fe16c0aed8
 writing-for-agents	https://github.com/mattpocock/skills.git	skills/productivity/writing-for-agents	main	6654f6b60cd9d5be8b54c6fafe44346dabeb3b76	dc53f07d1f662137
 wait-what	https://github.com/mattpocock/skills.git	skills/productivity/wait-what	main	6654f6b60cd9d5be8b54c6fafe44346dabeb3b76	d8c5157780c8b493
 handoff	https://github.com/mattpocock/skills.git	skills/productivity/handoff	main	6654f6b60cd9d5be8b54c6fafe44346dabeb3b76	fe287d0ae54ed66c
@@ -13,3 +14,5 @@ technical-writing	https://github.com/michael-denyer/pstack-claude.git	plugins/ps
 reflect	https://github.com/michael-denyer/pstack-claude.git	plugins/pstack/skills/reflect	main	c2ade4bba14fb4706857286afb5528bc2244bf44	24751e6b1ee9260f
 codebase-design	https://github.com/mattpocock/skills.git	skills/engineering/codebase-design	main	6654f6b60cd9d5be8b54c6fafe44346dabeb3b76	826e65f8d718794b
 domain-modeling	https://github.com/mattpocock/skills.git	skills/engineering/domain-modeling	main	6654f6b60cd9d5be8b54c6fafe44346dabeb3b76	2cc88b237a4704f9
+grill-with-docs	https://github.com/mattpocock/skills.git	skills/engineering/grill-with-docs	main	6654f6b60cd9d5be8b54c6fafe44346dabeb3b76	2dff19547f0f7200
+wizard	https://github.com/mattpocock/skills.git	skills/engineering/wizard	main	6654f6b60cd9d5be8b54c6fafe44346dabeb3b76	fd918004158f826a
