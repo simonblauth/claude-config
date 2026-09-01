@@ -11,7 +11,7 @@ handoff	https://github.com/mattpocock/skills.git	skills/productivity/handoff	mai
 improve-codebase-architecture	https://github.com/mattpocock/skills.git	skills/engineering/improve-codebase-architecture	main	6654f6b60cd9d5be8b54c6fafe44346dabeb3b76	86096700ab48a5fb
 unslop	https://github.com/michael-denyer/pstack-claude.git	plugins/pstack/skills/unslop	main	c2ade4bba14fb4706857286afb5528bc2244bf44	6cdf10ec993f8a45
 technical-writing	https://github.com/michael-denyer/pstack-claude.git	plugins/pstack/skills/technical-writing	main	c2ade4bba14fb4706857286afb5528bc2244bf44	63dde1ee42c02c45
-reflect	https://github.com/michael-denyer/pstack-claude.git	plugins/pstack/skills/reflect	main	c2ade4bba14fb4706857286afb5528bc2244bf44	24751e6b1ee9260f
+reflect	https://github.com/michael-denyer/pstack-claude.git	plugins/pstack/skills/reflect	main	1716d5d6e0a8f50f137626d6f480d0f8533959c9	a96110679e7add50
 codebase-design	https://github.com/mattpocock/skills.git	skills/engineering/codebase-design	main	6654f6b60cd9d5be8b54c6fafe44346dabeb3b76	826e65f8d718794b
 domain-modeling	https://github.com/mattpocock/skills.git	skills/engineering/domain-modeling	main	6654f6b60cd9d5be8b54c6fafe44346dabeb3b76	2cc88b237a4704f9
 grill-with-docs	https://github.com/mattpocock/skills.git	skills/engineering/grill-with-docs	main	6654f6b60cd9d5be8b54c6fafe44346dabeb3b76	2dff19547f0f7200
