@@ -27,7 +27,7 @@ Nothing auto-applies. `check` reports and stops.
 - an upstream skill's content moved past the recorded hash
 
 The middle one is why a machine that never pulls still gets told. It runs from a
-SessionStart hook, at most once every 24 hours. `--local-only` skips the network.
+SessionStart hook, once per calendar day. `--local-only` skips the network.
 
 ## New machine
 

@@ -32,7 +32,10 @@ CACHE = REPO / ".cache"
 HEADER = "# canonical\trepo\tpath\tref\tsha\tcontent"
 MANIFEST_NAME = ".claude-config-manifest.json"
 STAMP_NAME = ".claude-config-stamp"
-STALE_SECONDS = 24 * 60 * 60
+
+
+def today() -> str:
+    return time.strftime("%Y-%m-%d")
 
 
 def config_dir() -> Path:
@@ -294,15 +297,20 @@ def cmd_install(args) -> int:
 def cmd_check(args) -> int:
     cfg = config_dir()
     stamp = cfg / STAMP_NAME
-    if args.daily and stamp.exists():
-        if time.time() - stamp.stat().st_mtime < STALE_SECONDS:
-            return 0
-    cfg.mkdir(parents=True, exist_ok=True)
-    stamp.write_text(str(int(time.time())), encoding="utf-8")
+    # Once per calendar day, not per rolling 24h. A rolling window starts at
+    # whatever hour it last ran, so it drifts later each day and skips the
+    # next morning entirely.
+    if args.daily and stamp.exists() and stamp.read_text(encoding="utf-8").strip() == today():
+        return 0
 
     repo = check_repo(args.local_only)
     local = check_local(cfg)
     upstream = check_upstream() if not args.local_only else []
+
+    # Stamped only once the checks are through: a fetch killed by the hook
+    # timeout must not spend the day.
+    cfg.mkdir(parents=True, exist_ok=True)
+    stamp.write_text(today(), encoding="utf-8")
 
     if not repo and not local and not upstream:
         if not args.quiet:
@@ -406,7 +414,7 @@ def main() -> int:
     i.set_defaults(func=cmd_install)
 
     c = sub.add_parser("check", help="report drift, change nothing")
-    c.add_argument("--daily", action="store_true", help="no-op if run in the last 24h")
+    c.add_argument("--daily", action="store_true", help="no-op if already run today")
     c.add_argument("--quiet", action="store_true", help="print only when there is drift")
     c.add_argument("--local-only", action="store_true", help="skip the network")
     c.set_defaults(func=cmd_check)
