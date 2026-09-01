@@ -83,4 +83,15 @@ Language-specific rules live in `~/.claude/rules/` (path-scoped; loaded only whe
 
 ## Documentation
 
+### README
+
 - The main README of a repository is meant for humans to quickly read and understand. Keep it concise and meaningful. Examples are welcome. If the scope becomes too large, create separate documentation files and link to them from the README.
+
+### Where a rule goes
+
+Two questions decide whether a rule or a fact earns prose in a CLAUDE.md line, a doc paragraph, or a comment. Both answers must be yes.
+
+1. **Does breaking it fail silently?** A rule that a test, a type error, an exception or a linter already catches needs no prose. The failure is the documentation.
+2. **Is the reader who needs it somewhere else?** A rule you would read anyway while editing the thing it governs belongs next to that code, in its docstring.
+
+Whichever place wins is the only one. A rule written in two places is a rule that will disagree with itself. Apply the same two questions to prose already on disk whenever you touch it, and cut what fails them.
