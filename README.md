@@ -14,6 +14,10 @@ Developer Mode.
 
 Nothing auto-applies. `check` reports and stops.
 
+The root `CLAUDE.md` is content, not config for this repo: `install` copies it
+to `~/.claude/CLAUDE.md`. Rules for working on the repo itself live in
+`.claude/CLAUDE.md`, which `install` never touches.
+
 ## Commands
 
     python cc.py vendor [name ...]   fetch upstream, record sha + content hash
