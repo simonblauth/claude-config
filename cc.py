@@ -313,18 +313,37 @@ def cmd_check(args) -> int:
     stamp.write_text(today(), encoding="utf-8")
 
     if not repo and not local and not upstream:
-        if not args.quiet:
-            print("claude-config: no drift")
-        return 0
+        report = "" if args.quiet else "claude-config: no drift"
+    else:
+        lines = ["claude-config drift"]
+        lines += [f"  repo      {line}" for line in repo]
+        lines += [f"  local     {line}" for line in local]
+        lines += [f"  upstream  {line}" for line in upstream]
+        lines.append(f"  at        {REPO}")
+        report = "\n".join(lines)
 
-    print("claude-config drift")
-    for line in repo:
-        print(f"  repo      {line}")
-    for line in local:
-        print(f"  local     {line}")
-    for line in upstream:
-        print(f"  upstream  {line}")
-    print(f"  at        {REPO}")
+    if not report:
+        return 0
+    if args.hook:
+        # Plain SessionStart stdout is documented to become model context but
+        # was observed dropped (2026-09-02), and it never shows in the
+        # fullscreen TUI. JSON is explicit on both channels: systemMessage for
+        # the user, additionalContext for the model. The VS Code extension
+        # ignores systemMessage (anthropics/claude-code#15344, closed "not
+        # planned"), so the context also asks Claude to relay the report.
+        print(json.dumps({
+            "hookSpecificOutput": {
+                "hookEventName": "SessionStart",
+                "additionalContext": report + (
+                    "\n\nRepeat this drift report verbatim to the user in "
+                    "your first reply. Some GUIs render no systemMessage, so "
+                    "this may be the only way the user sees it."
+                ),
+            },
+            "systemMessage": report,
+        }))
+    else:
+        print(report)
     return 0
 
 
@@ -417,6 +436,8 @@ def main() -> int:
     c.add_argument("--daily", action="store_true", help="no-op if already run today")
     c.add_argument("--quiet", action="store_true", help="print only when there is drift")
     c.add_argument("--local-only", action="store_true", help="skip the network")
+    c.add_argument("--hook", action="store_true",
+                   help="emit SessionStart hook JSON instead of plain text")
     c.set_defaults(func=cmd_check)
 
     args = p.parse_args()

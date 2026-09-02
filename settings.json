@@ -31,7 +31,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"{{PYTHON}}\" \"{{REPO}}/cc.py\" check --daily --quiet",
+            "command": "\"{{PYTHON}}\" \"{{REPO}}/cc.py\" check --daily --quiet --hook",
             "timeout": 120
           }
         ]
