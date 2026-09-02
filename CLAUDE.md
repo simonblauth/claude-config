@@ -4,13 +4,10 @@
 
 ### Commits
 
-- Subject ≤50 chars, imperative mood. Conventional Commits, except for the `feat:` prefix.
-- Body: hard cap 10 lines, ~70 chars/line. <5 lines preferred. Most commits need no body at all.
-- Exception: a genuinely complicated change may use full sentences — but still ≤10 lines total.
-- No `Summary:` / `Context:` / `Verification:` section headers in commit bodies. The PR body is a separate artifact; don't duplicate it into commits.
-- Commit by purpose/feature. When implementing a larger plan that is multi-step or covers multiple purposes, split it into a few logical commits instead of one omnibus commit. Don't go overboard — a handful of purposeful commits, not a gazillion micro-commits.
-- Never commit without signing. If the gpg agent is locked, prompt the user to unlock it instead of skipping the signature.
-- Omit claude co-authorship lines from commits.
+- Subject ≤50 chars, imperative mood. Conventional Commits, minus the `feat:` prefix.
+- Most commits need no body. When one earns its place: ≤10 lines, under 5 preferred, ~70 chars/line, plain prose with no section headers. The PR body is a separate artifact, so don't restate it here.
+- One commit per purpose. Split a multi-purpose change into a handful of logical commits, not one omnibus and not a swarm of micro-commits.
+- Signing is configured and a locked gpg agent fails the commit. Ask the user to unlock it rather than routing around the signature.
 
 ### Pushing
 
