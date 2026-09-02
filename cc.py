@@ -236,16 +236,42 @@ def planned_files(cfg: Path) -> dict[str, bytes]:
                 continue
             out[f"{prefix}/{f.relative_to(base).as_posix()}"] = f.read_bytes()
     out["CLAUDE.md"] = (REPO / "CLAUDE.md").read_bytes()
-    out["settings.json"] = render_settings()
+    out["settings.json"] = render_settings(cfg)
     return out
 
 
-def render_settings() -> bytes:
-    """Substitute this machine's interpreter and repo path into the hook."""
+# Claude Code rewrites these in the installed settings.json (the /model
+# picker persists model and effort level). Repo values seed fresh installs;
+# after that the installed values win and never count as drift.
+SETTINGS_LOCAL_KEYS = ("model", "effortLevel")
+
+
+def render_settings(cfg: Path) -> bytes:
+    """Repo settings for this machine, keeping keys Claude Code owns."""
     text = (REPO / "settings.json").read_text(encoding="utf-8")
     text = text.replace("{{PYTHON}}", json_escape(sys.executable))
     text = text.replace("{{REPO}}", json_escape(str(REPO)))
-    return text.encode("utf-8")
+    planned = json.loads(text)
+    installed = read_json(cfg / "settings.json")
+    for key in SETTINGS_LOCAL_KEYS:
+        if key in installed:
+            planned[key] = installed[key]
+    return (json.dumps(planned, indent=2) + "\n").encode("utf-8")
+
+
+def read_json(path: Path) -> dict:
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+
+
+def in_sync(rel: str, target: Path, data: bytes) -> bool:
+    """settings.json compares parsed: Claude Code reorders keys on rewrite."""
+    if rel == "settings.json":
+        installed = read_json(target)
+        return bool(installed) and installed == json.loads(data)
+    return target.read_bytes() == data
 
 
 def json_escape(s: str) -> str:
@@ -267,7 +293,7 @@ def cmd_install(args) -> int:
     written = 0
     for rel, data in sorted(planned.items()):
         target = cfg / rel
-        if target.exists() and target.read_bytes() == data:
+        if target.exists() and in_sync(rel, target, data):
             continue
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_bytes(data)
@@ -385,7 +411,7 @@ def check_local(cfg: Path) -> list[str]:
         target = cfg / rel
         if not target.exists():
             out.append(f"{rel} missing, run install")
-        elif target.read_bytes() != data:
+        elif not in_sync(rel, target, data):
             out.append(f"{rel} differs from repo")
     return out
 
