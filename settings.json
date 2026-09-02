@@ -19,6 +19,9 @@
     ]
   },
   "autoMemoryEnabled": false,
+  "attribution": {
+    "commit": ""
+  },
   "model": "opus",
   "effortLevel": "xhigh",
   "tui": "fullscreen",
