@@ -1,6 +1,6 @@
 ---
 name: unslop
-description: Use before writing anything a human reads, replies in this session included: the reply that reports finished work, a plan, a commit message, PR or MR description, README or other doc prose, issue body, review comment. Always applies.
+description: "Use before writing anything a human reads, replies in this session included: the reply that reports finished work, a plan, a commit message, PR or MR description, README or other doc prose, issue body, review comment. Always applies."
 menu-description: clean up writing by removing AI tells
 ---
 
