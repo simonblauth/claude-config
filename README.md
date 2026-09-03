@@ -1,7 +1,8 @@
 # claude-config
 
-My Claude Code setup: user instructions, rules, and a curated set of skills
-vendored from other people's repos under names I chose.
+My Claude Code setup: user instructions, rules, and a curated set of skills,
+most vendored from other people's repos under names I chose, a few written here.
+Only the vendored ones have a row in `sources.tsv`.
 
 ## Why it works this way
 
