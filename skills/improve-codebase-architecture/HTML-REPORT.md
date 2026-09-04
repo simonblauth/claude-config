@@ -9,33 +9,78 @@ The architectural review is rendered as a single self-contained HTML file in the
 <html lang="en">
   <head>
     <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark" />
     <title>Architecture review for {{repo name}}</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script type="module">
       import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
-      mermaid.initialize({ startOnLoad: true, theme: "neutral", securityLevel: "loose" });
+      mermaid.initialize({
+        startOnLoad: true,
+        theme: "dark",
+        securityLevel: "loose",
+        themeVariables: {
+          background: "#0f172a", primaryColor: "#1e293b", primaryBorderColor: "#475569",
+          primaryTextColor: "#e2e8f0", secondaryColor: "#334155", tertiaryColor: "#1e293b",
+          lineColor: "#64748b", textColor: "#cbd5e1", fontSize: "13px",
+          actorBkg: "#1e293b", actorBorder: "#475569", actorTextColor: "#e2e8f0",
+          actorLineColor: "#475569", signalColor: "#94a3b8", signalTextColor: "#cbd5e1",
+          labelBoxBkgColor: "#1e293b", labelBoxBorderColor: "#475569", labelTextColor: "#e2e8f0",
+          loopTextColor: "#cbd5e1", noteBkgColor: "#422006", noteTextColor: "#fde68a",
+          noteBorderColor: "#a16207", sequenceNumberColor: "#0f172a",
+        },
+      });
     </script>
     <style>
       /* small custom layer for things Tailwind doesn't cover cleanly:
-         dashed seam lines, hand-drawn-feeling arrow heads, etc. */
-      .seam { stroke-dasharray: 4 4; }
-      .leak { stroke: #dc2626; }
-      .deep { background: linear-gradient(135deg, #0f172a, #1e293b); }
+         dashed seam lines, schematic labels, the deep-module mass. */
+      .seam { stroke-dasharray: 5 4; }
+      .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+      .lbl { font-size: 10px; letter-spacing: .12em; text-transform: uppercase; }
+      .deepbox {
+        background: linear-gradient(135deg, #1e293b, #0f172a);
+        border: 2px solid #34d399;
+        box-shadow: 0 0 0 1px rgba(52,211,153,.12), 0 8px 28px -12px rgba(52,211,153,.35);
+      }
+      /* diagonal red hatch, laid over a box that leaks */
+      .hatch { background-image: repeating-linear-gradient(45deg, rgba(248,113,113,.28) 0 4px, transparent 4px 8px); }
+      .mermaid { font-size: 13px; }
+      .mermaid svg { max-width: 100%; height: auto; }
+      ::selection { background: #34d399; color: #052e1a; }
     </style>
   </head>
-  <body class="bg-stone-50 text-slate-900 font-sans">
-    <main class="max-w-5xl mx-auto px-6 py-12 space-y-12">
+  <body class="bg-slate-950 text-slate-200 font-sans antialiased">
+    <main class="max-w-5xl mx-auto px-6 py-14 space-y-14">
       <header>...</header>
-      <section id="candidates" class="space-y-10">...</section>
+      <section id="candidates" class="space-y-12">...</section>
       <section id="top-recommendation">...</section>
     </main>
   </body>
 </html>
 ```
 
+## Palette
+
+Dark only: no light variant, and nothing that assumes a white page. Slate carries every surface, emerald is the single accent, red means leakage, amber means warning. These reports get read late at night.
+
+| Role | Classes |
+| --- | --- |
+| Page | `bg-slate-950 text-slate-200` |
+| Card, and each pane of a before/after pair | `bg-slate-900` on `border-slate-800` |
+| Box inside a diagram | `bg-slate-800/60` on `border-slate-700` |
+| Heading | `font-serif text-slate-50` |
+| Prose | `text-slate-300`; `.lbl` labels and inline asides `text-slate-500` |
+| Accent | `text-emerald-300` for accent text and links, `text-emerald-400` for glyphs, `border-emerald-500` for a left rule beside a conclusion, `.deepbox` for the deep-module mass |
+| Leakage | `border-red-500/50 bg-red-500/10 text-red-200`, `.hatch` over the box that leaks, arrowheads `#f87171` |
+| Warning, ADR callout | `border-amber-500/30 bg-amber-500/10 text-amber-100/80` |
+
+Coloured surfaces are tints, never solids: `bg-<hue>-500/10` over slate stains the page instead of introducing a second background. Badges take the same trio one step brighter, `bg-<hue>-500/15 text-<hue>-300 border-<hue>-500/30`; the neutral badge is `bg-slate-800 text-slate-400 border-slate-700`.
+
+Divide a card's before/after with a `gap-px` grid on `bg-slate-800`, panes `bg-slate-900`: the divider is the grid gap, not a border.
+
 ## Header
 
-Repo name, date, and a compact legend: solid box = module, dashed line = seam, red arrow = leakage, thick dark box = deep module. No introduction paragraph. Straight into the candidates.
+Repo name, date, and a compact legend: solid box = module, dashed line = seam, red arrow = leakage, emerald-ringed box = deep module. No introduction paragraph. Straight into the candidates.
 
 ## Candidate card
 
@@ -44,7 +89,7 @@ The diagrams carry the weight. Prose is sparse, plain, and uses the glossary ter
 Each candidate is one `<article>`:
 
 - **Title**: short, names the deepening (e.g. "Collapse the Order intake pipeline").
-- **Badge row**: recommendation strength (`Strong` = emerald, `Worth exploring` = amber, `Speculative` = slate), plus a tag for the dependency category (`in-process`, `local-substitutable`, `ports & adapters`, `mock`).
+- **Badge row**: recommendation strength (`Strong` = emerald, `Worth exploring` = amber, `Speculative` = neutral), plus a tag for the dependency category (`in-process`, `local-substitutable`, `ports & adapters`, `mock`).
 - **Files**: monospaced list, `font-mono text-sm`.
 - **Before / After diagram**: the centrepiece. Two columns, side by side. See patterns below.
 - **Problem**: one sentence. What hurts.
@@ -60,16 +105,16 @@ Pick the pattern that fits the candidate. Mix them. Don't make every diagram loo
 
 ### Mermaid graph (the workhorse for dependencies / call flow)
 
-Use a Mermaid `flowchart` or `graph` when the point is "X calls Y calls Z, and look at the mess." Wrap it in a Tailwind-styled card so it doesn't feel parachuted in. Style with classDef to colour leakage edges red and the deep module dark. Sequence diagrams work well for "before: 6 round-trips; after: 1."
+Use a Mermaid `flowchart` or `graph` when the point is "X calls Y calls Z, and look at the mess." Wrap it in a Tailwind-styled card so it doesn't feel parachuted in. Style with classDef to colour leakage edges red and the deep module emerald. Sequence diagrams work well for "before: 6 round-trips; after: 1."
 
 ```html
-<div class="rounded-lg border border-slate-200 bg-white p-4">
+<div class="rounded-lg border border-slate-800 bg-slate-900 p-4">
   <pre class="mermaid">
     flowchart LR
       A[OrderHandler] --> B[OrderValidator]
       B --> C[OrderRepo]
       C -.leak.-> D[PricingClient]
-      classDef leak stroke:#dc2626,stroke-width:2px;
+      classDef leak stroke:#f87171,stroke-width:2px;
       class C,D leak
   </pre>
 </div>
@@ -77,7 +122,7 @@ Use a Mermaid `flowchart` or `graph` when the point is "X calls Y calls Z, and l
 
 ### Hand-built boxes-and-arrows (when Mermaid's layout fights you)
 
-Modules as `<div>`s with borders and labels. Arrows as inline SVG `<line>` or `<path>` elements positioned absolutely over a relative container. Reach for this when you want the "after" diagram to feel like one thick-bordered deep module with greyed-out internals, since Mermaid won't render that with the right weight.
+Modules as `<div>`s with borders and labels. Arrows as inline SVG `<line>` or `<path>` elements positioned absolutely over a relative container. Reach for this when you want the "after" diagram to feel like one `.deepbox` mass with greyed-out internals, since Mermaid won't render that with the right weight.
 
 ### Cross-section (good for layered shallowness)
 
@@ -93,10 +138,9 @@ Before: a tree of function calls rendered as nested boxes. After: the same tree 
 
 ## Style guidance
 
-- Lean editorial, not corporate-dashboard. Generous whitespace. Serif optional for headings (`font-serif` works well with stone/slate).
-- Colour sparingly: one accent (emerald or indigo) plus red for leakage and amber for warnings.
+- Lean editorial, not corporate-dashboard. Generous whitespace.
 - Keep diagrams ~320px tall so before/after sits comfortably side by side without scrolling.
-- Use `text-xs uppercase tracking-wider` for module labels inside diagrams, so they read as schematic, not as UI.
+- Label modules inside diagrams with `.lbl`, so they read as schematic, not as UI.
 - The only scripts are the Tailwind CDN and the Mermaid ESM import. The report is otherwise static: no app code, no interactivity beyond Mermaid's own rendering.
 
 ## Top recommendation section
