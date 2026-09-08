@@ -1,5 +1,5 @@
 diff --git a/SKILL.md b/SKILL.md
-index b5557ce..7eb8767 100644
+index 2102826..5d7df34 100644
 --- a/SKILL.md
 +++ b/SKILL.md
 @@ -1,6 +1,6 @@
@@ -7,6 +7,6 @@ index b5557ce..7eb8767 100644
  name: technical-writing
 -description: "Layered technical-writing standard: Diátaxis structure, Google developer style sentences, STE instruction rules, Global English syntax. Use for /technical-writing or when writing or reviewing docs, RFCs, readmes, PR descriptions, or commit messages."
 +description: "Use when writing or reviewing a README, docs, an RFC, a PR or MR description, or a commit message. Complementary to unslop, which strips AI tells from all text; load both. Layers Diátaxis structure, Google developer style, STE instruction rules, Global English syntax."
- menu-description: write docs, RFCs, readmes, PR descriptions, and commit messages to one layered standard
  ---
  
+ # Technical writing
