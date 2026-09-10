@@ -1,39 +1,51 @@
 ---
 name: issue-to-pr
 description: >
-  Take a GitHub issue from a fresh worktree to an open, reviewed PR: reproduce
-  it, fix it under tdd, verify, push, request the Copilot review and work its
-  feedback. Grants remote-write on that one branch and PR, and nothing else.
-  Runs only on /issue-to-pr.
+  Take an issue from a fresh worktree to an open, reviewed pull or merge
+  request: reproduce it, fix it under tdd, verify, push, get a review and work
+  its feedback. Detects GitHub or GitLab and grants remote-write on that one
+  branch and request, and nothing else. Runs only on /issue-to-pr.
 argument-hint: "<issue number or URL> [base ref]"
 disable-model-invocation: true
 ---
 
 # Issue to PR
 
-One issue, one branch, one PR. The run ends with a PR that has been through a review, and a hand-back that says what was decided and what was left alone.
+One issue, one branch, one request. The run ends with a request that has been through a review, and a hand-back that says what was decided and what was left alone.
+
+Steps 3 through 6 read the same on every forge. Steps 1, 7 and 8 take their commands from the reference file step 0 resolves.
 
 ## The grant
 
-Typing `/issue-to-pr` is the explicit remote-write instruction `CLAUDE.md` requires. This skill is user-invoked, so no agent path reaches it, and the invocation is the user's own keystroke. It authorizes, for this run:
+Typing `/issue-to-pr` is the explicit remote-write instruction `CLAUDE.md` requires. This skill is user-invoked, so no agent path reaches it, and the invocation is the user's own keystroke. Step 0's reference file enumerates the verbs it authorizes, because the two forges spell them differently.
 
-- `git push` of the one branch this run creates, to `origin`, as often as the review loop needs
-- one `gh pr create` from that branch, plus edits to that PR's title and body
-- one Copilot review request on that PR, and replies to review threads on it
+The whole-run span is the one relaxation of the single-turn rule, because step 8 needs later pushes. Scope stays single-purpose: that branch, that request. Add commits, since the grant stops at `--force`.
 
-The whole-run span is the one relaxation of the single-turn rule, because step 8 needs later pushes. Scope stays single-purpose: that branch, that PR. Add commits, since the grant stops at `--force`.
+Behind a fresh ask, as always: any other branch, the default branch, merging or closing the request, opening or closing any issue, labels, assignees, other repositories.
 
-Behind a fresh ask, as always: any other branch, the default branch, merging or closing the PR, opening or closing any issue, labels, assignees, other repositories.
+## 0. Resolve the forge
 
-Say the branch name before the first push, so the user can stop it.
+Origin's host decides which reference file drives the rest of the run. Match it against each CLI's authenticated hosts; both print the bare host on a line of its own:
+
+```bash
+host=$(git remote get-url origin | sed -E 's#^[^@]*@([^:/]+).*#\1#; s#^https?://([^/]+)/.*#\1#')
+echo "host: $host"
+gh   auth status 2>&1 | grep -qx "$host" && echo "GitHub: match" || echo "GitHub: no"
+glab auth status 2>&1 | grep -qx "$host" && echo "GitLab: match" || echo "GitLab: no"
+```
+
+Each line prints its own verdict on purpose. `grep -q` is silent, and a block of bare greps hands back only the last command's exit status, so on a GitHub repo the GitHub match is discarded and the block looks like no match at all.
+
+Exactly one match resolves the forge. Two matches mean a mirrored repo, none means the host is unauthenticated or self-hosted under another name; both are an `AskUserQuestion`. A guess here picks the wrong CLI for every remote command that follows.
+
+- GitHub → [`references/github.md`](references/github.md)
+- GitLab → [`references/gitlab.md`](references/gitlab.md)
+
+**Done when** one forge is named, its reference file is read, and its grant is in context. Take every remote command in steps 1, 7 and 8 from that file alone, and name the forge in the step-9 hand-back.
 
 ## 1. Read the issue
 
-    gh issue view <n> --json title,body,state,labels,url,comments
-
-The comments hold decisions the body does not. Then check whether someone is already on it:
-
-    gh pr list --search <n> --state all
+Read the issue with its comments, then check whether someone already has a request in flight. Step 0's file has both commands. The comments hold decisions the body does not.
 
 **Done when** you can state the observable wrong behavior and where the reporter saw it, in one sentence. When neither the body nor the comments say, ask before cutting anything.
 
@@ -79,7 +91,7 @@ Ask the user when either trigger fires. They are independent, so one is enough.
 
 Then make one `AskUserQuestion` call carrying every open fork at once, each option stating its cost.
 
-When neither fires, pick the approach that matches the surrounding code, write that choice and its one-line reason into the PR body, and keep going. The written reason is what a reviewer needs, and it costs no round trip. Decide these yourself: names, file placement inside the obvious module, which existing helper to reuse, error wording, test names, and whether to add the changelog entry the repo already keeps.
+When neither fires, pick the approach that matches the surrounding code, write that choice and its one-line reason into the request body, and keep going. The written reason is what a reviewer needs, and it costs no round trip. Decide these yourself: names, file placement inside the obvious module, which existing helper to reuse, error wording, test names, and whether to add the changelog entry the repo already keeps.
 
 ## 5. Implement
 
@@ -95,44 +107,25 @@ Load `verification-before-completion`. Three rows this skill adds:
 | Whole suite | the repo's full suite and lint pass, not just the new test |
 | Diff scope | every hunk in `git diff origin/<base>...HEAD` traces to the issue |
 
-## 7. Push and open the PR
+## 7. Push and open the request
 
-State the branch and the base, push, then open the PR:
+Say the branch and the base before the first push, so the user can stop it. Then:
 
     git push -u origin <branch>
-    gh pr create --base <base>
 
-Load `technical-writing` and `unslop` for the body. It carries the wrong behavior in one line, the root cause step 3 established, what changed, the step-3 command before and after, the direction chosen and why when step 4 forked, and `Closes #<n>`.
+Open the request with step 0's file's command. Load `technical-writing` and `unslop` for the body. It carries the wrong behavior in one line, the root cause step 3 established, what changed, the step-3 command before and after, the direction chosen and why when step 4 forked, and the closing trailer step 0's file names.
+
+**Done when** the request is open against the intended base and its body carries all six.
 
 ## 8. Work the review
 
-Request the Copilot review with the first form that lands:
+**Every finding is a claim, not an order.** Step 0's file names this forge's reviewer and says how a claim that holds and a claim that does not each get recorded.
 
-    gh pr edit <n> --add-reviewer @copilot
-    gh api --method POST repos/{owner}/{repo}/pulls/<n>/requested_reviewers \
-      -f 'reviewers[]=copilot-pull-request-reviewer[bot]'
-
-The first needs `gh` 2.88.0 or newer. Both fail when the organization has not enabled Copilot review. Report that once, then work CI alone. Do not retry in a loop.
-
-A review usually lands in under 30 seconds, per [the Copilot docs](https://docs.github.com/en/copilot/how-tos/agents/request-a-code-review/use-code-review), so poll for it rather than arming a watch. Read all four sources, which are four different endpoints:
-
-    gh api repos/{owner}/{repo}/pulls/<n>/comments   # inline review comments
-    gh pr view <n> --json reviews,latestReviews      # review summaries
-    gh pr view <n> --json comments                   # PR-level comments
-    gh pr checks <n>                                 # CI
-
-**Every comment is a claim, not an order.** Check it against the code first. A claim that holds goes back through `tdd`, red test first, then a follow-up commit. A claim that does not hold gets a reply saying what you checked and what you found, and no code change. Reply into the thread the comment came from:
-
-    gh api --method POST \
-      repos/{owner}/{repo}/pulls/<n>/comments/<comment_id>/replies -f body='...'
-
-Resolving threads stays with the humans.
-
-**Done when** every comment has either a commit that addresses it or a reply that declines it with a reason, and `gh pr checks` is green.
+**Done when** every finding has either a commit that addresses it or a written decline with a reason, and CI is green.
 
 ## 9. Hand back
 
-Report the PR URL, the branch, the step-3 command before and after, each review comment with what it got, and every adjacent problem you found and left alone. Say where the worktree is, and leave it on disk.
+Report the forge, the request URL, the branch, the step-3 command before and after, each finding with what it got, and every adjacent problem you found and left alone. Say where the worktree is, and leave it on disk.
 
 The grant ends here. A later review round needs a fresh `/issue-to-pr`.
 
@@ -140,12 +133,14 @@ The grant ends here. A later review round needs a fresh `/issue-to-pr`.
 
 | Excuse | Reality |
 |--------|---------|
-| "The fix is obvious, skip the repro" | Then red costs a minute. No recorded step-3 command, no PR. |
-| "Copilot flagged it, so change it" | Check the claim. A reply that declines it with a reason is a finished thread. |
+| "The fix is obvious, skip the repro" | Then red costs a minute. No recorded step-3 command, no request. |
+| "The reviewer flagged it, so change it" | Check the claim. A decline with a reason is a finished finding. |
 | "Amend and force-push, the history is cleaner" | Add commits. The grant stops at `--force`. |
 | "The new test passes, so the suite is covered" | Row two of step 6 is the whole suite. |
-| "This one needs a decision" (a name, a file, a helper) | That is step 4's own list. Pick what matches the code and record it in the PR body. |
+| "This one needs a decision" (a name, a file, a helper) | That is step 4's own list. Pick what matches the code and record it in the request body. |
 | "While I am in here" | Out of the diff, into step 9. |
-| "The PR is open, so it is done" | Step 8 has not run. |
+| "The request is open, so it is done" | Step 8 has not run. |
 | "`origin/main` is current, I pulled recently" | `git fetch origin`. |
 | "The user authorized one push" | The grant covers the review loop's pushes. It never covers `--force`, another branch, or a merge. |
+| "The trailer says `Closes`, so the issue closes" | On GitLab that holds only against the default branch. Check step 0's file before promising it. |
+| "Both CLIs are installed, so it is GitHub" | Step 0 matches origin's host, not what is on the machine. |
