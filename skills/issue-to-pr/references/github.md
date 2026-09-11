@@ -46,7 +46,7 @@ A review usually lands in under 30 seconds, per [the Copilot docs](https://docs.
     gh pr view <n> --json comments                   # PR-level comments
     gh pr checks <n>                                 # CI
 
-Check each claim against the code first. A claim that holds goes back through `tdd`, red test first, then a follow-up commit. A claim that does not hold gets a reply saying what you checked and what you found, and no code change. Reply into the thread the comment came from:
+Work each claim as step 8 says. A decline is a reply saying what you checked and what you found, into the thread the comment came from; a fix gets a reply naming its commit and the mechanism it removed:
 
     gh api --method POST \
       repos/{owner}/{repo}/pulls/<n>/comments/<comment_id>/replies -f body='...'

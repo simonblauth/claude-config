@@ -119,9 +119,13 @@ Open the request with step 0's file's command. Load `technical-writing` and `uns
 
 ## 8. Work the review
 
-**Every finding is a claim, not an order.** Step 0's file names this forge's reviewer and says how a claim that holds and a claim that does not each get recorded.
+**Every finding is a claim, not an order.** Step 0's file names this forge's reviewer and says where a claim that holds and a claim that does not each get recorded.
 
-**Done when** every finding has either a commit that addresses it or a written decline with a reason, and CI is green.
+A claim that **does not hold** gets a written decline naming what you checked and what you found, and no code change.
+
+A claim that **holds** is a bug report against your own diff, and it takes step 3's bug row: `systematic-debugging` to the mechanism, then `tdd` with one red test for the class. The fix lands at the mechanism and covers every site it runs, the ones the reviewer anchored and the ones it did not, in one commit per mechanism. The reviewer's line number is where the symptom showed, not where the fix goes.
+
+**Done when** every finding has either a commit that addresses it or a written decline with a reason, no two commits remove the same mechanism, and CI is green.
 
 ## 9. Hand back
 
@@ -135,6 +139,7 @@ The grant ends here. A later review round needs a fresh `/issue-to-pr`.
 |--------|---------|
 | "The fix is obvious, skip the repro" | Then red costs a minute. No recorded step-3 command, no request. |
 | "The reviewer flagged it, so change it" | Check the claim. A decline with a reason is a finished finding. |
+| "The reviewer said line 42, so fix line 42" | The anchor is a symptom. Step 3's bug row, then one commit at the mechanism. |
 | "Amend and force-push, the history is cleaner" | Add commits. The grant stops at `--force`. |
 | "The new test passes, so the suite is covered" | Row two of step 6 is the whole suite. |
 | "This one needs a decision" (a name, a file, a helper) | That is step 4's own list. Pick what matches the code and record it in the request body. |

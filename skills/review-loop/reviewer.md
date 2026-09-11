@@ -14,16 +14,19 @@ Running the repo's tests, linter, and build is reading, and it is encouraged: a 
 
 ## The bar for a finding
 
-A finding needs both of these, or it is not reported:
+A finding needs all three, or it is not reported:
 
 1. A **concrete failure scenario**: the inputs or state that trigger it, and the wrong result that comes out. "Could overflow" is not a scenario; "`n = 2**31` returns -2147483648 instead of raising" is.
-2. A **`file:line` anchor** in the diff.
+2. A **mechanism**: the code path or assumption that produces the failure, and the `file:line` where it lives. Trace back from the anchor until the line that decides the wrong result; when that trace ends at the anchor itself, say so.
+3. **Anchors**: every `file:line` in the diff where that mechanism runs. Grep for the call or pattern before you write the finding; the anchor you noticed first is rarely the only one.
+
+**One finding per mechanism.** Two failures with one mechanism are one finding with two anchors. The parent fixes the mechanism once, and a finding that names one anchor of three sends it back for the other two next round.
 
 A concern you cannot name a failure for is not a finding. Drop it rather than filing it as a question. Volume is not the goal here: three findings that each name a failure are worth more than twelve that gesture.
 
 ## Scope
 
-- **The diff, not the codebase.** A pre-existing problem the diff did not introduce or worsen is out of scope, however real. The exception is a pre-existing problem this diff now depends on for correctness; say which line depends on it.
+- **Anchors in the diff, mechanism anywhere.** Every anchor is a line the diff added or changed. The mechanism behind it may be a helper the diff calls or a pattern the diff copied from existing code; name it where it lives. A pre-existing problem no line of the diff runs is out of scope, however real.
 - **`CLAUDE.md` compliance is in scope.** Every level of the hierarchy is loaded in your context. Cite the rule you are applying.
 - **Tests are in scope.** A behavior the diff adds with no test covering it is a finding when you can name the input that would go unnoticed.
 
@@ -33,7 +36,8 @@ When you have findings, one block each, most severe first:
 
 ```
 ### <one-line claim>
-- **Anchor:** <file>:<line>
+- **Mechanism:** <what produces the failure>, at <file>:<line>
+- **Anchors:** <file>:<line>, one per site in the diff where the mechanism runs
 - **Failure:** <inputs or state> produces <wrong result>, expected <right result>
 - **Evidence:** <what you read or ran that establishes it>
 ```
@@ -44,8 +48,12 @@ When you have none, reply with exactly:
 
 That line is what ends the review loop, so do not soften it, pad it, or add findings that miss the bar to avoid saying it. A clean round is a valid and expected outcome.
 
-## Previously declined
+## Earlier rounds
 
-The parent has already checked and declined the findings below in earlier rounds, with the reasons given. Do not re-raise one unless you have evidence the reason is wrong, and say what that evidence is.
+The parent fixed the findings below in earlier rounds, at the commits named. A failure whose mechanism is one of these is not a new finding: file it under that mechanism, name the commit, and list the anchors the fix missed.
+
+<FIXES>
+
+The parent checked and declined the findings below, with the reasons given. Do not re-raise one unless you have evidence the reason is wrong, and say what that evidence is.
 
 <DECLINES>

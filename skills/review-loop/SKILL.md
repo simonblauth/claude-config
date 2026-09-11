@@ -49,16 +49,20 @@ Fresh per round, never a continued agent: a reviewer carried forward defends its
 
 **Every finding is a claim, not an order.** Check it against the code first.
 
-- A claim that **holds** goes back through `tdd`, red test first, then a follow-up commit.
 - A claim that **does not hold** gets a written decline naming what you checked and what you found, and no code change.
+- A claim that **holds** is a symptom. Load `systematic-debugging` and trace it to the mechanism before touching code; the reviewer's Mechanism line is its hypothesis, and you confirm or replace it. Then grep for every site that mechanism runs, in the diff and outside it. Then `tdd`: one red test covering the class, one fix at the mechanism, one commit that also covers the sites the reviewer did not anchor.
+
+Two findings with one mechanism are one fix and one commit. `tdd`'s minimal green is minimal for the class the test names, not for the reviewer's one line: a patch at the anchor that leaves the mechanism in place hands the next round a fresh anchor, and the loop turns into one commit per site.
 
 Nothing is left in a third state. A finding you have not checked is not worked.
 
-**Done when** every finding of the round has a commit or a decline.
+**Done when** every finding of the round has a commit or a decline, and no two commits remove the same mechanism.
 
-## 4. Carry declines forward
+## 4. Carry the round forward
 
-Round N+1's prompt lists what round N raised and you declined, with your reasons, in the reviewer's declines block. The reviewer then either drops the point or comes back with new evidence. Without this the loop can never go quiet: a fresh agent re-raises what the last one raised.
+Round N+1's prompt fills the reviewer's earlier-rounds block with both halves of round N: each fix with its mechanism and commit, and each decline with your reason. The reviewer then either drops a declined point or comes back with new evidence, and files a failure at a fixed mechanism as a missed site rather than a new bug. Without the declines the loop can never go quiet, because a fresh agent re-raises what the last one raised. Without the fixes it cannot tell you that a fix was a patch.
+
+A finding filed against a fixed mechanism is that signal. Round N fixed a symptom. Go back to the mechanism, and when the same one comes back a second time, stop fixing sites and take the structure to the user.
 
 ## 5. Stop and report
 
@@ -75,6 +79,9 @@ One note, not one thread per finding. An agent opening threads against its own r
 | Excuse | Reality |
 |--------|---------|
 | "Round 2 only needs to see round 1's fixes" | Every round reviews the whole diff. A round-1 fix can break what round 1 passed. |
+| "The reviewer said line 42, so fix line 42" | The anchor is a symptom. Fix the mechanism and every site it runs, in one commit. |
+| "Minimal green means touch nothing but the anchor" | Minimal for the class the test names. A patch that leaves the mechanism in place buys the next round a fresh anchor. |
+| "Round 2 found a new bug" (same mechanism as a round-1 fix) | Round 1 fixed a symptom. Back to the mechanism, and after a second miss, to the user. |
 | "Keep the same reviewer, it has the context" | That context is the problem. Fresh agent per round. |
 | "The reviewer is wrong, moving on" | A decline is written down, with what you checked. Silence is not a decline. |
 | "Three rounds ran, so it is clean" | Budget exhaustion and a clean round are different hand-backs. |
