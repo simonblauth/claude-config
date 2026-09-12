@@ -24,6 +24,9 @@
   },
   "model": "opus",
   "effortLevel": "xhigh",
+  "env": {
+    "CLAUDE_CODE_SUBAGENT_MODEL": "opus"
+  },
   "tui": "fullscreen",
   "theme": "dark",
   "agentPushNotifEnabled": true,
