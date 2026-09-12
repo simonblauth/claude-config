@@ -53,3 +53,11 @@ The summary note that loop writes is the one note this grant covers:
     glab mr note create <n> --resolvable=false < <file>
 
 `glab mr note` subcommands are flagged EXPERIMENTAL in 1.116.0 ("might be unstable or removed at any time"), so a break here is visible and non-fatal: report it and put the summary in the hand-back instead. `--resolvable=false` keeps the note from blocking merge on projects that require all threads resolved. It takes the body from standard input or a redirected file; there is no `--description-file` on this subcommand.
+
+To read an MR's notes back, whether to confirm that note landed or to read a reply:
+
+    glab mr view <n> --comments -F json
+
+**The key is `Discussions`, and an MR has no `Notes` key at all.** Step 1's issue command returns a flat `Notes` list, so the habit does not carry over: `glab mr view` nests the bodies at `Discussions[].notes[]`, and leaves `Discussions` null without `--comments`. An MR read for `Notes` comes back empty, and a run that trusts that reports a live discussion as no discussion. System notes arrive alongside the human ones, marked `"system": true`.
+
+**Drop step 1's paging flags here.** This command returns every discussion by itself: `gitlab-org/gitlab!252827` comes back with all 269, the same count the discussions endpoint gives across three pages of 100. `--page` only subtracts, skipping `(page - 1) * --per-page` discussions and returning the rest, so on an MR holding fewer than 100 of them step 1's `--per-page 100 --page 2` returns an empty list.
