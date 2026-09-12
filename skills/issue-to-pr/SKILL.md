@@ -47,7 +47,9 @@ Exactly one match resolves the forge. Two matches mean a mirrored repo, none mea
 
 Read the issue with its comments, then check whether someone already has a request in flight. Step 0's file has both commands. The comments hold decisions the body does not.
 
-**Done when** you can state the observable wrong behavior and where the reporter saw it, in one sentence. When neither the body nor the comments say, ask before cutting anything.
+Write down the issue's **boundary** while it is in front of you: the sections that say what done looks like and what the issue excludes, when the template has them (`Done when`, `What this is not`, or whatever they are called there), otherwise the one-sentence statement below. Step 8 measures every review finding against it, and a boundary recalled mid-loop takes the shape of the finding in front of you.
+
+**Done when** you can state the observable wrong behavior and where the reporter saw it, in one sentence, and the boundary is recorded. When neither the body nor the comments say, ask before cutting anything.
 
 ## 2. Cut the worktree
 
@@ -105,7 +107,7 @@ Load `verification-before-completion`. Three rows this skill adds:
 |-----|-------------|
 | Step-3 command | the step-3 command now succeeds, with its output pasted |
 | Whole suite | the repo's full suite and lint pass, not just the new test |
-| Diff scope | every hunk in `git diff origin/<base>...HEAD` traces to the issue |
+| Diff scope | every hunk in `git diff origin/<base>...HEAD` lands inside step 1's boundary |
 
 ## 7. Push and open the request
 
@@ -120,6 +122,8 @@ Open the request with step 0's file's command. Load `technical-writing` and `uns
 ## 8. Work the review
 
 **Every finding is a claim, not an order.** Step 0's file names this forge's reviewer and says where a claim that holds and a claim that does not each get recorded.
+
+Sort each finding by what it asks for before checking it against the code. A claim that a line the diff wrote is wrong, in its result, its test coverage or a `CLAUDE.md` rule it breaks, is in scope whatever step 1's boundary says; the boundary decides what the branch adds, and says nothing about how well it is written. A claim that asks for behavior the boundary does not name, a case handled, a feature grown, a path covered, is **out of scope**, however real. It gets a written decline that quotes the boundary, and a line in the step-9 hand-back proposing the issue it belongs in. Opening that issue is behind a fresh ask. This is the step where a run leaves its issue, because each finding arrives with its own justification and none of them mention the issue.
 
 A claim that **does not hold** gets a written decline naming what you checked and what you found, and no code change.
 
@@ -139,6 +143,7 @@ The grant ends here. A later review round needs a fresh `/issue-to-pr`.
 |--------|---------|
 | "The fix is obvious, skip the repro" | Then red costs a minute. No recorded step-3 command, no request. |
 | "The reviewer flagged it, so change it" | Check the claim. A decline with a reason is a finished finding. |
+| "The reviewer found it, so it is in scope" | The reviewer read the diff, not the issue. A real finding outside the boundary gets a decline and a proposed issue in step 9. |
 | "The reviewer said line 42, so fix line 42" | The anchor is a symptom. Step 3's bug row, then one commit at the mechanism. |
 | "Amend and force-push, the history is cleaner" | Add commits. The grant stops at `--force`. |
 | "The new test passes, so the suite is covered" | Row two of step 6 is the whole suite. |

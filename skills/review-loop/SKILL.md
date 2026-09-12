@@ -29,6 +29,8 @@ Run `git fetch origin` first, then resolve the base as a remote-tracking ref:
 | With no argument | the current branch | `git symbolic-ref --short refs/remotes/origin/HEAD`, already `origin/`-prefixed | wherever it is |
 | From `issue-to-pr` | the request step 7 opened | the base that run already resolved | the branch step 7 pushed |
 
+The change also has a **boundary**, the statement of what it set out to do. From `issue-to-pr` it is the one that run's step 1 recorded; with a number, the request's title and description; with no argument, the commit messages in `git log <base>..HEAD`. It fills the reviewer's boundary block in step 2, and step 3 measures each finding against it.
+
 Both forges return a **bare** branch name, so `origin/` is yours to add. Diffing against a bare `main` in a checkout whose local `main` trails the remote pulls every upstream commit merged since into the review, and the reviewer then files findings against code this change never touched.
 
 Read the **head** ref from that same call and confirm HEAD is on it before diffing. A number names a request on the remote; it says nothing about where this checkout is standing. HEAD left on `main` gives an empty diff, and the loop declares a live request clean; HEAD on some unrelated branch reviews that branch and then posts a step-6 note crediting findings about code the request never touched.
@@ -47,8 +49,10 @@ Fresh per round, never a continued agent: a reviewer carried forward defends its
 
 ## 3. Work each finding as a claim
 
-**Every finding is a claim, not an order.** Check it against the code first.
+**Every finding is a claim, not an order.** Sort it by what it asks for, then check it against the code.
 
+- A claim that a line the diff wrote is **wrong**, in its result, its test coverage or a `CLAUDE.md` rule it breaks, is in scope whatever the boundary says. The boundary decides what the branch adds, and says nothing about how well it is written. Check it against the code, below.
+- A claim that asks for **behavior the boundary does not name**, a case handled, a feature grown, a path covered, is out of scope, however real. It gets a decline that quotes the boundary, and a line in the step-5 hand-back proposing the issue it belongs in.
 - A claim that **does not hold** gets a written decline naming what you checked and what you found, and no code change.
 - A claim that **holds** is a symptom. Load `systematic-debugging` and trace it to the mechanism before touching code; the reviewer's Mechanism line is its hypothesis, and you confirm or replace it. Then grep for every site that mechanism runs, in the diff and outside it. Then `tdd`: one red test covering the class, one fix at the mechanism, one commit that also covers the sites the reviewer did not anchor.
 
@@ -66,7 +70,7 @@ A finding filed against a fixed mechanism is that signal. Round N fixed a sympto
 
 ## 5. Stop and report
 
-The loop ends on a **clean round** (a reviewer that returns no findings) or on the **budget** (three rounds run). These are different outcomes, and the hand-back names which one happened. Three rounds still finding things is a result, not a success: say what the open findings are.
+The loop ends on a **clean round** (a reviewer that returns no findings) or on the **budget** (three rounds run). These are different outcomes, and the hand-back names which one happened. Three rounds still finding things is a result, not a success: say what the open findings are. List the out-of-scope findings separately, each with the issue it belongs in.
 
 ## 6. Summary note
 
@@ -83,6 +87,7 @@ One note, not one thread per finding. An agent opening threads against its own r
 | "Minimal green means touch nothing but the anchor" | Minimal for the class the test names. A patch that leaves the mechanism in place buys the next round a fresh anchor. |
 | "Round 2 found a new bug" (same mechanism as a round-1 fix) | Round 1 fixed a symptom. Back to the mechanism, and after a second miss, to the user. |
 | "Keep the same reviewer, it has the context" | That context is the problem. Fresh agent per round. |
+| "The reviewer found it, so it is in scope" | The reviewer read the diff, not the boundary. A real finding outside the boundary gets a decline and a proposed issue. |
 | "The reviewer is wrong, moving on" | A decline is written down, with what you checked. Silence is not a decline. |
 | "Three rounds ran, so it is clean" | Budget exhaustion and a clean round are different hand-backs. |
 | "`Explore` is cheaper for a read-only pass" | Explore omits `CLAUDE.md`, which is half the review. |

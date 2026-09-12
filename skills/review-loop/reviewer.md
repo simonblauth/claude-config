@@ -26,6 +26,11 @@ A concern you cannot name a failure for is not a finding. Drop it rather than fi
 
 ## Scope
 
+The change set out to do this, and no more:
+
+<BOUNDARY>
+
+- **The boundary bounds behavior, not quality.** A line the diff wrote that gives a wrong result, lacks a test or breaks a `CLAUDE.md` rule is a finding whatever the boundary says. Behavior the diff does not add and the boundary does not name, a case, a feature, a path, belongs in an issue of its own, and this review is not where it gets filed.
 - **Anchors in the diff, mechanism anywhere.** Every anchor is a line the diff added or changed. The mechanism behind it may be a helper the diff calls or a pattern the diff copied from existing code; name it where it lives. A pre-existing problem no line of the diff runs is out of scope, however real.
 - **`CLAUDE.md` compliance is in scope.** Every level of the hierarchy is loaded in your context. Cite the rule you are applying.
 - **Tests are in scope.** A behavior the diff adds with no test covering it is a finding when you can name the input that would go unnoticed.
