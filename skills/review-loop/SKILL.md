@@ -43,6 +43,8 @@ With a number, resolve the forge the way step 0 of `~/.claude/skills/issue-to-pr
 
 Each round spawns **one fresh** `general-purpose` subagent, passing the prompt at `~/.claude/skills/review-loop/reviewer.md` verbatim with its placeholders filled. That path is absolute because the run's working directory is the target repo, where a relative `reviewer.md` resolves to nothing.
 
+Opus is this loop's ceiling. Leave `model` off the spawn unless the round is going cheaper, and never pass one above Opus.
+
 Fresh per round, never a continued agent: a reviewer carried forward defends its earlier findings instead of re-reading the code. Every round reviews the **whole** diff against the base, never the increment, because a fix in round 1 can break what round 1 passed.
 
 `general-purpose`, not `Explore`: per [the subagent docs](https://code.claude.com/docs/en/sub-agents), "Explore and Plan are the only subagents that omit CLAUDE.md and git status", and `CLAUDE.md` compliance is half of what this reviewer checks. Every other subagent starts with "a fresh, isolated context window" that does not see the parent's history, which is the property that makes the review independent. Read-only comes from the prompt, the way `reflect` does it.
@@ -91,6 +93,7 @@ One note, not one thread per finding. An agent opening threads against its own r
 | "The reviewer is wrong, moving on" | A decline is written down, with what you checked. Silence is not a decline. |
 | "Three rounds ran, so it is clean" | Budget exhaustion and a clean round are different hand-backs. |
 | "`Explore` is cheaper for a read-only pass" | Explore omits `CLAUDE.md`, which is half the review. |
+| "A costlier model would review better" | Opus is the ceiling for this loop. Spawn at the cap, not above it. |
 | "One thread per finding is more traceable" | One note. Threads against your own request are theater. |
 | "The base is `main`, that is what the API said" | Both forges return a bare name. Fetch, then diff against `origin/main`. |
 | "The fixes are committed, so the note can claim them" | Standalone commits are local until a fresh ask pushes them. The note says which. |
