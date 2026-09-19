@@ -241,9 +241,10 @@ def planned_files(cfg: Path) -> dict[str, bytes]:
 
 
 # Claude Code rewrites these in the installed settings.json (the /model
-# picker persists model and effort level). Repo values seed fresh installs;
-# after that the installed values win and never count as drift.
-SETTINGS_LOCAL_KEYS = ("model", "effortLevel")
+# picker persists model and effort level, per-model under modelSettings).
+# Repo values seed fresh installs; after that the installed values win and
+# never count as drift.
+SETTINGS_LOCAL_KEYS = ("model", "effortLevel", "modelSettings")
 
 
 def render_settings(cfg: Path) -> bytes:
