@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Vendor, install and drift-check Claude Code skills.
 
-  vendor [name ...]   fetch upstream into skills/, record sha + content hash
+  vendor [name ...]   fetch upstream into skills/, record sha, copy licenses
   install             copy repo content into the Claude config dir
   check [--daily]     report upstream and local drift, change nothing
 
@@ -28,10 +28,14 @@ SKILLS = REPO / "skills"
 RULES = REPO / "rules"
 PATCHES = REPO / "patches"
 CACHE = REPO / ".cache"
+LICENSES = REPO / "licenses"
+NOTICE = REPO / "NOTICE.md"
 
 HEADER = "# canonical\trepo\tpath\tref\tsha\tcontent"
 MANIFEST_NAME = ".claude-config-manifest.json"
 STAMP_NAME = ".claude-config-stamp"
+LICENSE_NAMES = ("LICENSE", "LICENSE.md", "LICENSE.txt", "COPYING")
+COPYRIGHT = re.compile(r"^[ \t]*(Copyright\b.*?)[ \t]*$", re.MULTILINE)
 
 
 def today() -> str:
@@ -179,6 +183,67 @@ def apply_patch(name: str, dest: Path) -> str:
         return f"PATCH FAILED ({e.args[0].splitlines()[-1] if e.args else 'unknown'})"
 
 
+def repo_slug(repo: str) -> str:
+    """https://github.com/obra/superpowers.git -> obra-superpowers"""
+    parts = repo.rstrip("/").removesuffix(".git").split("/")
+    return "-".join(parts[-2:])
+
+
+def copy_license(repo_dir: Path, repo: str) -> str:
+    """Upstream's own license file, copied verbatim. MIT and its relatives
+    require the notice to travel with the copy, so it ships here too."""
+    for name in LICENSE_NAMES:
+        src = repo_dir / name
+        if src.is_file():
+            LICENSES.mkdir(exist_ok=True)
+            dest = LICENSES / f"{repo_slug(repo)}.txt"
+            shutil.copyfile(src, dest)
+            return dest.name
+    return ""
+
+
+def render_notice(sources: list[Source]) -> bytes:
+    """Attribution built from sources.tsv and the license texts on disk, so a
+    new source cannot ship unattributed."""
+    groups: dict[str, list[Source]] = {}
+    for s in sources:
+        groups.setdefault(s.repo, []).append(s)
+
+    rows, notes = [], []
+    for repo, group in sorted(groups.items()):
+        slug = repo_slug(repo)
+        path = LICENSES / f"{slug}.txt"
+        text = path.read_text(encoding="utf-8") if path.exists() else ""
+        # The first non-empty line of an MIT or Apache file names the license.
+        title = next((l.strip() for l in text.splitlines() if l.strip()), "")
+        holders = "; ".join(COPYRIGHT.findall(text)) or "see the license file"
+        names = ", ".join(f"`{s.name}`" for s in sorted(group, key=lambda s: s.name))
+        link = f"[{title}](licenses/{slug}.txt)" if text else f"**missing** licenses/{slug}.txt"
+        rows.append(f"| {names} | <{repo.removesuffix('.git')}> | {holders} | {link} |")
+        note = LICENSES / f"{slug}.note.md"
+        if note.exists():
+            notes.append(note.read_text(encoding="utf-8").strip())
+
+    body = [
+        "# NOTICE",
+        "",
+        "`cc.py vendor` writes this file from `sources.tsv` and the license texts",
+        "under `licenses/`. Edits here are overwritten.",
+        "",
+        "Most skills under `skills/` come from the repositories below. Each",
+        "upstream license is reproduced verbatim in `licenses/` and covers the",
+        "skills named beside it. Everything else, `cc.py` and `CLAUDE.md` and any",
+        "skill with no row here, is covered by `LICENSE`.",
+        "",
+        "| Skills | Upstream | Copyright | License |",
+        "| --- | --- | --- | --- |",
+        *rows,
+    ]
+    for note in notes:
+        body += ["", note]
+    return ("\n".join(body) + "\n").encode("utf-8")
+
+
 def cmd_vendor(args) -> int:
     sources = read_sources()
     wanted = set(args.names) if args.names else {s.name for s in sources}
@@ -186,11 +251,16 @@ def cmd_vendor(args) -> int:
     canonical = {s.name for s in sources}
     SKILLS.mkdir(exist_ok=True)
     changed = False
+    licensed: set[str] = set()
 
     for s in sources:
         if s.name not in wanted:
             continue
         repo_dir = clone(s.repo, s.ref)
+        if s.repo not in licensed:
+            licensed.add(s.repo)
+            if not copy_license(repo_dir, s.repo):
+                print(f"  {s.name}: NO LICENSE FILE in {s.repo}")
         src = repo_dir / s.path
         if not src.is_dir():
             print(f"  {s.name}: MISSING upstream path {s.path}")
@@ -221,6 +291,10 @@ def cmd_vendor(args) -> int:
         print(f"  {s.name:<32} {', '.join(bits)}")
 
     write_sources(sources)
+    notice = render_notice(sources)
+    if not NOTICE.exists() or NOTICE.read_bytes() != notice:
+        NOTICE.write_bytes(notice)
+        print("NOTICE.md updated")
     print("sources.tsv updated" if changed else "no upstream changes")
     return 0
 
@@ -331,6 +405,7 @@ def cmd_check(args) -> int:
         return 0
 
     repo = check_repo(args.local_only)
+    notice = check_notice()
     local = check_local(cfg)
     upstream = check_upstream() if not args.local_only else []
 
@@ -339,11 +414,12 @@ def cmd_check(args) -> int:
     cfg.mkdir(parents=True, exist_ok=True)
     stamp.write_text(today(), encoding="utf-8")
 
-    if not repo and not local and not upstream:
+    if not repo and not notice and not local and not upstream:
         report = "" if args.quiet else "claude-config: no drift"
     else:
         lines = ["claude-config drift"]
         lines += [f"  repo      {line}" for line in repo]
+        lines += [f"  notice    {line}" for line in notice]
         lines += [f"  local     {line}" for line in local]
         lines += [f"  upstream  {line}" for line in upstream]
         lines.append(f"  at        {REPO}")
@@ -372,6 +448,19 @@ def cmd_check(args) -> int:
     else:
         print(report)
     return 0
+
+
+def check_notice() -> list[str]:
+    """Is the attribution still in step with sources.tsv? Needs no network."""
+    sources = read_sources()
+    out = [f"licenses/{slug}.txt missing, run vendor"
+           for slug in sorted({repo_slug(s.repo) for s in sources})
+           if not (LICENSES / f"{slug}.txt").exists()]
+    if not NOTICE.exists():
+        out.append("NOTICE.md missing, run vendor")
+    elif NOTICE.read_bytes() != render_notice(sources):
+        out.append("NOTICE.md out of date, run vendor")
+    return out
 
 
 def check_repo(offline: bool) -> list[str]:

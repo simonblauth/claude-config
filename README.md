@@ -71,3 +71,11 @@ Upstream edits that survive re-vendoring belong in `patches/<name>.patch`.
 `patches/reflect.patch` drops a Codex platform note that references a pstack
 file this repo does not vendor. If a patch stops applying, `vendor` says so
 instead of silently skipping it.
+
+## License
+
+MIT, in `LICENSE`. Every vendored skill is MIT upstream too. `vendor` copies
+each upstream license verbatim into `licenses/` and rebuilds `NOTICE.md` from
+`sources.tsv`, so a skill added there cannot ship unattributed: `check` reports
+a missing license file or a stale notice. Don't hand-edit `NOTICE.md`. Per-source
+prose goes in `licenses/<slug>.note.md`, which the notice appends.
