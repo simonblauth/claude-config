@@ -88,10 +88,13 @@ def run(cmd: list[str], cwd: Path | None = None) -> str:
 def tree_hash(root: Path) -> str:
     """Stable hash of a directory's contents, independent of mtimes."""
     h = hashlib.sha256()
-    for f in sorted(p for p in root.rglob("*") if p.is_file()):
-        h.update(f.relative_to(root).as_posix().encode())
+    # Sorted as strings: WindowsPath orders case-insensitively, PosixPath does
+    # not, and the two orders hash the same bytes to different digests.
+    files = {f.relative_to(root).as_posix(): f for f in root.rglob("*") if f.is_file()}
+    for rel in sorted(files):
+        h.update(rel.encode())
         h.update(b"\0")
-        h.update(f.read_bytes())
+        h.update(files[rel].read_bytes())
         h.update(b"\0")
     return h.hexdigest()[:16]
 
