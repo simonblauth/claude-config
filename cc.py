@@ -16,8 +16,10 @@ import json
 import os
 import re
 import shutil
+import stat
 import subprocess
 import sys
+import tempfile
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -94,15 +96,43 @@ def tree_hash(root: Path) -> str:
     return h.hexdigest()[:16]
 
 
+# A checkout that translates line endings would leave tree_hash, and with it
+# the content column of sources.tsv, disagreeing between Windows and Linux.
+CLONE_CONFIG = ("core.autocrlf=false", "core.eol=lf")
+
+
+def wipe(path: Path) -> None:
+    """git leaves its pack files read-only, which Windows reads as undeletable."""
+    for f in path.rglob("*"):
+        if f.is_file():
+            f.chmod(stat.S_IWRITE | stat.S_IREAD)
+    shutil.rmtree(path)
+
+
+def verbatim(dest: Path) -> bool:
+    """Was this cached clone taken with the line endings upstream has?"""
+    try:
+        have = run(["git", "-C", str(dest), "config", "--local", "--list"]).splitlines()
+    except RuntimeError:
+        return False
+    return all(c in have for c in CLONE_CONFIG)
+
+
 def clone(repo: str, ref: str) -> Path:
     """Shallow clone into the cache, or update an existing one."""
     CACHE.mkdir(exist_ok=True)
     dest = CACHE / hashlib.sha256(repo.encode()).hexdigest()[:12]
+    # Setting the config leaves a checkout made before it untouched, endings
+    # and all, so such a cache has to go.
+    if dest.exists() and not verbatim(dest):
+        wipe(dest)
     if dest.exists():
         run(["git", "-C", str(dest), "fetch", "--depth", "1", "--quiet", "origin", ref])
         run(["git", "-C", str(dest), "checkout", "--quiet", "--force", "FETCH_HEAD"])
     else:
-        run(["git", "clone", "--depth", "1", "--branch", ref, "--quiet", repo, str(dest)])
+        config = [arg for c in CLONE_CONFIG for arg in ("--config", c)]
+        run(["git", "clone", *config, "--depth", "1", "--branch", ref, "--quiet",
+             repo, str(dest)])
     return dest
 
 
@@ -176,11 +206,18 @@ def apply_patch(name: str, dest: Path) -> str:
     patch = PATCHES / f"{name}.patch"
     if not patch.exists():
         return ""
+    # git apply matches context byte for byte and the skill it is patching
+    # carries upstream's line endings, so a patch checked out with CRLF has
+    # to be fed back as LF.
+    tmp = Path(tempfile.mkdtemp()) / patch.name
+    tmp.write_bytes(patch.read_bytes().replace(b"\r\n", b"\n"))
     try:
-        run(["git", "apply", "--directory", dest.relative_to(REPO).as_posix(), str(patch)], cwd=REPO)
+        run(["git", "apply", "--directory", dest.relative_to(REPO).as_posix(), str(tmp)], cwd=REPO)
         return "patched"
     except RuntimeError as e:
         return f"PATCH FAILED ({e.args[0].splitlines()[-1] if e.args else 'unknown'})"
+    finally:
+        shutil.rmtree(tmp.parent, ignore_errors=True)
 
 
 def repo_slug(repo: str) -> str:
@@ -244,6 +281,12 @@ def render_notice(sources: list[Source]) -> bytes:
     return ("\n".join(body) + "\n").encode("utf-8")
 
 
+def same_text(a: bytes, b: bytes) -> bool:
+    """Generated text against text on disk. git rewrites line endings on
+    checkout where core.autocrlf is on, so they carry no information."""
+    return a.replace(b"\r\n", b"\n") == b.replace(b"\r\n", b"\n")
+
+
 def cmd_vendor(args) -> int:
     sources = read_sources()
     wanted = set(args.names) if args.names else {s.name for s in sources}
@@ -292,7 +335,7 @@ def cmd_vendor(args) -> int:
 
     write_sources(sources)
     notice = render_notice(sources)
-    if not NOTICE.exists() or NOTICE.read_bytes() != notice:
+    if not NOTICE.exists() or not same_text(NOTICE.read_bytes(), notice):
         NOTICE.write_bytes(notice)
         print("NOTICE.md updated")
     print("sources.tsv updated" if changed else "no upstream changes")
@@ -458,7 +501,7 @@ def check_notice() -> list[str]:
            if not (LICENSES / f"{slug}.txt").exists()]
     if not NOTICE.exists():
         out.append("NOTICE.md missing, run vendor")
-    elif NOTICE.read_bytes() != render_notice(sources):
+    elif not same_text(NOTICE.read_bytes(), render_notice(sources)):
         out.append("NOTICE.md out of date, run vendor")
     return out
 
