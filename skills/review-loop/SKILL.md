@@ -15,7 +15,7 @@ A reviewer that reads the code before it reads your defense of the code. Each ro
 
 ## The grant
 
-Standalone `/review-loop` authorizes exactly one remote write: the step-6 summary note on the named request. Not approving, not merging, not pushing, not a label. Reached from `issue-to-pr`, that skill's grant already covers the note and the loop's pushes.
+An explicit user invocation of `review-loop` (`/review-loop` or `$review-loop`) authorizes exactly one remote write: the step-6 summary note on the named request. Not approving, not merging, not pushing, not a label. Reached from `issue-to-pr`, that skill's grant already covers the note and the loop's pushes.
 
 So a standalone run leaves its fixes as **local commits**. Pushing them is a fresh ask, and until it happens the note says the fixes are local and absent from the request's diff. A note that credits commits a human cannot find is worse than no note.
 
@@ -35,25 +35,23 @@ Both forges return a **bare** branch name, so `origin/` is yours to add. Diffing
 
 Read the **head** ref from that same call and confirm HEAD is on it before diffing. A number names a request on the remote; it says nothing about where this checkout is standing. HEAD left on `main` gives an empty diff, and the loop declares a live request clean; HEAD on some unrelated branch reviews that branch and then posts a step-6 note crediting findings about code the request never touched.
 
-With a number, resolve the forge the way step 0 of `~/.claude/skills/issue-to-pr/SKILL.md` does. With no argument nothing remote is read or written, so skip the forge entirely and skip step 6.
+With a number, resolve the forge the way step 0 of the installed `issue-to-pr` skill does. With no argument nothing remote is read or written, so skip the forge entirely and skip step 6.
 
 **Done when** the base is named as `origin/<branch>`, HEAD is confirmed on the head ref, and `git diff <base>...HEAD` prints a non-empty diff. An empty diff on a confirmed head means there is nothing to review; say so and stop. An empty diff with HEAD elsewhere is the wrong checkout, not a clean request.
 
 ## 2. Round loop, budget 3
 
-Each round spawns **one fresh** `general-purpose` subagent, passing the prompt at `~/.claude/skills/review-loop/reviewer.md` verbatim with its placeholders filled. That path is absolute because the run's working directory is the target repo, where a relative `reviewer.md` resolves to nothing.
+Read [runtime guidance](references/runtime.md). Each round spawns **one fresh** subagent, passing [reviewer.md](reviewer.md) verbatim with its placeholders filled. Resolve that file to an absolute path from this skill's installed directory, not the target repository.
 
-Opus is this loop's ceiling. Leave `model` off the spawn unless the round is going cheaper, and never pass one above Opus.
+Fresh per round, never a continued agent: a reviewer carried forward defends its earlier findings instead of re-reading the code. Every round reviews the **whole** diff against the base, never the increment, because a fix in round 1 can break what round 1 passed. Pass the target repository path and applicable instruction-file paths, and require the reviewer to read them.
 
-Fresh per round, never a continued agent: a reviewer carried forward defends its earlier findings instead of re-reading the code. Every round reviews the **whole** diff against the base, never the increment, because a fix in round 1 can break what round 1 passed.
-
-`general-purpose`, not `Explore`: per [the subagent docs](https://code.claude.com/docs/en/sub-agents), "Explore and Plan are the only subagents that omit CLAUDE.md and git status", and `CLAUDE.md` compliance is half of what this reviewer checks. Every other subagent starts with "a fresh, isolated context window" that does not see the parent's history, which is the property that makes the review independent. Read-only comes from the prompt, the way `reflect` does it.
+If the runtime cannot provide an independent reviewer, report that the review loop is unavailable. A parent self-review is not a clean independent round.
 
 ## 3. Work each finding as a claim
 
 **Every finding is a claim, not an order.** Sort it by what it asks for, then check it against the code.
 
-- A claim that a line the diff wrote is **wrong**, in its result, its test coverage or a `CLAUDE.md` rule it breaks, is in scope whatever the boundary says. The boundary decides what the branch adds, and says nothing about how well it is written. Check it against the code, below.
+- A claim that a line the diff wrote is **wrong**, in its result, its test coverage or a the applicable project instructions (`CLAUDE.md` or `AGENTS.md`) rule it breaks, is in scope whatever the boundary says. The boundary decides what the branch adds, and says nothing about how well it is written. Check it against the code, below.
 - A claim that asks for **behavior the boundary does not name**, a case handled, a feature grown, a path covered, is out of scope, however real. It gets a decline that quotes the boundary, and a line in the step-5 hand-back proposing the issue it belongs in.
 - A claim that **does not hold** gets a written decline naming what you checked and what you found, and no code change.
 - A claim that **holds** is a symptom. Load `systematic-debugging` and trace it to the mechanism before touching code; the reviewer's Mechanism line is its hypothesis, and you confirm or replace it. Then grep for every site that mechanism runs, in the diff and outside it. Then `tdd`: one red test covering the class, one fix at the mechanism, one commit that also covers the sites the reviewer did not anchor.
@@ -92,8 +90,8 @@ One note, not one thread per finding. An agent opening threads against its own r
 | "The reviewer found it, so it is in scope" | The reviewer read the diff, not the boundary. A real finding outside the boundary gets a decline and a proposed issue. |
 | "The reviewer is wrong, moving on" | A decline is written down, with what you checked. Silence is not a decline. |
 | "Three rounds ran, so it is clean" | Budget exhaustion and a clean round are different hand-backs. |
-| "`Explore` is cheaper for a read-only pass" | Explore omits `CLAUDE.md`, which is half the review. |
-| "A costlier model would review better" | Opus is the ceiling for this loop. Spawn at the cap, not above it. |
+| "Skip loading project instructions" | Instruction compliance is part of the review. |
+| "A costlier model would review better" | Follow the runtime model policy; do not silently escalate. |
 | "One thread per finding is more traceable" | One note. Threads against your own request are theater. |
 | "The base is `main`, that is what the API said" | Both forges return a bare name. Fetch, then diff against `origin/main`. |
 | "The fixes are committed, so the note can claim them" | Standalone commits are local until a fresh ask pushes them. The note says which. |

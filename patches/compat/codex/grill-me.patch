@@ -1,0 +1,18 @@
+--- a/SKILL.md
++++ b/SKILL.md
+@@ -1,7 +1,6 @@
+ ---
+ name: grill-me
+ description: A relentless interview to sharpen a plan or design.
+-disable-model-invocation: true
+ ---
+ 
+ Load and follow the skill "grilling".
+--- a/agents/openai.yaml
++++ b/agents/openai.yaml
+@@ -1,5 +1,2 @@
+-interface:
+-  display_name: "Grill Me"
+-  short_description: "Sharpen a plan through interview"
+ policy:
+   allow_implicit_invocation: false

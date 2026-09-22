@@ -1,0 +1,8 @@
+--- a/SKILL.md
++++ b/SKILL.md
+@@ -4,4 +4,4 @@
+ disable-model-invocation: true
+ ---
+ 
+-Call the Skill tool with "grilling".
++Load and follow the skill "grilling".

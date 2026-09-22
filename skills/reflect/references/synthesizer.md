@@ -14,7 +14,7 @@ Apply each criterion to every finding:
 
 - Durability: still true in 6 months once paths, SHAs, tool versions, and code shapes have changed.
 - Specificity: broad enough to apply across tasks, precise enough that a future agent recognizes when to use it. Reject vague platitudes ("write good code") and hyper-specific facts ("`<specific-skill-name>` has 175 tokens at limit 80").
-- Existing-skill-first: propose `new skill via plugin-dev:skill-development:` only when no existing skill is a real home, the pattern recurs, and the topic deserves its own skill.
+- Existing-skill-first: propose `new skill:` only when no existing skill is a real home, the pattern recurs, and the topic deserves its own skill.
 - Convergence: findings echoed by 2+ reviewers carry higher confidence. Singletons must clear a higher bar on the other criteria.
 - Decision-changing: a future agent does something different because of the edit, not just reads more text.
 - Structural-mechanism check: route to Backlog when a lint rule, script, metadata flag, or runtime check already enforces the rule or could enforce it cheaply. Skill prose is for things mechanisms cannot enforce.
@@ -31,7 +31,7 @@ Keep (durable patterns):
 - "closed regex enums for trigger detection are brittle; prefer schema-validated structures"
 - "skill descriptions front-load trigger keywords (60/40 trigger-vs-action)"
 - "skill-bundled scripts run under bun with own lockfile, not pnpm workspace"
-- "path-shaped triggers belong in `paths:`, not description prose"
+- "file-scoped instructions should state their scope using the runtime's supported mechanism"
 
 Output exactly the format below. No preamble, no narration. One sentence per cell. A reviewer should read each Problem/Proposal pair in 5 seconds.
 
@@ -41,7 +41,7 @@ Output exactly the format below. No preamble, no narration. One sentence per cel
 |---|---|---|
 | <failure mode in a skill the parent used> | <change to that skill's body> | <skill path + section> |
 | <skill existed but didn't trigger> | <tune the skill's description so it fires next time> | <tune description: <skill path>> |
-| <new pattern, no existing skill is a real home> | <draft a new skill via plugin-dev:skill-development> | <new skill via plugin-dev:skill-development: <kebab-name>> |
+| <new pattern, no existing skill is a real home> | <draft a new skill using the available skill-authoring guidance> | <new skill: <kebab-name>> |
 
 One row per finding. The user approves row by row.
 
@@ -53,4 +53,4 @@ For each rejected finding:
 
 ## Backlog
 
-For each item, describe the pattern, what was hit, and the suggested mechanism. The parent files each to whatever devex / backlog tracker the team uses.
+For each item, describe the pattern, what was hit, and the suggested mechanism. The parent proposes these items to the user and files them only when authorized.

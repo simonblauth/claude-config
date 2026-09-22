@@ -1,0 +1,8 @@
+--- a/SKILL.md
++++ b/SKILL.md
+@@ -4,4 +4,4 @@
+ disable-model-invocation: true
+ ---
+ 
+-Call the Skill tool twice, for "grilling" and "domain-modeling".
++Load and follow the "grilling" and "domain-modeling" skills.

@@ -1,0 +1,9 @@
+--- /dev/null
++++ b/references/runtime.md
+@@ -0,0 +1,6 @@
++# Claude Code review dispatch
++
++Use `Agent` with `subagent_type: "general-purpose"`, not `Explore`. Leave the
++model unset unless choosing a cheaper model; Opus remains this loop's ceiling.
++Start a new agent for every round. The reviewer must read the applicable
++instruction files and follow reviewer.md's prohibition on repository writes.

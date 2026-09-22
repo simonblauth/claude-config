@@ -1,0 +1,21 @@
+--- /dev/null
++++ b/references/runtime.md
+@@ -0,0 +1,18 @@
++# Codex reflection
++
++Read [codex-tools.md](codex-tools.md) for tool and instruction mapping.
++
++Use a transcript only if this runtime explicitly supplies the current session's
++path and its format can be read. Do not run the Claude JSONL finder on Codex logs
++or search the user's session store. Otherwise prepare a digest of this
++conversation with the user's corrections, decisions, tool evidence, and skills
++actually loaded. State that the review used a digest.
++
++Use the available `spawn_agent` and wait tools. Pass each reviewer its template
++and the same transcript or digest. Use the configured session model by default;
++only use model overrides the user requested and the runtime supports. Do not
++pass Claude model slugs or Claude `subagent_type` fields. Follow the tool schema
++for context isolation and retain available MCP access.
++
++Use `skill-creator` for substantive skill edits when available; otherwise use
++this collection's `writing-skills`. Do not call an absent plugin-dev skill.

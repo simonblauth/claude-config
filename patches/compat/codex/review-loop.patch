@@ -1,0 +1,37 @@
+--- a/SKILL.md
++++ b/SKILL.md
+@@ -5,11 +5,11 @@
+   subagent per round: work each finding as a claim, carry declines forward,
+   and stop on a clean round or the third. Grants one summary note on that
+   request, and nothing else. Runs only on /review-loop.
+-argument-hint: "[MR/PR number, or nothing for the current branch]"
+-disable-model-invocation: true
+ ---
+ 
+ # Review loop
++
++Arguments: [MR/PR number, or nothing for the current branch]
+ 
+ A reviewer that reads the code before it reads your defense of the code. Each round is a fresh subagent, and the loop ends when a round comes back empty or the budget runs out.
+ 
+--- /dev/null
++++ b/agents/openai.yaml
+@@ -0,0 +1,2 @@
++policy:
++  allow_implicit_invocation: false
+--- /dev/null
++++ b/references/runtime.md
+@@ -0,0 +1,13 @@
++# Codex review dispatch
++
++Use a new `spawn_agent` for each round, without inheriting the parent's
++conversation. If the tool exposes `fork_turns`, set it to `"none"`; if it exposes
++`fork_context`, set it to `false`. Give it only the filled reviewer prompt,
++target repository, base ref, and applicable instruction paths. Carry prior
++findings and declines only in the template's explicit fields.
++
++Use the configured session model; do not select a costlier model without the
++user's instruction. Follow the available tool schema rather than passing
++Claude `general-purpose` or `Explore` types. Wait for the complete result.
++The reviewer must read the instruction files and must not modify the repository.
++If fresh context cannot be guaranteed, report the limitation and stop the loop.

@@ -8,7 +8,7 @@ Read any file the diff touches in full when the hunk alone does not settle a que
 
 ## Read-only
 
-Do not use Edit, Write, or NotebookEdit. Do not commit, push, or write to any remote. Do not run a formatter or a fixer. The parent agent applies every change you motivate; your job ends at the finding.
+Do not modify repository files, through any tool or shell command. Do not commit, push, or write to any remote. Do not run a formatter or a fixer. The parent agent applies every change you motivate; your job ends at the finding.
 
 Running the repo's tests, linter, and build is reading, and it is encouraged: a finding you reproduced beats a finding you reasoned about.
 
@@ -30,9 +30,9 @@ The change set out to do this, and no more:
 
 <BOUNDARY>
 
-- **The boundary bounds behavior, not quality.** A line the diff wrote that gives a wrong result, lacks a test or breaks a `CLAUDE.md` rule is a finding whatever the boundary says. Behavior the diff does not add and the boundary does not name, a case, a feature, a path, belongs in an issue of its own, and this review is not where it gets filed.
+- **The boundary bounds behavior, not quality.** A line the diff wrote that gives a wrong result, lacks a test or breaks a the applicable project instructions (`CLAUDE.md` or `AGENTS.md`) rule is a finding whatever the boundary says. Behavior the diff does not add and the boundary does not name, a case, a feature, a path, belongs in an issue of its own, and this review is not where it gets filed.
 - **Anchors in the diff, mechanism anywhere.** Every anchor is a line the diff added or changed. The mechanism behind it may be a helper the diff calls or a pattern the diff copied from existing code; name it where it lives. A pre-existing problem no line of the diff runs is out of scope, however real.
-- **`CLAUDE.md` compliance is in scope.** Every level of the hierarchy is loaded in your context. Cite the rule you are applying.
+- **the applicable project instructions (`CLAUDE.md` or `AGENTS.md`) compliance is in scope.** Read all applicable global and project instruction files before reviewing; do not assume they were inherited. Cite the rule you are applying.
 - **Tests are in scope.** A behavior the diff adds with no test covering it is a finding when you can name the input that would go unnoticed.
 
 ## Output

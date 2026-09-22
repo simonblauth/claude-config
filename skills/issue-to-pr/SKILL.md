@@ -17,7 +17,7 @@ Steps 3 through 6 read the same on every forge. Steps 1, 7 and 8 take their comm
 
 ## The grant
 
-Typing `/issue-to-pr` is the explicit remote-write instruction `CLAUDE.md` requires. This skill is user-invoked, so no agent path reaches it, and the invocation is the user's own keystroke. Step 0's reference file enumerates the verbs it authorizes, because the two forges spell them differently.
+Explicitly invoking `issue-to-pr` (for example `/issue-to-pr` on Claude Code or `$issue-to-pr` on Codex) is the explicit remote-write instruction the applicable project instructions (`CLAUDE.md` or `AGENTS.md`) require. The grant applies only to an explicit user invocation, never to an agent loading this file on its own. Step 0's reference file enumerates the verbs it authorizes, because the two forges spell them differently.
 
 The whole-run span is the one relaxation of the single-turn rule, because step 8 needs later pushes. Scope stays single-purpose: that branch, that request. Add commits, since the grant stops at `--force`.
 
@@ -36,7 +36,7 @@ glab auth status 2>&1 | grep -qx "$host" && echo "GitLab: match" || echo "GitLab
 
 Each line prints its own verdict on purpose. `grep -q` is silent, and a block of bare greps hands back only the last command's exit status, so on a GitHub repo the GitHub match is discarded and the block looks like no match at all.
 
-Exactly one match resolves the forge. Two matches mean a mirrored repo, none means the host is unauthenticated or self-hosted under another name; both are an `AskUserQuestion`. A guess here picks the wrong CLI for every remote command that follows.
+Exactly one match resolves the forge. Two matches mean a mirrored repo, none means the host is unauthenticated or self-hosted under another name; both require asking the user. A guess here picks the wrong CLI for every remote command that follows.
 
 - GitHub → [`references/github.md`](references/github.md)
 - GitLab → [`references/gitlab.md`](references/gitlab.md)
@@ -91,13 +91,13 @@ Ask the user when either trigger fires. They are independent, so one is enough.
 - **Blast radius.** The fix would change behavior for existing callers, change a stored or wire format, change the public API or the CLI, or add a dependency, and the issue did not ask for that. Repo evidence pointing at that approach does not settle it. Widening the change past what the issue reported is the user's call.
 - **Two live approaches.** Two or more survive the repo's patterns, the issue's comments and the tests, they put the behavior in different modules, and choosing wrong means redoing the work rather than editing it.
 
-Then make one `AskUserQuestion` call carrying every open fork at once, each option stating its cost.
+Then ask the user about every open fork together, each option stating its cost. Use the available question tool when applicable, otherwise plain text.
 
 When neither fires, pick the approach that matches the surrounding code, write that choice and its one-line reason into the request body, and keep going. The written reason is what a reviewer needs, and it costs no round trip. Decide these yourself: names, file placement inside the obvious module, which existing helper to reuse, error wording, test names, and whether to add the changelog entry the repo already keeps.
 
 ## 5. Implement
 
-Load `tdd`. Go green from the step-3 red test, or hold the step-3 baseline green through the change. Commit rules come from the target repo's `CLAUDE.md`.
+Load `tdd`. Go green from the step-3 red test, or hold the step-3 baseline green through the change. Commit rules come from the target repo's the applicable project instructions (`CLAUDE.md` or `AGENTS.md`).
 
 ## 6. Verify
 
@@ -123,7 +123,7 @@ Open the request with step 0's file's command. Load `technical-writing` and `uns
 
 **Every finding is a claim, not an order.** Step 0's file names this forge's reviewer and says where a claim that holds and a claim that does not each get recorded.
 
-Sort each finding by what it asks for before checking it against the code. A claim that a line the diff wrote is wrong, in its result, its test coverage or a `CLAUDE.md` rule it breaks, is in scope whatever step 1's boundary says; the boundary decides what the branch adds, and says nothing about how well it is written. A claim that asks for behavior the boundary does not name, a case handled, a feature grown, a path covered, is **out of scope**, however real. It gets a written decline that quotes the boundary, and a line in the step-9 hand-back proposing the issue it belongs in. Opening that issue is behind a fresh ask. This is the step where a run leaves its issue, because each finding arrives with its own justification and none of them mention the issue.
+Sort each finding by what it asks for before checking it against the code. A claim that a line the diff wrote is wrong, in its result, its test coverage or a the applicable project instructions (`CLAUDE.md` or `AGENTS.md`) rule it breaks, is in scope whatever step 1's boundary says; the boundary decides what the branch adds, and says nothing about how well it is written. A claim that asks for behavior the boundary does not name, a case handled, a feature grown, a path covered, is **out of scope**, however real. It gets a written decline that quotes the boundary, and a line in the step-9 hand-back proposing the issue it belongs in. Opening that issue is behind a fresh ask. This is the step where a run leaves its issue, because each finding arrives with its own justification and none of them mention the issue.
 
 A claim that **does not hold** gets a written decline naming what you checked and what you found, and no code change.
 

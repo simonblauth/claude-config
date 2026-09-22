@@ -1,0 +1,19 @@
+--- /dev/null
++++ b/references/runtime.md
+@@ -0,0 +1,16 @@
++# Claude Code reflection
++
++Use the active project's transcript directory supplied by the runtime. Resolve
++`scripts/find-transcript.mjs` relative to this installed skill directory:
++
++```sh
++node "<skill-dir>/scripts/find-transcript.mjs" "<active-project-transcripts>" "<opening prompt fragment>"
++```
++
++This finder parses Claude Code JSONL only. If the active directory is unknown or
++the finder returns no match, prepare a digest of this conversation instead.
++Never glob across other projects.
++
++Dispatch reviewers and the synthesizer using `Agent`, `subagent_type:
++"general-purpose"`. The tooling and judgment roles default to `claude-opus-5`
++unless the user supplies an override. Preserve MCP access; the prompts prohibit writes.
