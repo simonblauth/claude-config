@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Vendor, install and drift-check Claude Code skills.
+"""Vendor, install and drift-check Claude Code and Codex skills.
 
   vendor [name ...]   fetch upstream into skills/, record sha, copy licenses
-  install             copy repo content into the Claude config dir
+  install --target claude|codex|all   copy instructions, skills and settings
   check [--daily]     report upstream and local drift, change nothing
 
 Nothing is symlinked and nothing auto-applies. Windows, WSL and Linux take
@@ -15,17 +15,20 @@ import hashlib
 import json
 import os
 import re
+import shlex
 import shutil
 import stat
 import subprocess
 import sys
 import tempfile
 import time
+import tomllib
 from dataclasses import dataclass
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent
 SOURCES = REPO / "sources.tsv"
+SUPPORT_SOURCES = REPO / "support-sources.tsv"
 SKILLS = REPO / "skills"
 RULES = REPO / "rules"
 PATCHES = REPO / "patches"
@@ -44,9 +47,18 @@ def today() -> str:
     return time.strftime("%Y-%m-%d")
 
 
-def config_dir() -> Path:
-    env = os.environ.get("CLAUDE_CONFIG_DIR")
-    return Path(env).expanduser() if env else Path.home() / ".claude"
+def config_dir(target: str = "claude") -> Path:
+    env = os.environ.get("CLAUDE_CONFIG_DIR" if target == "claude" else "CODEX_HOME")
+    return Path(env).expanduser().resolve() if env else Path.home() / f".{target}"
+
+
+def install_roots(target: str) -> dict[str, Path]:
+    cfg = config_dir(target)
+    if target == "claude":
+        return {"config": cfg}
+    skills = os.environ.get("CODEX_SKILLS_DIR")
+    return {"config": cfg, "skills": Path(skills).expanduser().resolve() if skills
+            else Path.home() / ".agents" / "skills"}
 
 
 @dataclass
@@ -63,19 +75,19 @@ class Source:
         return self.sha != "-"
 
 
-def read_sources() -> list[Source]:
+def read_sources(path: Path = SOURCES) -> list[Source]:
     out = []
-    for line in SOURCES.read_text(encoding="utf-8").splitlines():
+    for line in path.read_text(encoding="utf-8").splitlines():
         if not line.strip() or line.startswith("#"):
             continue
         out.append(Source(*line.split("\t")))
     return out
 
 
-def write_sources(sources: list[Source]) -> None:
+def write_sources(sources: list[Source], path: Path = SOURCES) -> None:
     rows = [HEADER]
     rows += ["\t".join([s.name, s.repo, s.path, s.ref, s.sha, s.content]) for s in sources]
-    SOURCES.write_text("\n".join(rows) + "\n", encoding="utf-8")
+    path.write_text("\n".join(rows) + "\n", encoding="utf-8")
 
 
 def run(cmd: list[str], cwd: Path | None = None) -> str:
@@ -87,6 +99,8 @@ def run(cmd: list[str], cwd: Path | None = None) -> str:
 
 def tree_hash(root: Path) -> str:
     """Stable hash of a directory's contents, independent of mtimes."""
+    if root.is_file():
+        return hashlib.sha256(root.read_bytes()).hexdigest()[:16]
     h = hashlib.sha256()
     # Sorted as strings: WindowsPath orders case-insensitively, PosixPath does
     # not, and the two orders hash the same bytes to different digests.
@@ -184,6 +198,7 @@ def rewrite_refs(root: Path, mapping: dict[str, str], upstream: str, canonical: 
 PREFIXED_REF = re.compile(r"superpowers:[a-z0-9-]+")
 NAMED_REF = (
     re.compile(r'Skill tool with "([a-z0-9-]+)"'),
+    re.compile(r'load and follow the skill "([a-z0-9-]+)"', re.IGNORECASE),
     # A slash ref needs a hyphen to be a skill name rather than `/tmp`.
     re.compile(r"`/([a-z0-9-]+-[a-z0-9-]+)`"),
 )
@@ -205,8 +220,8 @@ def find_dangling(root: Path, canonical: set[str]) -> set[str]:
     return found
 
 
-def apply_patch(name: str, dest: Path) -> str:
-    patch = PATCHES / f"{name}.patch"
+def apply_patch(name: str, dest: Path, layer: str = "content") -> str:
+    patch = PATCHES / layer / f"{name}.patch"
     if not patch.exists():
         return ""
     # git apply matches context byte for byte and the skill it is patching
@@ -215,10 +230,11 @@ def apply_patch(name: str, dest: Path) -> str:
     tmp = Path(tempfile.mkdtemp()) / patch.name
     tmp.write_bytes(patch.read_bytes().replace(b"\r\n", b"\n"))
     try:
-        run(["git", "apply", "--directory", dest.relative_to(REPO).as_posix(), str(tmp)], cwd=REPO)
+        run(["git", "apply", "--check", str(tmp)], cwd=dest)
+        run(["git", "apply", str(tmp)], cwd=dest)
         return "patched"
     except RuntimeError as e:
-        return f"PATCH FAILED ({e.args[0].splitlines()[-1] if e.args else 'unknown'})"
+        raise RuntimeError(f"{patch}: PATCH FAILED\n{e}") from e
     finally:
         shutil.rmtree(tmp.parent, ignore_errors=True)
 
@@ -246,7 +262,7 @@ def render_notice(sources: list[Source]) -> bytes:
     """Attribution built from sources.tsv and the license texts on disk, so a
     new source cannot ship unattributed."""
     groups: dict[str, list[Source]] = {}
-    for s in sources:
+    for s in sources + read_sources(SUPPORT_SOURCES):
         groups.setdefault(s.repo, []).append(s)
 
     rows, notes = [], []
@@ -267,12 +283,12 @@ def render_notice(sources: list[Source]) -> bytes:
     body = [
         "# NOTICE",
         "",
-        "`cc.py vendor` writes this file from `sources.tsv` and the license texts",
-        "under `licenses/`. Edits here are overwritten.",
+        "`cc.py vendor` writes this file from `sources.tsv`, `support-sources.tsv`,",
+        "and the license texts under `licenses/`. Edits here are overwritten.",
         "",
         "Most skills under `skills/` come from the repositories below. Each",
         "upstream license is reproduced verbatim in `licenses/` and covers the",
-        "skills named beside it. Everything else, `cc.py` and `CLAUDE.md` and any",
+        "skills named beside it. Everything else, `cc.py`, `instructions/`, and any",
         "skill with no row here, is covered by `LICENSE`.",
         "",
         "| Skills | Upstream | Copyright | License |",
@@ -292,72 +308,197 @@ def same_text(a: bytes, b: bytes) -> bool:
 
 def cmd_vendor(args) -> int:
     sources = read_sources()
+    support = read_sources(SUPPORT_SOURCES)
     wanted = set(args.names) if args.names else {s.name for s in sources}
+    unknown = wanted - {s.name for s in sources}
+    if unknown:
+        raise RuntimeError("unknown skills: " + ", ".join(sorted(unknown)))
     mapping = rename_map(sources)
     canonical = {s.name for s in sources}
-    SKILLS.mkdir(exist_ok=True)
     changed = False
-    licensed: set[str] = set()
+    licensed: dict[str, Path] = {}
+    prepared = []
+    clones = {}
 
-    for s in sources:
-        if s.name not in wanted:
-            continue
-        repo_dir = clone(s.repo, s.ref)
-        if s.repo not in licensed:
-            licensed.add(s.repo)
-            if not copy_license(repo_dir, s.repo):
-                print(f"  {s.name}: NO LICENSE FILE in {s.repo}")
-        src = repo_dir / s.path
-        if not src.is_dir():
-            print(f"  {s.name}: MISSING upstream path {s.path}")
-            continue
-        sha = run(["git", "-C", str(repo_dir), "rev-parse", "HEAD"])
-        pristine = tree_hash(src)
+    def checkout(repo: str, ref: str) -> Path:
+        key = (repo, ref)
+        if key not in clones:
+            clones[key] = clone(repo, ref)
+        return clones[key]
 
-        dest = SKILLS / s.name
-        if dest.exists():
-            shutil.rmtree(dest)
-        shutil.copytree(src, dest)
+    # Validate the entire batch before replacing any shared skill or pin.
+    with tempfile.TemporaryDirectory() as tmp:
+        for source in sources:
+            if source.name not in wanted:
+                continue
+            repo_dir = checkout(source.repo, source.ref)
+            licensed[source.repo] = repo_dir
+            src = repo_dir / source.path
+            if not src.is_dir():
+                raise RuntimeError(f"{source.name}: missing upstream path {source.path}")
+            sha = run(["git", "-C", str(repo_dir), "rev-parse", "HEAD"])
+            pristine = tree_hash(src)
+            stage = Path(tmp) / "shared" / source.name
+            shutil.copytree(src, stage)
+            for asset in support:
+                owner, _, rel = asset.name.partition("/")
+                if owner != source.name:
+                    continue
+                asset_repo = checkout(asset.repo, asset.ref)
+                licensed[asset.repo] = asset_repo
+                asset_src = asset_repo / asset.path
+                if not asset_src.is_file():
+                    raise RuntimeError(f"missing support file: {asset.path}")
+                asset_dest = safe_path(stage, rel)
+                asset_dest.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copyfile(asset_src, asset_dest)
+                asset_sha = run(["git", "-C", str(asset_repo), "rev-parse", "HEAD"])
+                asset_hash = tree_hash(asset_src)
+                changed |= (asset.sha, asset.content) != (asset_sha, asset_hash)
+                asset.sha, asset.content = asset_sha, asset_hash
+            touched = rewrite_refs(stage, mapping, Path(source.path).name, source.name)
+            layers = []
+            for layer in ("content", "compat/shared"):
+                if apply_patch(source.name, stage, layer):
+                    layers.append(layer)
+            for target in ("claude", "codex"):
+                rendered = Path(tmp) / target / source.name
+                shutil.copytree(stage, rendered)
+                apply_patch(source.name, rendered, f"compat/{target}")
+            dangling = find_dangling(stage, canonical)
+            changed |= (source.sha, source.content) != (sha, pristine)
+            source.sha, source.content = sha, pristine
+            bits = [sha[:12]]
+            if touched:
+                bits.append(f"{touched} file(s) rewritten")
+            bits.extend(layers)
+            if dangling:
+                bits.append("DANGLING -> " + ", ".join(sorted(dangling)))
+            prepared.append((source.name, stage, ", ".join(bits)))
 
-        # SKILL.md frontmatter carries the upstream dir name; ours is canonical.
-        touched = rewrite_refs(dest, mapping, Path(s.path).name, s.name)
-        note = apply_patch(s.name, dest)
-        dangling = find_dangling(dest, canonical)
-
-        if s.sha != sha or s.content != pristine:
-            changed = True
-        s.sha, s.content = sha, pristine
-        bits = [f"{sha[:12]}"]
-        if touched:
-            bits.append(f"{touched} file(s) rewritten")
-        if note:
-            bits.append(note)
-        if dangling:
-            bits.append("DANGLING -> " + ", ".join(sorted(dangling)))
-        print(f"  {s.name:<32} {', '.join(bits)}")
+        for repo, repo_dir in licensed.items():
+            if not any((repo_dir / name).is_file() for name in LICENSE_NAMES):
+                raise RuntimeError(f"no license file in {repo}")
+        for repo, repo_dir in licensed.items():
+            copy_license(repo_dir, repo)
+        SKILLS.mkdir(exist_ok=True)
+        for name, stage, message in prepared:
+            dest = SKILLS / name
+            if dest.exists():
+                shutil.rmtree(dest)
+            shutil.copytree(stage, dest)
+            print(f"  {name:<32} {message}")
 
     write_sources(sources)
+    write_sources(support, SUPPORT_SOURCES)
     notice = render_notice(sources)
     if not NOTICE.exists() or not same_text(NOTICE.read_bytes(), notice):
         NOTICE.write_bytes(notice)
         print("NOTICE.md updated")
-    print("sources.tsv updated" if changed else "no upstream changes")
+    print("source pins updated" if changed else "no upstream changes")
     return 0
 
 
-def planned_files(cfg: Path) -> dict[str, bytes]:
-    """Relative path under the config dir -> exact bytes we want there."""
-    out: dict[str, bytes] = {}
-    for base, prefix in ((SKILLS, "skills"), (RULES, "rules")):
-        if not base.exists():
-            continue
-        for f in sorted(p for p in base.rglob("*") if p.is_file()):
-            if f.name == ".gitkeep":
+def render_instructions(target: str) -> bytes:
+    base = REPO / "instructions"
+    return ("\n\n".join((base / name).read_text(encoding="utf-8").strip()
+                        for name in ("shared.md", f"{target}.md")) + "\n").encode()
+
+
+def skill_files(target: str) -> dict[str, bytes]:
+    out = {}
+    with tempfile.TemporaryDirectory() as tmp:
+        for source in sorted(SKILLS.iterdir()):
+            if not source.is_dir():
                 continue
-            out[f"{prefix}/{f.relative_to(base).as_posix()}"] = f.read_bytes()
-    out["CLAUDE.md"] = (REPO / "CLAUDE.md").read_bytes()
-    out["settings.json"] = render_settings(cfg)
+            stage = Path(tmp) / source.name
+            shutil.copytree(source, stage)
+            apply_patch(source.name, stage, f"compat/{target}")
+            for f in sorted(stage.rglob("*")):
+                if f.is_file():
+                    out[f"{source.name}/{f.relative_to(stage).as_posix()}"] = f.read_bytes()
     return out
+
+
+def planned_files(cfg: Path, target: str = "claude") -> dict[str, dict[str, bytes]]:
+    skills = skill_files(target)
+    if target == "codex":
+        return {"skills": skills, "config": {
+            "AGENTS.md": render_instructions(target),
+            "config.toml": render_codex_settings(cfg),
+            "hooks.json": render_codex_hooks(cfg),
+        }}
+    out = {f"skills/{rel}": data for rel, data in skills.items()}
+    for f in sorted(RULES.rglob("*")):
+        if f.is_file() and f.name != ".gitkeep":
+            out[f"rules/{f.relative_to(RULES).as_posix()}"] = f.read_bytes()
+    out["CLAUDE.md"] = render_instructions(target)
+    out["settings.json"] = render_settings(cfg)
+    return {"config": out}
+
+
+def render_codex_settings(cfg: Path) -> bytes:
+    """Merge managed root keys without rewriting unrelated TOML or comments."""
+    template = (REPO / "settings" / "codex.toml").read_text(encoding="utf-8")
+    managed = tomllib.loads(template)
+    if any(isinstance(v, dict) for v in managed.values()):
+        raise RuntimeError("settings/codex.toml supports root settings only")
+    path = cfg / "config.toml"
+    text = path.read_text(encoding="utf-8") if path.exists() else ""
+    installed = tomllib.loads(text)
+    # Preserve the user's other fallback names, with their existing precedence.
+    key = "project_doc_fallback_filenames"
+    if key in managed:
+        existing = installed.get(key, [])
+        if not isinstance(existing, list) or not all(isinstance(x, str) for x in existing):
+            raise RuntimeError(f"{path}: {key} must be an array of strings")
+        managed[key] = list(dict.fromkeys(existing + managed[key]))
+    # Complete TOML statements can span lines; parse before looking for a table
+    # header so brackets inside arrays and multiline strings remain untouched.
+    lines = text.splitlines(keepends=True)
+    kept, pending = [], ""
+    for i, line in enumerate(lines):
+        if not pending and line.lstrip().startswith("["):
+            kept.extend(lines[i:])
+            break
+        pending += line
+        try:
+            statement = tomllib.loads(pending)
+        except tomllib.TOMLDecodeError:
+            continue
+        if not (set(statement) & set(managed)):
+            kept.append(pending)
+        pending = ""
+    else:
+        if pending:
+            raise RuntimeError(f"{path}: cannot parse root settings")
+    # These tracked settings use JSON-compatible TOML scalars/arrays only.
+    prefix = "".join(f"{k} = {json.dumps(v, ensure_ascii=False)}\n" for k, v in managed.items())
+    rendered = prefix + "".join(kept)
+    tomllib.loads(rendered)
+    return rendered.encode()
+
+
+def hook_command(target: str) -> str:
+    argv = [sys.executable, str(REPO / "cc.py"), "check", "--target", target,
+            "--daily", "--quiet", "--hook"]
+    return subprocess.list2cmdline(argv) if os.name == "nt" else shlex.join(argv)
+
+
+def render_codex_hooks(cfg: Path) -> bytes:
+    path = cfg / "hooks.json"
+    installed = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
+    groups = installed.setdefault("hooks", {}).setdefault("SessionStart", [])
+    marker = "claude-config drift check"
+    # A stable statusMessage identifies our handler even if the checkout moves.
+    for group in groups:
+        group["hooks"] = [h for h in group.get("hooks", []) if h.get("statusMessage") != marker]
+    groups[:] = [g for g in groups if g.get("hooks")]
+    groups.append({"matcher": "startup|resume", "hooks": [{
+        "type": "command", "command": hook_command("codex"),
+        "timeout": 120, "statusMessage": marker,
+    }]})
+    return (json.dumps(installed, indent=2) + "\n").encode()
 
 
 # Claude Code rewrites these in the installed settings.json (the /model
@@ -388,10 +529,12 @@ def read_json(path: Path) -> dict:
 
 
 def in_sync(rel: str, target: Path, data: bytes) -> bool:
-    """settings.json compares parsed: Claude Code reorders keys on rewrite."""
-    if rel == "settings.json":
+    """Settings formatting is local; compare their parsed values."""
+    if rel in ("settings.json", "hooks.json"):
         installed = read_json(target)
         return bool(installed) and installed == json.loads(data)
+    if rel == "config.toml":
+        return tomllib.loads(target.read_text(encoding="utf-8")) == tomllib.loads(data.decode())
     return target.read_bytes() == data
 
 
@@ -399,51 +542,72 @@ def json_escape(s: str) -> str:
     return json.dumps(s)[1:-1]
 
 
+def safe_path(root: Path, rel: str) -> Path:
+    path = root / rel
+    if Path(rel).is_absolute() or ".." in Path(rel).parts or not path.resolve().is_relative_to(root.resolve()):
+        raise RuntimeError(f"manifest path escapes install root: {rel}")
+    return path
+
+
+def install_target(target: str, planned: dict[str, dict[str, bytes]]) -> None:
+    roots = install_roots(target)
+    for label, files in planned.items():
+        root = roots[label]
+        root.mkdir(parents=True, exist_ok=True)
+        manifest_name = MANIFEST_NAME if target == "claude" else ".codex-config-manifest.json"
+        manifest_path = root / manifest_name
+        manifest = read_json(manifest_path)
+        previous = set(manifest.get("paths", []))
+        # Validate the complete manifest before writing or deleting anything.
+        for rel in previous | set(files):
+            safe_path(root, rel)
+        written = 0
+        for rel, data in sorted(files.items()):
+            path = safe_path(root, rel)
+            if path.exists() and in_sync(rel, path, data):
+                continue
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(data)
+            written += 1
+        for rel in sorted(previous - set(files)):
+            path = safe_path(root, rel)
+            if path.exists():
+                path.unlink()
+            parent = path.parent
+            while parent != root and parent.is_dir() and not any(parent.iterdir()):
+                parent.rmdir()
+                parent = parent.parent
+        manifest_path.write_text(json.dumps({"version": 1, "repo": str(REPO),
+                                             "paths": sorted(files)}, indent=2) + "\n", encoding="utf-8")
+        print(f"{target}/{label}: {written} file(s) written, {len(files)} tracked, {root}")
+    if target == "claude":
+        (roots["config"] / "rules").mkdir(exist_ok=True)
+
+
+def targets(args) -> tuple[str, ...]:
+    return ("claude", "codex") if args.target == "all" else (args.target,)
+
+
 def cmd_install(args) -> int:
-    cfg = config_dir()
-    cfg.mkdir(parents=True, exist_ok=True)
-    # Always present, even when empty: rules/ is where machine-local files go.
-    for keep in ("skills", "rules"):
-        (cfg / keep).mkdir(exist_ok=True)
-    manifest_path = cfg / MANIFEST_NAME
-    previous = set()
-    if manifest_path.exists():
-        previous = set(json.loads(manifest_path.read_text(encoding="utf-8"))["paths"])
-
-    planned = planned_files(cfg)
-    written = 0
-    for rel, data in sorted(planned.items()):
-        target = cfg / rel
-        if target.exists() and in_sync(rel, target, data):
-            continue
-        target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_bytes(data)
-        written += 1
-        print(f"  wrote   {rel}")
-
-    # Only ever remove paths we put there ourselves.
-    for rel in sorted(previous - set(planned)):
-        target = cfg / rel
-        if target.exists():
-            target.unlink()
-            print(f"  removed {rel}")
-        parent = target.parent
-        keep = {cfg, cfg / "skills", cfg / "rules"}
-        while parent not in keep and parent.is_dir() and not any(parent.iterdir()):
-            parent.rmdir()
-            parent = parent.parent
-
-    manifest_path.write_text(
-        json.dumps({"version": 1, "repo": str(REPO), "paths": sorted(planned)}, indent=2) + "\n",
-        encoding="utf-8",
-    )
-    print(f"{written} file(s) written, {len(planned)} tracked, config dir {cfg}")
+    # Render every target first, so patch/config failures cannot leave a partial
+    # installation across the two runtimes.
+    plans = {t: planned_files(config_dir(t), t) for t in targets(args)}
+    for target, planned in plans.items():
+        install_target(target, planned)
+    if "codex" in plans:
+        print("Codex: review and trust the drift-check hook with /hooks.")
     return 0
 
 
 def cmd_check(args) -> int:
-    cfg = config_dir()
-    stamp = cfg / STAMP_NAME
+    for target in targets(args):
+        check_target(args, target)
+    return 0
+
+
+def check_target(args, target: str) -> int:
+    cfg = config_dir(target)
+    stamp = cfg / (STAMP_NAME if target == "claude" else ".codex-config-stamp")
     # Once per calendar day, not per rolling 24h. A rolling window starts at
     # whatever hour it last ran, so it drifts later each day and skips the
     # next morning entirely.
@@ -452,7 +616,7 @@ def cmd_check(args) -> int:
 
     repo = check_repo(args.local_only)
     notice = check_notice()
-    local = check_local(cfg)
+    local = check_local(cfg, target)
     upstream = check_upstream() if not args.local_only else []
 
     # Stamped only once the checks are through: a fetch killed by the hook
@@ -461,9 +625,9 @@ def cmd_check(args) -> int:
     stamp.write_text(today(), encoding="utf-8")
 
     if not repo and not notice and not local and not upstream:
-        report = "" if args.quiet else "claude-config: no drift"
+        report = "" if args.quiet else f"claude-config ({target}): no drift"
     else:
-        lines = ["claude-config drift"]
+        lines = [f"claude-config drift ({target})"]
         lines += [f"  repo      {line}" for line in repo]
         lines += [f"  notice    {line}" for line in notice]
         lines += [f"  local     {line}" for line in local]
@@ -500,7 +664,7 @@ def check_notice() -> list[str]:
     """Is the attribution still in step with sources.tsv? Needs no network."""
     sources = read_sources()
     out = [f"licenses/{slug}.txt missing, run vendor"
-           for slug in sorted({repo_slug(s.repo) for s in sources})
+           for slug in sorted({repo_slug(s.repo) for s in sources + read_sources(SUPPORT_SOURCES)})
            if not (LICENSES / f"{slug}.txt").exists()]
     if not NOTICE.exists():
         out.append("NOTICE.md missing, run vendor")
@@ -540,21 +704,27 @@ def check_repo(offline: bool) -> list[str]:
     return out
 
 
-def check_local(cfg: Path) -> list[str]:
+def check_local(cfg: Path, target: str = "claude") -> list[str]:
     out = []
-    planned = planned_files(cfg)
-    for rel, data in sorted(planned.items()):
-        target = cfg / rel
-        if not target.exists():
-            out.append(f"{rel} missing, run install")
-        elif not in_sync(rel, target, data):
-            out.append(f"{rel} differs from repo")
+    roots = install_roots(target)
+    for label, files in planned_files(cfg, target).items():
+        root = roots[label]
+        for rel, data in sorted(files.items()):
+            path = safe_path(root, rel)
+            if not path.exists():
+                out.append(f"{label}/{rel} missing, run install --target {target}")
+            elif not in_sync(rel, path, data):
+                out.append(f"{label}/{rel} differs from repo")
+        manifest_name = MANIFEST_NAME if target == "claude" else ".codex-config-manifest.json"
+        for rel in set(read_json(root / manifest_name).get("paths", [])) - set(files):
+            if safe_path(root, rel).exists():
+                out.append(f"{label}/{rel} stale, run install --target {target}")
     return out
 
 
 def check_upstream() -> list[str]:
     out = []
-    sources = read_sources()
+    sources = read_sources() + read_sources(SUPPORT_SOURCES)
     by_repo: dict[tuple[str, str], list[Source]] = {}
     for s in sources:
         by_repo.setdefault((s.repo, s.ref), []).append(s)
@@ -575,10 +745,10 @@ def check_upstream() -> list[str]:
             continue
         for s in group:
             src = repo_dir / s.path
-            if not src.is_dir():
+            if not src.exists():
                 out.append(f"{s.name} vanished upstream at {s.path}")
             elif tree_hash(src) != s.content:
-                out.append(f"{s.name} changed upstream, vendor {s.name} to review")
+                out.append(f"{s.name} changed upstream, vendor {s.name.split('/')[0]} to review")
     return out
 
 
@@ -591,7 +761,8 @@ def main() -> int:
     v.add_argument("names", nargs="*")
     v.set_defaults(func=cmd_vendor)
 
-    i = sub.add_parser("install", help="copy repo content into the Claude config dir")
+    i = sub.add_parser("install", help="copy instructions, skills and settings to selected runtimes")
+    i.add_argument("--target", choices=("claude", "codex", "all"), default="claude")
     i.set_defaults(func=cmd_install)
 
     c = sub.add_parser("check", help="report drift, change nothing")
@@ -600,12 +771,15 @@ def main() -> int:
     c.add_argument("--local-only", action="store_true", help="skip the network")
     c.add_argument("--hook", action="store_true",
                    help="emit SessionStart hook JSON instead of plain text")
+    c.add_argument("--target", choices=("claude", "codex", "all"), default="claude")
     c.set_defaults(func=cmd_check)
 
     args = p.parse_args()
+    if getattr(args, "hook", False) and args.target == "all":
+        p.error("--hook requires one target")
     try:
         return args.func(args)
-    except RuntimeError as e:
+    except (RuntimeError, ValueError, OSError) as e:
         print(f"cc.py: {e}", file=sys.stderr)
         return 1
 

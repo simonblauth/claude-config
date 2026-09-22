@@ -1,18 +1,18 @@
 # NOTICE
 
-`cc.py vendor` writes this file from `sources.tsv` and the license texts
-under `licenses/`. Edits here are overwritten.
+`cc.py vendor` writes this file from `sources.tsv`, `support-sources.tsv`,
+and the license texts under `licenses/`. Edits here are overwritten.
 
 Most skills under `skills/` come from the repositories below. Each
 upstream license is reproduced verbatim in `licenses/` and covers the
-skills named beside it. Everything else, `cc.py` and `CLAUDE.md` and any
+skills named beside it. Everything else, `cc.py`, `instructions/`, and any
 skill with no row here, is covered by `LICENSE`.
 
 | Skills | Upstream | Copyright | License |
 | --- | --- | --- | --- |
 | `deslopify` | <https://github.com/JuliusBrussee/skills> | Copyright (c) 2026 Julius Brussee | [MIT License](licenses/JuliusBrussee-skills.txt) |
 | `codebase-design`, `domain-modeling`, `grill-me`, `grill-with-docs`, `grilling`, `handoff`, `improve-codebase-architecture`, `wait-what`, `wizard`, `writing-for-agents` | <https://github.com/mattpocock/skills> | Copyright (c) 2026 Matt Pocock | [MIT License](licenses/mattpocock-skills.txt) |
-| `reflect`, `technical-writing`, `unslop` | <https://github.com/michael-denyer/pstack-claude> | Copyright (c) 2026 Lauren Tan | [MIT License](licenses/michael-denyer-pstack-claude.txt) |
+| `reflect`, `reflect/references/codex-tools.md`, `technical-writing`, `unslop` | <https://github.com/michael-denyer/pstack-claude> | Copyright (c) 2026 Lauren Tan | [MIT License](licenses/michael-denyer-pstack-claude.txt) |
 | `systematic-debugging`, `tdd`, `verification-before-completion`, `writing-skills` | <https://github.com/obra/superpowers> | Copyright (c) 2025 Jesse Vincent | [MIT License](licenses/obra-superpowers.txt) |
 
 ## Provenance: pstack-claude

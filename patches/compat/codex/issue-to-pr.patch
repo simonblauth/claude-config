@@ -1,0 +1,21 @@
+--- a/SKILL.md
++++ b/SKILL.md
+@@ -5,11 +5,11 @@
+   request: reproduce it, fix it under tdd, verify, push, get a review and work
+   its feedback. Detects GitHub or GitLab and grants remote-write on that one
+   branch and request, and nothing else. Runs only on /issue-to-pr.
+-argument-hint: "<issue number or URL> [base ref]"
+-disable-model-invocation: true
+ ---
+ 
+ # Issue to PR
++
++Arguments: <issue number or URL> [base ref]
+ 
+ One issue, one branch, one request. The run ends with a request that has been through a review, and a hand-back that says what was decided and what was left alone.
+ 
+--- /dev/null
++++ b/agents/openai.yaml
+@@ -0,0 +1,2 @@
++policy:
++  allow_implicit_invocation: false

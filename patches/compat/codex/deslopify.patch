@@ -1,0 +1,15 @@
+--- a/SKILL.md
++++ b/SKILL.md
+@@ -5,7 +5,6 @@
+   rewrite by meaning, re-scan until clean, then check register for its genre:
+   academic, tweet, reddit, email, blog, docs, marketing. Heavier than unslop,
+   which stays on for everything the agent writes; this one runs only on /deslopify.
+-disable-model-invocation: true
+ ---
+ 
+ # Deslopify
+--- /dev/null
++++ b/agents/openai.yaml
+@@ -0,0 +1,2 @@
++policy:
++  allow_implicit_invocation: false

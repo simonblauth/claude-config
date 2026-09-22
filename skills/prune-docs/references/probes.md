@@ -22,6 +22,8 @@ git log --oneline -- FILE.md | wc -l                    # commit count
 
 ### Readership signal (optional, Claude Code transcripts)
 
+On Codex, skip this probe and report "no readership signal". These commands parse Claude logs only; do not point them at another runtime's logs.
+
 Claude Code keeps per-project transcripts as JSON Lines under `~/.claude/projects/<slug>/*.jsonl`, where `<slug>` is the project path with `/` replaced by `-`. A `Read` tool call appears as `"name":"Read","input":{"file_path":"<absolute path>"`. Count reads per doc:
 
 ```bash

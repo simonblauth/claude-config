@@ -1,58 +1,72 @@
 # claude-config
 
-My Claude Code setup: user instructions, rules, and a curated set of skills,
-most vendored from other people's repos under names I chose, a few written here.
-Only the vendored ones have a row in `sources.tsv`.
+Shared instructions and curated skills for Claude Code and Codex. Most skills
+are vendored under stable local names; a few are written here. Installations
+copy files, with no symlinks or automatic updates.
 
-## Why it works this way
+## Install and check
 
-Skill names are mine, not upstream's. `tdd` is currently superpowers'
-`test-driven-development`; swapping in a different one means editing one line of
-`sources.tsv` and re-vendoring, with no name to relearn and no CLAUDE.md edit.
+Requires Python 3.11+ and Git. Use the system Python: its path is embedded in
+the startup hooks.
 
-Nothing is symlinked. `install` copies, so bare Windows works without
-Developer Mode.
+```sh
+python3 cc.py install --target all
+python3 cc.py check --target all --local-only
+python3 cc.py vendor [name ...]
+```
 
-Nothing auto-applies. `check` reports and stops.
+`--target` accepts `claude`, `codex`, or `all`; it defaults to `claude` for
+existing commands and hooks. `vendor` updates the shared sources for both.
 
-The root `CLAUDE.md` is content, not config for this repo: `install` copies it
-to `~/.claude/CLAUDE.md`. Rules for working on the repo itself live in
-`.claude/CLAUDE.md`, which `install` never touches.
+| Content | Claude Code | Codex |
+| --- | --- | --- |
+| Global instructions | `~/.claude/CLAUDE.md` | `~/.codex/AGENTS.md` |
+| Skills | `~/.claude/skills/` | `~/.agents/skills/` |
+| Settings | `~/.claude/settings.json` | `~/.codex/config.toml` |
+| Startup drift check | inside settings | `~/.codex/hooks.json` |
 
-## Commands
+`CLAUDE_CONFIG_DIR` and `CODEX_HOME` override the respective configuration roots.
+`CODEX_SKILLS_DIR` overrides this installer's Codex skill destination for testing
+or a custom layout; it does **not** configure Codex discovery. Use a directory
+Codex already scans. Changing `CODEX_HOME` does not move `~/.agents/skills/`.
 
-    python cc.py vendor [name ...]   fetch upstream, record sha + content hash
-    python cc.py install             copy this repo into the Claude config dir
-    python cc.py check [--daily]     report drift, change nothing
+Each destination has its own ownership manifest. Installation removes only
+obsolete paths in that manifest and leaves unrelated files alone. Existing
+files at managed instruction and skill paths are replaced. Claude's existing
+manifest remains valid.
 
-`check` reports three things and fixes none of them:
+`check` reports repository, installed-file, attribution, and upstream drift.
+It applies no updates; `--daily` throttles each runtime separately to once per
+calendar day, and `--local-only` skips network checks. Startup hooks run the
+check with the appropriate target. **After installing Codex, review and trust
+its hook with `/hooks`**; Codex requires review again when the hook changes.
+[Codex hook documentation](https://learn.chatgpt.com/docs/hooks)
 
-- this repo is dirty, behind `origin`, or holds commits you never pushed
-- an installed file under `~/.claude` no longer matches this repo
-- an upstream skill's content moved past the recorded hash
+## Instructions and settings
 
-The middle one is why a machine that never pulls still gets told. It runs from a
-SessionStart hook, once per calendar day. `--local-only` skips the network.
+Edit `instructions/shared.md` for common policy and `instructions/claude.md`
+or `instructions/codex.md` for runtime-specific guidance. Installation combines
+them into the appropriate global instruction file. The root `AGENTS.md` governs
+this repository; root `CLAUDE.md` points to it.
 
-## New machine
+`settings/codex.toml` supplies managed root-level Codex settings. Currently it
+adds `CLAUDE.md` to `project_doc_fallback_filenames`, preserving existing fallback
+names and their order. Codex uses that fallback only when the same directory
+has no applicable `AGENTS.override.md` or `AGENTS.md`.
+[Instruction discovery](https://learn.chatgpt.com/docs/agent-configuration/agents-md)
 
-    git clone git@github.com:<you>/claude-config.git ~/Projects/claude-config
-    cd ~/Projects/claude-config && python cc.py install
+The Codex settings merge preserves unrelated settings, tables, and comments.
+Its hook merge preserves other handlers. Models, permissions, and MCP settings
+remain machine-local. Claude's `settings.json` is managed as before, except its
+installed model, effort level, and model settings take precedence.
 
-`install` fills this machine's Python path and repo path into the hook command,
-so the same `settings.json` works on Arch, WSL, and Windows.
+Claude-only `rules/` files are copied into the Claude rules directory; other
+files there remain machine-local. For Codex, the installed instructions ask the
+agent to read `$CODEX_HOME/local-instructions.md` if present (default
+`~/.codex/local-instructions.md`). That file is not managed. Write file scopes
+as explicit conditions there; Claude `paths:` rules are not converted.
 
-## Machine-local rules
-
-`~/.claude/rules/` holds both kinds of file. Anything in this repo's `rules/`
-is copied there and managed. Anything else you drop in is left alone: `install`
-only deletes paths recorded in its own manifest. Work-only rules go there
-untracked, with `paths:` frontmatter so they load only for matching files.
-
-The one gap: `settings.json` has no user-level local override, so it is a single
-tracked file. A machine that needs different settings needs another answer.
-
-## Permission rules
+## Claude permission rules
 
 Write Bash permission rules in space form — `Bash(uv run pytest *)`, not
 `Bash(uv run pytest:*)`. The VSCode extension (observed on 2.1.195) silently
@@ -62,20 +76,53 @@ The standalone CLI matches both, so the forms are not interchangeable in
 practice. Space form is also what the permission dialog writes when you pick
 "Yes, don't ask again".
 
-## Editing a skill
 
-Edit it here, then `python cc.py install`. Editing the copy under `~/.claude`
-works until the next install overwrites it, and `check` will tell you first.
+## Editing and updating skills
 
-Upstream edits that survive re-vendoring belong in `patches/<name>.patch`.
-`patches/reflect.patch` drops a Codex platform note that references a pstack
-file this repo does not vendor. If a patch stops applying, `vendor` says so
-instead of silently skipping it.
+Edit shared skills under `skills/`, then reinstall the desired target. For a
+vendored skill, also record the edit in the appropriate patch so re-vendoring
+preserves it. Patches use paths relative to the skill directory:
+
+1. `sources.tsv`: upstream directory, revision, and pristine content hash.
+2. `support-sources.tsv`: additional upstream files needed by a skill, including
+   the pstack Codex mapping. The first column is the destination under `skills/`.
+3. `patches/content/<name>.patch`: workflow and editorial customizations.
+4. `patches/compat/shared/<name>.patch`: portability changes used by both agents.
+5. `patches/compat/{claude,codex}/<name>.patch`: runtime-specific additions or edits.
+
+`vendor` applies steps 1–4 into the checked-in shared skill tree and verifies
+both target patch sets before publishing the batch. `install` and `check`
+apply step 5 in temporary directories. A failed patch stops the operation;
+installation renders both requested targets before writing either one.
+
+Codex patches move explicit-only invocation policy into `agents/openai.yaml`,
+remove Claude-specific frontmatter, and preserve argument hints in the body.
+`reflect` and `review-loop` receive separate runtime guides. Codex reflection
+uses an explicitly supplied readable current-session transcript or a labeled
+conversation digest; it does not run Claude's transcript parser. The review
+loop requires a fresh independent reviewer and reports when that is unavailable.
+[Codex skill metadata](https://learn.chatgpt.com/docs/build-skills)
+
+Pstack remains sourced from `michael-denyer/pstack-claude`. Its supporting Codex
+mapping is pinned, attributed, patched, and drift-checked along with the skills.
+
+## Verification
+
+```sh
+python3 -m unittest discover -s tests -v
+```
+
+Tests use temporary installation roots and cover both targets, repeated installs,
+configuration preservation, drift, owned-file cleanup, patch failures, and
+legacy Claude manifests. The pinned-source reproduction test also runs when
+the upstream commits are present in `.cache/`; otherwise it reports a skip.
+When Codex is installed and supports `debug prompt-input`, a local discovery
+test checks global instructions, the project fallback, and invocation policy
+without running a model.
 
 ## License
 
-MIT, in `LICENSE`. Every vendored skill is MIT upstream too. `vendor` copies
-each upstream license verbatim into `licenses/` and rebuilds `NOTICE.md` from
-`sources.tsv`, so a skill added there cannot ship unattributed: `check` reports
-a missing license file or a stale notice. Don't hand-edit `NOTICE.md`. Per-source
-prose goes in `licenses/<slug>.note.md`, which the notice appends.
+MIT, in `LICENSE`. Vendored licenses are reproduced under `licenses/`.
+`vendor` rebuilds `NOTICE.md` from both source tables and license notes;
+`check` reports missing licenses or a stale notice. Per-source prose belongs
+in `licenses/<slug>.note.md`.

@@ -1,0 +1,15 @@
+--- a/SKILL.md
++++ b/SKILL.md
+@@ -6,7 +6,6 @@
+   duplication, validates links, anchors and symbols. Sibling of deslopify,
+   which fixes prose inside one text; this one fixes which page owns which
+   fact across a tree. Runs only on /prune-docs.
+-disable-model-invocation: true
+ ---
+ 
+ # Prune docs
+--- /dev/null
++++ b/agents/openai.yaml
+@@ -0,0 +1,2 @@
++policy:
++  allow_implicit_invocation: false

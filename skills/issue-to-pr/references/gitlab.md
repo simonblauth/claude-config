@@ -40,7 +40,7 @@ The closing trailer is `Closes #<n>`, and on GitLab it is conditional: the [clos
 
 GitLab has no Copilot review, so this run supplies its own reviewer. Read the loop at:
 
-    ~/.claude/skills/review-loop/SKILL.md
+    <installed review-loop skill directory>/SKILL.md
 
 Read it rather than invoking it: both skills are user-invoked, so no skill path reaches another. Run its rounds against the MR step 7 opened, then come back to step 9 with the rounds it ran and what each finding got.
 

@@ -4,7 +4,7 @@ description: >
   Edit a finished text a human hands over. Regex scan against a tell catalog,
   rewrite by meaning, re-scan until clean, then check register for its genre:
   academic, tweet, reddit, email, blog, docs, marketing. Heavier than unslop,
-  which stays on for everything Claude writes; this one runs only on /deslopify.
+  which stays on for everything the agent writes; this one runs only on /deslopify.
 disable-model-invocation: true
 ---
 

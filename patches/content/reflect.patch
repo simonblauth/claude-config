@@ -1,0 +1,18 @@
+--- a/SKILL.md
++++ b/SKILL.md
+@@ -45,13 +45,13 @@
+ 
+ ### 4. Structural enforcement check
+ 
+-Sanity-check the synthesizer's Accepted list. For any item that would be enforced more reliably by a lint rule, script, metadata flag, or runtime check, move it from Accepted to Backlog. See the **encode-lessons-in-structure** principle skill.
++Sanity-check the synthesizer's Accepted list. For any item that would be enforced more reliably by a lint rule, script, metadata flag, or runtime check, move it from Accepted to Backlog. Prefer an executable check to another prose rule when it can enforce the same lesson.
+ 
+ ### 5. Apply
+ 
+ Before applying any Accepted edit, present the synthesizer's full Accepted/Rejected/Backlog output to the user and wait for explicit approval. The user picks which subset to apply and may redirect routings. Skill changes affect every future agent in the org; do not auto-apply.
+ 
+-Backlog items file to whatever devex / backlog tracker your team uses automatically. Only the Accepted list waits for approval.
++Present Backlog items as proposals. File them only when the user authorizes that remote write.
+ 
+ For each approved Accepted item, follow the Routing field exactly:
+ 

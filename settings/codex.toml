@@ -1,0 +1,2 @@
+# Managed global Codex settings. Other installed settings are preserved.
+project_doc_fallback_filenames = ["CLAUDE.md"]
