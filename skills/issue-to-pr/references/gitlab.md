@@ -38,11 +38,7 @@ The closing trailer is `Closes #<n>`, and on GitLab it is conditional: the [clos
 
 ## Step 8. Work the review
 
-GitLab has no Copilot review, so this run supplies its own reviewer. Read the loop at:
-
-    <installed review-loop skill directory>/SKILL.md
-
-Read it rather than invoking it: both skills are user-invoked, so no skill path reaches another. Run its rounds against the MR step 7 opened, then come back to step 9 with the rounds it ran and what each finding got.
+GitLab has no Copilot review, so the reviewer is always `subagent`. When the invocation passed `--reviewer copilot`, say so and ask before running the loop, because the user chose a reviewer this forge does not have.
 
 Step 8's CI gate reads the pipeline for the MR's source branch:
 

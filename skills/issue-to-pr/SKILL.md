@@ -5,7 +5,7 @@ description: >
   request: reproduce it, fix it under tdd, verify, push, get a review and work
   its feedback. Detects GitHub or GitLab and grants remote-write on that one
   branch and request, and nothing else. Runs only on /issue-to-pr.
-argument-hint: "<issue number or URL> [base ref]"
+argument-hint: "<issue number or URL> [base ref] [--reviewer copilot|subagent]"
 disable-model-invocation: true
 ---
 
@@ -121,7 +121,14 @@ Open the request with step 0's file's command. Load `technical-writing` and `uns
 
 ## 8. Work the review
 
-**Every finding is a claim, not an order.** Step 0's file names this forge's reviewer and says where a claim that holds and a claim that does not each get recorded.
+`--reviewer` picks who reviews. Step 0's file names this forge's default and which reviewers it has.
+
+- **`copilot`** runs the Copilot rounds in step 0's file.
+- **`subagent`** runs `review-loop`. Read `SKILL.md` in the installed `review-loop` skill directory rather than invoking it: both skills are user-invoked, so no skill path reaches another. Run its rounds against the request step 7 opened, then come back to step 9 with the rounds it ran and what each finding got.
+
+Both loop up to three rounds and stop on a clean one.
+
+**Every finding is a claim, not an order.** Step 0's file says where a claim that holds and a claim that does not each get recorded.
 
 Sort each finding by what it asks for before checking it against the code. A claim that a line the diff wrote is wrong, in its result, its test coverage or a the applicable project instructions (`CLAUDE.md` or `AGENTS.md`) rule it breaks, is in scope whatever step 1's boundary says; the boundary decides what the branch adds, and says nothing about how well it is written. A claim that asks for behavior the boundary does not name, a case handled, a feature grown, a path covered, is **out of scope**, however real. It gets a written decline that quotes the boundary, and a line in the step-9 hand-back proposing the issue it belongs in. Opening that issue is behind a fresh ask. This is the step where a run leaves its issue, because each finding arrives with its own justification and none of them mention the issue.
 
