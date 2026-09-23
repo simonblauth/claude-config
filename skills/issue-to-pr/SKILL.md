@@ -117,7 +117,7 @@ Say the branch and the base before the first push, so the user can stop it. Then
 
     git push -u origin <branch>
 
-Open the request with step 0's file's command. Load `technical-writing` and `unslop` for the body. It carries the wrong behavior in one line, the root cause step 3 established, what changed, the step-3 command before and after, the direction chosen and why when step 4 forked, and the closing trailer step 0's file names.
+Open the request with step 0's file's command. Load `technical-writing` for the body. It carries the wrong behavior in one line, the root cause step 3 established, what changed, the step-3 command before and after, the direction chosen and why when step 4 forked, and the closing trailer step 0's file names.
 
 **Done when** the request is open against the intended base and its body carries all six.
 

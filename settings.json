@@ -19,6 +19,9 @@
     ]
   },
   "autoMemoryEnabled": false,
+  "skillOverrides": {
+    "unslop": "user-invocable-only"
+  },
   "attribution": {
     "commit": ""
   },

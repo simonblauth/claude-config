@@ -28,7 +28,6 @@ Load these at the start and follow their bodies. This skill adds only the docs-s
 
 - `technical-writing`: one Diátaxis mode per page, and review checklist item 8 ("symbols, paths, counts real at this commit") as the fact-check bar.
 - `writing-for-agents`: "Pruning" (environment as source of truth, docs as cache, sediment) and "Information hierarchy" for any `CLAUDE.md`, `AGENTS.md` or skill file in scope.
-- `unslop` for the style-pass catalog.
 - `verification-before-completion` for the gate. The docs rows are in Phase 7.
 
 ## Phase 1: Inventory
