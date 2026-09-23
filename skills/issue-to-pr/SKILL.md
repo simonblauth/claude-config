@@ -49,7 +49,9 @@ Read the issue with its comments, then check whether someone already has a reque
 
 Write down the issue's **boundary** while it is in front of you: the sections that say what done looks like and what the issue excludes, when the template has them (`Done when`, `What this is not`, or whatever they are called there), otherwise the one-sentence statement below. Step 8 measures every review finding against it, and a boundary recalled mid-loop takes the shape of the finding in front of you.
 
-**Done when** you can state the observable wrong behavior and where the reporter saw it, in one sentence, and the boundary is recorded. When neither the body nor the comments say, ask before cutting anything.
+Name the issue's **kind** from step 3's table too. It names the branch in step 2 and the gate in step 3, and the labels and title usually settle it before any code is read.
+
+**Done when** you can state the observable wrong behavior and where the reporter saw it, in one sentence, and the boundary and kind are recorded. When neither the body nor the comments say, ask before cutting anything.
 
 ## 2. Cut the worktree
 
@@ -57,23 +59,23 @@ Base is `origin/main` unless the invocation named another ref. Resolve the real 
 
 When the session has an `EnterWorktree` tool, use it. It moves the session's working directory, which `cd` does not do reliably across a long run. Otherwise:
 
-    git worktree add <path> -b fix/<n>-<slug> origin/<base>
+    git worktree add <path> -b <prefix>/<n>-<slug> origin/<base>
 
-and use absolute paths from there.
+and use absolute paths from there. The prefix is the kind's, from step 3's table. When the target repo's instructions or its existing remote branches (`git branch -r`) use another naming scheme, follow theirs.
 
 **Done when** `git rev-parse HEAD` inside the worktree equals `git rev-parse origin/<base>`, and `git status` is clean. Check this even after `EnterWorktree`, which takes its base from the `worktree.baseRef` setting, and that setting can be `head`.
 
 ## 3. Go red
 
-The gate is one recorded command whose result this work will change. Name the issue's kind first, because the kind decides what that command is and who owns it.
+The gate is one recorded command whose result this work will change. The kind step 1 named decides what that command is and who owns it.
 
-| Issue is | The command | Load |
-|---|---|---|
-| A bug, or behavior nobody expected | a test reproducing the wrong behavior, failing now | `systematic-debugging`, then `tdd` |
-| A feature request | a test stating the wanted behavior, failing now. The request is the spec, so build it rather than argue it | `tdd` |
-| A performance claim | a measurement of the current cost, against a target written as a number | `systematic-debugging`, then `tdd` |
-| A refactor or a mechanical migration | the suite covering the behavior you are about to move, passing now and still passing after | `tdd` |
-| Docs or config only | the command that proves the claim on the page stale | `technical-writing` |
+| Issue is | Branch prefix | The command | Load |
+|---|---|---|---|
+| A bug, or behavior nobody expected | `fix` | a test reproducing the wrong behavior, failing now | `systematic-debugging`, then `tdd` |
+| A feature request | `feat` | a test stating the wanted behavior, failing now. The request is the spec, so build it rather than argue it | `tdd` |
+| A performance claim | `perf` | a measurement of the current cost, against a target written as a number | `systematic-debugging`, then `tdd` |
+| A refactor or a mechanical migration | `refactor` | the suite covering the behavior you are about to move, passing now and still passing after | `tdd` |
+| Docs or config only | `docs` or `chore` | the command that proves the claim on the page stale | `technical-writing` |
 
 The first three rows go **red**, and that failing command is `tdd`'s RED test. There is one, not two. The last two rows have no red to reach, so record the passing baseline instead and let step 6 compare against it.
 
