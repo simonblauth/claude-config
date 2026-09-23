@@ -5,7 +5,7 @@ description: >
   subagent per round: work each finding as a claim, carry declines forward,
   and stop on a clean round or the third. Grants one summary note on that
   request, and nothing else. Runs only on /review-loop.
-argument-hint: "[MR/PR number, or nothing for the current branch]"
+argument-hint: "[MR/PR number, or nothing for the current branch] [--reviewer subagent|claude|codex]"
 disable-model-invocation: true
 ---
 
@@ -41,7 +41,9 @@ With a number, resolve the forge the way step 0 of the installed `issue-to-pr` s
 
 ## 2. Round loop, budget 3
 
-Read [runtime guidance](references/runtime.md). Each round spawns **one fresh** subagent, passing [reviewer.md](reviewer.md) verbatim with its placeholders filled. Resolve that file to an absolute path from this skill's installed directory, not the target repository.
+`--reviewer` picks who reviews. The default, `subagent`, follows [runtime guidance](references/runtime.md). `claude` or `codex` puts another model family on the review and follows [cross-model dispatch](references/cross-model.md); naming the runtime you are running in means `subagent`.
+
+Each round starts **one fresh** reviewer, passing [reviewer.md](reviewer.md) verbatim with its placeholders filled. Resolve that file to an absolute path from this skill's installed directory, not the target repository.
 
 Fresh per round, never a continued agent: a reviewer carried forward defends its earlier findings instead of re-reading the code. Every round reviews the **whole** diff against the base, never the increment, because a fix in round 1 can break what round 1 passed. Pass the target repository path and applicable instruction-file paths, and require the reviewer to read them.
 

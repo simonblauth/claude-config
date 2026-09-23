@@ -31,7 +31,7 @@ The closing trailer is `Closes #<n>`.
 
 ## Step 8. Work the review
 
-The reviewer defaults to `copilot` on this forge. With `--reviewer subagent`, step 8 runs `review-loop` and this section contributes only its last part, [Either reviewer](#either-reviewer).
+The reviewer defaults to `copilot` on this forge. With `--reviewer subagent`, `claude` or `codex`, step 8 runs `review-loop` and this section contributes only its last part, [Any reviewer](#any-reviewer).
 
 ### Copilot rounds
 
@@ -70,7 +70,7 @@ Push the round's commits, then request the next round. The loop stops on the fir
 
 Step 9 names which one it was. Then post the summary comment below: the rounds run, each finding fixed with its commit, each finding declined with its reason.
 
-### Either reviewer
+### Any reviewer
 
 Step 8's CI gate:
 

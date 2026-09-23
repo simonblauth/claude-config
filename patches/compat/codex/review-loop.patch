@@ -4,13 +4,13 @@
    subagent per round: work each finding as a claim, carry declines forward,
    and stop on a clean round or the third. Grants one summary note on that
    request, and nothing else. Runs only on /review-loop.
--argument-hint: "[MR/PR number, or nothing for the current branch]"
+-argument-hint: "[MR/PR number, or nothing for the current branch] [--reviewer subagent|claude|codex]"
 -disable-model-invocation: true
  ---
  
  # Review loop
 +
-+Arguments: [MR/PR number, or nothing for the current branch]
++Arguments: [MR/PR number, or nothing for the current branch] [--reviewer subagent|claude|codex]
  
  A reviewer that reads the code before it reads your defense of the code. Each round is a fresh subagent, and the loop ends when a round comes back empty or the budget runs out.
  

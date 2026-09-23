@@ -5,7 +5,7 @@ description: >
   request: reproduce it, fix it under tdd, verify, push, get a review and work
   its feedback. Detects GitHub or GitLab and grants remote-write on that one
   branch and request, and nothing else. Runs only on /issue-to-pr.
-argument-hint: "<issue number or URL> [base ref] [--reviewer copilot|subagent]"
+argument-hint: "<issue number or URL> [base ref] [--reviewer copilot|subagent|claude|codex]"
 disable-model-invocation: true
 ---
 
@@ -126,7 +126,7 @@ Open the request with step 0's file's command. Load `technical-writing` and `uns
 `--reviewer` picks who reviews. Step 0's file names this forge's default and which reviewers it has.
 
 - **`copilot`** runs the Copilot rounds in step 0's file.
-- **`subagent`** runs `review-loop`. Read `SKILL.md` in the installed `review-loop` skill directory rather than invoking it: both skills are user-invoked, so no skill path reaches another. Run its rounds against the request step 7 opened, then come back to step 9 with the rounds it ran and what each finding got.
+- **`subagent`**, **`claude`** or **`codex`** runs `review-loop` with that reviewer. Read `SKILL.md` in the installed `review-loop` skill directory rather than invoking it: both skills are user-invoked, so no skill path reaches another. Run its rounds against the request step 7 opened, then come back to step 9 with the rounds it ran and what each finding got.
 
 Both loop up to three rounds and stop on a clean one.
 
