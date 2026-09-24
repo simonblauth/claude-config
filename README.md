@@ -6,13 +6,13 @@ copy files, with no symlinks or automatic updates.
 
 ## Install and check
 
-Requires Python 3.11+ and Git. Use the system Python: its path is embedded in
-the startup hooks.
+Requires [uv](https://docs.astral.sh/uv/) and Git. uv supplies Python 3.11+,
+and the startup hooks run `cc.py` through it.
 
 ```sh
-python3 cc.py install --target all
-python3 cc.py check --target all --local-only
-python3 cc.py vendor [name ...]
+uv run --script cc.py install --target all
+uv run --script cc.py check --target all --local-only
+uv run --script cc.py vendor [name ...]
 ```
 
 `--target` accepts `claude`, `codex`, or `all`; it defaults to `claude` for
@@ -109,7 +109,7 @@ mapping is pinned, attributed, patched, and drift-checked along with the skills.
 ## Verification
 
 ```sh
-python3 -m unittest discover -s tests -v
+uv run --no-project --python '>=3.11' python -m unittest discover -s tests -v
 ```
 
 Tests use temporary installation roots and cover both targets, repeated installs,

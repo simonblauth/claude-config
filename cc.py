@@ -1,4 +1,7 @@
-#!/usr/bin/env python3
+#!/usr/bin/env -S uv run --script
+# /// script
+# requires-python = ">=3.11"
+# ///
 """Vendor, install and drift-check Claude Code and Codex skills.
 
   vendor [name ...]   fetch upstream into skills/, record sha, copy licenses
@@ -479,9 +482,18 @@ def render_codex_settings(cfg: Path) -> bytes:
     return rendered.encode()
 
 
+def uv_executable() -> str:
+    # Under `uv run --script`, sys.executable is a fresh temporary venv per
+    # run; uv's own path is what stays stable between install and check.
+    uv = os.environ.get("UV") or shutil.which("uv")
+    if not uv:
+        raise RuntimeError("uv not found; install it from https://docs.astral.sh/uv/")
+    return uv
+
+
 def hook_command(target: str) -> str:
-    argv = [sys.executable, str(REPO / "cc.py"), "check", "--target", target,
-            "--daily", "--quiet", "--hook"]
+    argv = [uv_executable(), "run", "--script", str(REPO / "cc.py"), "check",
+            "--target", target, "--daily", "--quiet", "--hook"]
     return subprocess.list2cmdline(argv) if os.name == "nt" else shlex.join(argv)
 
 
@@ -511,7 +523,7 @@ SETTINGS_LOCAL_KEYS = ("model", "effortLevel", "modelSettings")
 def render_settings(cfg: Path) -> bytes:
     """Repo settings for this machine, keeping keys Claude Code owns."""
     text = (REPO / "settings.json").read_text(encoding="utf-8")
-    text = text.replace("{{PYTHON}}", json_escape(sys.executable))
+    text = text.replace("{{UV}}", json_escape(uv_executable()))
     text = text.replace("{{REPO}}", json_escape(str(REPO)))
     planned = json.loads(text)
     installed = read_json(cfg / "settings.json")

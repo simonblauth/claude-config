@@ -93,6 +93,26 @@ multi_agent = false
         self.assertFalse(parsed['features']['multi_agent'])
         self.assertEqual(parsed['project_doc_fallback_filenames'], ['TEAM.md', 'CLAUDE.md'])
 
+    def test_hooks_run_through_uv_not_the_ephemeral_interpreter(self):
+        uv = str(self.base / 'bin' / 'uv')
+        with patch.dict(os.environ, {'UV': uv}):
+            self.install()
+        claude = json.loads((cc.config_dir() / 'settings.json').read_text())
+        codex = json.loads((cc.config_dir('codex') / 'hooks.json').read_text())
+        for command in (claude['hooks']['SessionStart'][0]['hooks'][0]['command'],
+                        codex['hooks']['SessionStart'][-1]['hooks'][0]['command']):
+            self.assertTrue(command.startswith(f'"{uv}" run --script ') or
+                            command.startswith(f'{uv} run --script '), command)
+            self.assertNotIn(cc.sys.executable, command)
+
+    def test_install_without_uv_fails_clearly(self):
+        bin_dir = self.base / 'bin'; bin_dir.mkdir()
+        (bin_dir / 'git').symlink_to(shutil.which('git'))
+        with patch.dict(os.environ, {'PATH': str(bin_dir)}):
+            os.environ.pop('UV', None)
+            with self.assertRaisesRegex(RuntimeError, 'uv'):
+                self.install()
+
     def test_settings_formatting_is_not_drift(self):
         self.install('codex')
         cfg = cc.config_dir('codex')
