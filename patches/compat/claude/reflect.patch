@@ -15,5 +15,5 @@
 +Never glob across other projects.
 +
 +Dispatch reviewers and the synthesizer using `Agent`, `subagent_type:
-+"general-purpose"`. The tooling and judgment roles default to `claude-opus-5`
++"general-purpose"`. The tooling and judgment roles default to `opus`
 +unless the user supplies an override. Preserve MCP access; the prompts prohibit writes.
