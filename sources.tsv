@@ -9,9 +9,9 @@ writing-for-agents	https://github.com/mattpocock/skills.git	skills/productivity/
 wait-what	https://github.com/mattpocock/skills.git	skills/productivity/wait-what	main	c55ee46073ed923f86ce59a5eb3b6d895095d1b7	d8c5157780c8b493
 handoff	https://github.com/mattpocock/skills.git	skills/productivity/handoff	main	c55ee46073ed923f86ce59a5eb3b6d895095d1b7	fe287d0ae54ed66c
 improve-codebase-architecture	https://github.com/mattpocock/skills.git	skills/engineering/improve-codebase-architecture	main	c55ee46073ed923f86ce59a5eb3b6d895095d1b7	86096700ab48a5fb
-unslop	https://github.com/michael-denyer/pstack-claude.git	plugins/pstack/skills/unslop	main	2fe2002190bff9257d3e27f84ba6818f2cfd7e32	bef8b37d47fea938
-technical-writing	https://github.com/michael-denyer/pstack-claude.git	plugins/pstack/skills/technical-writing	main	2fe2002190bff9257d3e27f84ba6818f2cfd7e32	805817274f278d95
-reflect	https://github.com/michael-denyer/pstack-claude.git	plugins/pstack/skills/reflect	main	2fe2002190bff9257d3e27f84ba6818f2cfd7e32	96254cbcad6af85a
+unslop	https://github.com/michael-denyer/pstack-claude.git	plugins/pstack/skills/unslop	main	7b08003c3321884ed3f6c38ee62e336f89207d37	a57f86b55718a359
+technical-writing	https://github.com/michael-denyer/pstack-claude.git	plugins/pstack/skills/technical-writing	main	7b08003c3321884ed3f6c38ee62e336f89207d37	149eeef8efd69575
+reflect	https://github.com/michael-denyer/pstack-claude.git	plugins/pstack/skills/reflect	main	7b08003c3321884ed3f6c38ee62e336f89207d37	52c7c2091f2aea7f
 codebase-design	https://github.com/mattpocock/skills.git	skills/engineering/codebase-design	main	c55ee46073ed923f86ce59a5eb3b6d895095d1b7	826e65f8d718794b
 domain-modeling	https://github.com/mattpocock/skills.git	skills/engineering/domain-modeling	main	c55ee46073ed923f86ce59a5eb3b6d895095d1b7	2cc88b237a4704f9
 grill-with-docs	https://github.com/mattpocock/skills.git	skills/engineering/grill-with-docs	main	c55ee46073ed923f86ce59a5eb3b6d895095d1b7	2dff19547f0f7200

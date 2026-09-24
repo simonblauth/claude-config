@@ -1,6 +1,6 @@
 --- a/SKILL.md
 +++ b/SKILL.md
-@@ -5,7 +5,7 @@
+@@ -5,7 +5,7 @@ description: Spawn three parallel review subagents over the active transcript, s
  
  # Reflect
  
@@ -9,11 +9,11 @@
  
  Mine the current conversation for durable learnings, then route them into skill edits.
  
-@@ -17,31 +17,23 @@
+@@ -17,33 +17,23 @@ Invoke when the user says "reflect" or "/reflect". Skip when the conversation is
  
  ### 1. Locate the active transcript
  
--The parent finds its own transcript file before fanning out. The system prompt names Claude Code's per-project transcripts directory at `~/.claude/projects/<encoded-cwd>/`; use that path. Do not glob across `~/.claude/projects/`. That crosses workspace boundaries and reads private chats from unrelated projects.
+-The parent finds its own transcript file before fanning out. The system prompt names Claude Code's per-project transcripts directory at `~/.claude/projects/<encoded-cwd>/`. Use that path. Do not glob across `~/.claude/projects/`. That crosses workspace boundaries and reads private chats from unrelated projects.
 -
 -Run the finder at `skills/reflect/scripts/find-transcript.mjs` under the installed plugin with the projects directory and a fragment of the conversation's opening user prompt:
 -
@@ -26,14 +26,17 @@
  
  ### 2. Spawn three reviewers in parallel
  
--One message, three `Agent` calls, `subagent_type: "general-purpose"`, explicit `model:` on each. Reviewers need MCP access for context lookups (tickets, chat threads, observability traces referenced in the transcript); pick a subagent_type that retains MCP access. The prompt forbids file writes; the parent applies edits.
+-One message, three `Agent` calls, `subagent_type: "general-purpose"`, with `model` set as below. Reviewers need MCP access for context lookups (tickets, chat threads, observability traces referenced in the transcript). Pick a subagent_type that retains MCP access. The prompt forbids file writes. The parent applies edits.
 +Spawn three reviewers with the runtime's subagent tools and model policy. Reviewers need available MCP tools for context lookups referenced in the transcript. Their prompts forbid writes; the parent applies approved edits. If independent subagents are unavailable, report that limitation and perform the three lenses sequentially without claiming independent review.
  
- | Lens | `model` | Prompt template |
+-Each reviewer and the synthesizer name a role line in `~/.claude/pstack-models.md` and a default in [Models](#models). Set `model` to that line's value, or to the default if the sheet or the line is missing. Leave `model` unset when the value is `auto` or `inherit-parent`. If the `Agent` tool rejects a slug, use the default and say so. If it rejects the default, use the closest valid slug of the same family from its error message.
+-
+-| Lens | Role line | Prompt template |
++| Lens | `model` | Prompt template |
  |---|---|---|
--| Judgment | your configured reflect-judgment model (default in [Models](#models)) | `references/judgment-reviewer.md` |
--| Tooling | your configured reflect-tooling model (default in [Models](#models)) | `references/tooling-reviewer.md` |
--| Divergent | your configured reflect-judgment model (default in [Models](#models)) | `references/divergent-reviewer.md` |
+-| Judgment | `reflect judgment, divergent, synthesizer` | `references/judgment-reviewer.md` |
+-| Tooling | `reflect tooling` | `references/tooling-reviewer.md` |
+-| Divergent | `reflect judgment, divergent, synthesizer` | `references/divergent-reviewer.md` |
 +| Judgment | runtime judgment model | `references/judgment-reviewer.md` |
 +| Tooling | runtime tooling model | `references/tooling-reviewer.md` |
 +| Divergent | runtime judgment model | `references/divergent-reviewer.md` |
@@ -43,12 +46,12 @@
  
  ### 3. Synthesize
  
--One `Agent` call, `subagent_type: "general-purpose"`, using your configured reflect-judgment model (default in [Models](#models)). Pick a subagent_type that retains MCP access — the synthesizer's quality check includes spot-verifying citations, which can require MCP access. Use `references/synthesizer.md` verbatim, with each reviewer's full output inlined where marked. The synthesizer returns a structured Accepted / Rejected / Backlog list.
+-One `Agent` call, `subagent_type: "general-purpose"`, with `model` from the `reflect judgment, divergent, synthesizer` line (default in [Models](#models)). Pick a subagent_type that retains MCP access. The synthesizer's quality check includes spot-verifying citations, which can require MCP access. Use `references/synthesizer.md` verbatim, with each reviewer's full output inlined where marked. The synthesizer returns a structured Accepted / Rejected / Backlog list.
 +Use a fresh synthesizer with the runtime judgment model, or a clearly labeled sequential synthesis when subagents are unavailable. Retain available MCP access for spot-verifying citations. Use `references/synthesizer.md` verbatim, with each reviewer's full output inlined where marked. The synthesizer returns a structured Accepted / Rejected / Backlog list.
  
  ### 4. Structural enforcement check
  
-@@ -56,9 +48,9 @@
+@@ -58,9 +48,9 @@ Present Backlog items as proposals. File them only when the user authorizes that
  For each approved Accepted item, follow the Routing field exactly:
  
  - Trivial existing-skill edit (a one-line bullet, a tightened sentence, a stale fact corrected): parent does directly.
@@ -61,36 +64,24 @@
  
  If your environment ships a SKILL.md validator, run it on every touched skill before declaring done. Skip this step if it doesn't.
  
-@@ -73,7 +65,4 @@
+@@ -75,7 +65,4 @@ Short list, no preamble:
  
  ## Models
  
 -Role defaults, stamped from `plugins/pstack/models.json` (edit there, rerun `tools/generate.mjs`). A matching role line in `~/.claude/pstack-models.md` overrides each at runtime; see `/setup-pstack`.
 -
--- reflect tooling: `claude-opus-5`
--- reflect judgment, divergent, synthesizer: `claude-opus-5`
+-- reflect tooling: `opus`
+-- reflect judgment, divergent, synthesizer: `opus`
 +Use the model policy in [runtime guidance](references/runtime.md).
 --- a/references/codex-tools.md
 +++ b/references/codex-tools.md
 @@ -1,90 +1,19 @@
 -# Codex tool mapping for pstack
-+# Codex tool mapping for reflection
- 
--pstack skills are written in Claude Code tool language (the `Skill` tool, the `Agent` tool, `AskUserQuestion`, `claude-*` model slugs). On Codex the skills are the same files; only the tool names resolve differently. Read this when a pstack skill names a Claude tool, a driver or bundled skill, or a `claude-*` model. This file is Codex-specific. Gemini CLI, opencode, Prime Agent, and other runtimes must use their own concrete tools, model names, and configuration paths.
-+Adapted from pstack's Codex mapping; upstream provenance is tracked in
-+`support-sources.tsv` and `NOTICE.md` in the source repository.
- 
+-
+-pstack skills are written in Claude Code tool language (the `Skill` tool, the `Agent` tool, `AskUserQuestion`, Claude model names). On Codex the skills are the same files; only the tool names resolve differently. Read this when a pstack skill names a Claude tool, a driver or bundled skill, or a Claude model. This file is Codex-specific. Gemini CLI, opencode, Prime Agent, and other runtimes must use their own concrete tools, model names, and configuration paths.
+-
 -## Tool actions
-+| Workflow action | Codex behavior |
-+| --- | --- |
-+| Read, search, or execute | Use the available file, search, and shell tools. |
-+| Edit a file | Use the available patch or editing tool. |
-+| Load a named skill | Read its discovered `SKILL.md` and follow it. |
-+| Dispatch and collect reviewers | Use the available `spawn_agent` and wait tools, following their schemas. |
-+| Ask the user | Use a question tool when available and applicable; otherwise ask in plain text. |
-+| Choose models | Inherit the session model unless the user specifies a supported override. Claude model slugs are not Codex model identifiers. |
-+| Load instructions | Read applicable `AGENTS.md` files and configured fallbacks, including global instructions. |
- 
+-
 -| pstack / Claude action | Codex equivalent |
 -|------------------------|------------------|
 -| Read a file | `shell` (`cat`, `head`, `tail`) |
@@ -130,9 +121,9 @@
 -
 -Skills name Claude defaults (a single-role default for code/prose/judgment plus a diverse-model panel for diverse-model panels; each model-consuming skill lists its own in a Models section). These slugs do not resolve on Codex. Substitute your configured Codex models:
 -
--- Single-model roles: your primary Codex model (for example `gpt-5.6-sol`).
+-- Single-model roles: your primary Codex model (for example `gpt-6-sol`).
 -- Roles that default to the strongest Claude model (`bug-fix`, `perf-issue`, `hillclimb`, `strongest judgment`): your strongest Codex model (for example `gpt-6-astra`).
--- Diverse-model panels (`arena`, `architect`, `interrogate`, `how` critics, `reflect`): the adversarial signal comes from model diversity, so use the distinct Codex models available to you. A good default quad on ChatGPT is `gpt-6-astra`, `gpt-5.6-sol`, `gpt-5.6-terra`, `gpt-5.6-luna`. If only one model family is reachable, vary reasoning effort and note in the verdict that diversity was reduced.
+-- Diverse-model panels (`arena`, `architect`, `interrogate`, `how` critics, `reflect`): the adversarial signal comes from model diversity, so use the distinct Codex models available to you. A good default panel on ChatGPT is `gpt-6-astra`, `gpt-6-sol`, `gpt-6-luna`. If only one model family is reachable, vary reasoning effort and note in the verdict that diversity was reduced.
 -
 -`/setup-pstack` writes the configured model list. On Codex, set it to your Codex model slugs.
 -
@@ -175,13 +166,28 @@
 -## Instructions file
 -
 -Where a pstack skill says "your instructions file", on Codex that is `AGENTS.md` (project root, plus `~/.codex/AGENTS.md` global). On Claude Code it is `CLAUDE.md`.
++# Codex tool mapping for reflection
++
++Adapted from pstack's Codex mapping; upstream provenance is tracked in
++`support-sources.tsv` and `NOTICE.md` in the source repository.
++
++| Workflow action | Codex behavior |
++| --- | --- |
++| Read, search, or execute | Use the available file, search, and shell tools. |
++| Edit a file | Use the available patch or editing tool. |
++| Load a named skill | Read its discovered `SKILL.md` and follow it. |
++| Dispatch and collect reviewers | Use the available `spawn_agent` and wait tools, following their schemas. |
++| Ask the user | Use a question tool when available and applicable; otherwise ask in plain text. |
++| Choose models | Inherit the session model unless the user specifies a supported override. Claude model slugs are not Codex model identifiers. |
++| Load instructions | Read applicable `AGENTS.md` files and configured fallbacks, including global instructions. |
++
 +Tool availability and argument names vary between Codex surfaces. Do not assume
 +Claude `Agent` fields, `general-purpose` types, or a fixed set of Codex tools.
 +If subagents are unavailable, label a sequential review as such. Use
 +[runtime.md](runtime.md) for this skill's transcript and dispatch procedure.
 --- a/references/divergent-reviewer.md
 +++ b/references/divergent-reviewer.md
-@@ -20,8 +20,8 @@
+@@ -20,8 +20,8 @@ Scan for:
  
  Findings must point to skills, tools, or MCPs invoked in this transcript. Speculative routings to skills the parent never opened do not count. To check whether a skill was used, scan the transcript for:
  
@@ -194,7 +200,7 @@
  Two valid finding shapes:
 --- a/references/judgment-reviewer.md
 +++ b/references/judgment-reviewer.md
-@@ -19,8 +19,8 @@
+@@ -19,8 +19,8 @@ Scan for:
  
  Findings must point to skills, tools, or MCPs invoked in this transcript. Speculative routings to skills the parent never opened do not count. To check whether a skill was used, scan the transcript for:
  
@@ -207,7 +213,7 @@
  Two valid finding shapes:
 --- a/references/synthesizer.md
 +++ b/references/synthesizer.md
-@@ -14,7 +14,7 @@
+@@ -14,7 +14,7 @@ Apply each criterion to every finding:
  
  - Durability: still true in 6 months once paths, SHAs, tool versions, and code shapes have changed.
  - Specificity: broad enough to apply across tasks, precise enough that a future agent recognizes when to use it. Reject vague platitudes ("write good code") and hyper-specific facts ("`<specific-skill-name>` has 175 tokens at limit 80").
@@ -216,8 +222,8 @@
  - Convergence: findings echoed by 2+ reviewers carry higher confidence. Singletons must clear a higher bar on the other criteria.
  - Decision-changing: a future agent does something different because of the edit, not just reads more text.
  - Structural-mechanism check: route to Backlog when a lint rule, script, metadata flag, or runtime check already enforces the rule or could enforce it cheaply. Skill prose is for things mechanisms cannot enforce.
-@@ -31,7 +31,7 @@
- - "closed regex enums for trigger detection are brittle; prefer schema-validated structures"
+@@ -31,7 +31,7 @@ Keep (durable patterns):
+ - "closed regex enums for trigger detection are brittle. Prefer schema-validated structures"
  - "skill descriptions front-load trigger keywords (60/40 trigger-vs-action)"
  - "skill-bundled scripts run under bun with own lockfile, not pnpm workspace"
 -- "path-shaped triggers belong in `paths:`, not description prose"
@@ -225,7 +231,7 @@
  
  Output exactly the format below. No preamble, no narration. One sentence per cell. A reviewer should read each Problem/Proposal pair in 5 seconds.
  
-@@ -41,7 +41,7 @@
+@@ -41,7 +41,7 @@ Output exactly the format below. No preamble, no narration. One sentence per cel
  |---|---|---|
  | <failure mode in a skill the parent used> | <change to that skill's body> | <skill path + section> |
  | <skill existed but didn't trigger> | <tune the skill's description so it fires next time> | <tune description: <skill path>> |
@@ -234,7 +240,7 @@
  
  One row per finding. The user approves row by row.
  
-@@ -53,4 +53,4 @@
+@@ -53,4 +53,4 @@ For each rejected finding:
  
  ## Backlog
  
@@ -242,7 +248,7 @@
 +For each item, describe the pattern, what was hit, and the suggested mechanism. The parent proposes these items to the user and files them only when authorized.
 --- a/references/tooling-reviewer.md
 +++ b/references/tooling-reviewer.md
-@@ -32,8 +32,8 @@
+@@ -32,8 +32,8 @@ Scan for:
  
  Findings must point to skills, tools, or MCPs invoked in this transcript. Speculative routings to skills the parent never opened do not count. To check whether a skill was used, scan the transcript for:
  
