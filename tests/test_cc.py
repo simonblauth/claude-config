@@ -199,7 +199,7 @@ class VendorTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp); upstream = root / 'upstream'; upstream.mkdir()
             subprocess.run(['git', 'init', '-q', str(upstream)], check=True)
-            subprocess.run(['git', '-C', str(upstream), '-c', 'user.name=Test', '-c', 'user.email=test@example.invalid', 'commit', '--allow-empty', '-qm', 'initial'], check=True)
+            subprocess.run(['git', '-C', str(upstream), '-c', 'user.name=Test', '-c', 'user.email=test@example.invalid', '-c', 'commit.gpgsign=false', 'commit', '--allow-empty', '-qm', 'initial'], check=True)
             (upstream / 'LICENSE').write_text('MIT\nCopyright Test\n')
             (upstream / 'demo').mkdir()
             (upstream / 'demo/SKILL.md').write_text('original\n')
