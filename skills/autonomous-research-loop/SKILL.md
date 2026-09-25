@@ -1,6 +1,6 @@
 ---
-name: researching-training-recipes
-description: Autonomous research loop of long compute runs on one node, one run at a time, each chosen after an independent review. Runs only on /researching-training-recipes.
+name: autonomous-research-loop
+description: Autonomous research loop of long compute runs on one node, one run at a time, each chosen after an independent review. Runs only on /autonomous-research-loop.
 argument-hint: "[environment rules file] | check-in <research folder>"
 disable-model-invocation: true
 ---
@@ -134,7 +134,7 @@ the user says so, or on the stop rule (Explore and exploit).
 
 - **Check-ins every 45 minutes** with the session cron tool (`CronCreate`,
   recurring; not the `schedule` skill, whose cloud agents cannot reach this
-  machine), prompt `/researching-training-recipes check-in <research folder>`.
+  machine), prompt `/autonomous-research-loop check-in <research folder>`.
   The session's prompt cache lives an hour (per the ScheduleWakeup tool
   description), and recurring jobs fire up to 15 minutes late (per the
   CronCreate tool description); 45 minutes stays within the hour. Cron cannot

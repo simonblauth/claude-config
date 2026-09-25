@@ -82,7 +82,7 @@ Updated <date>.
 
 ## Check-ins
 - <CronCreate, four entries | loop skill>, prompt
-  `/researching-training-recipes check-in <research folder>`, created <date>.
+  `/autonomous-research-loop check-in <research folder>`, created <date>.
   Session-only: recreate at the start of every session.
 - Review in progress: <none | agent, started time>
 
