@@ -106,9 +106,10 @@ multi_agent = false
             self.assertNotIn(cc.sys.executable, command)
 
     def test_install_without_uv_fails_clearly(self):
-        bin_dir = self.base / 'bin'; bin_dir.mkdir()
-        (bin_dir / 'git').symlink_to(shutil.which('git'))
-        with patch.dict(os.environ, {'PATH': str(bin_dir)}):
+        # git's own directory, not a symlink: Windows grants symlinks only to admins
+        git_dir = Path(shutil.which('git')).parent
+        self.assertIsNone(shutil.which('uv', path=str(git_dir)))
+        with patch.dict(os.environ, {'PATH': str(git_dir)}):
             os.environ.pop('UV', None)
             with self.assertRaisesRegex(RuntimeError, 'uv'):
                 self.install()
@@ -200,16 +201,16 @@ class VendorTests(unittest.TestCase):
             root = Path(tmp); upstream = root / 'upstream'; upstream.mkdir()
             subprocess.run(['git', 'init', '-q', str(upstream)], check=True)
             subprocess.run(['git', '-C', str(upstream), '-c', 'user.name=Test', '-c', 'user.email=test@example.invalid', '-c', 'commit.gpgsign=false', 'commit', '--allow-empty', '-qm', 'initial'], check=True)
-            (upstream / 'LICENSE').write_text('MIT\nCopyright Test\n')
+            (upstream / 'LICENSE').write_text('MIT\nCopyright Test\n', newline='\n')
             (upstream / 'demo').mkdir()
-            (upstream / 'demo/SKILL.md').write_text('original\n')
+            (upstream / 'demo/SKILL.md').write_text('original\n', newline='\n')
             sources = root / 'sources.tsv'
-            sources.write_text(cc.HEADER + '\ndemo\thttps://example.invalid/repo.git\tdemo\tmain\t-\t-\n')
-            support = root / 'support.tsv'; support.write_text(cc.HEADER + '\n')
+            sources.write_text(cc.HEADER + '\ndemo\thttps://example.invalid/repo.git\tdemo\tmain\t-\t-\n', newline='\n')
+            support = root / 'support.tsv'; support.write_text(cc.HEADER + '\n', newline='\n')
             patches = root / 'patches'
             for layer, before, after in [('content', 'original', 'custom'), ('compat/shared', 'custom', 'portable'), ('compat/codex', 'portable', 'codex')]:
                 path = patches / layer / 'demo.patch'; path.parent.mkdir(parents=True)
-                path.write_text(f'--- a/SKILL.md\n+++ b/SKILL.md\n@@ -1 +1 @@\n-{before}\n+{after}\n')
+                path.write_text(f'--- a/SKILL.md\n+++ b/SKILL.md\n@@ -1 +1 @@\n-{before}\n+{after}\n', newline='\n')
             original_reader, original_writer = cc.read_sources, cc.write_sources
             def reader(path=None):
                 return original_reader(sources if path is None else path)
@@ -218,9 +219,10 @@ class VendorTests(unittest.TestCase):
             with patch.multiple(cc, SKILLS=root/'skills', PATCHES=patches, LICENSES=root/'licenses', NOTICE=root/'NOTICE.md', SUPPORT_SOURCES=support), patch.object(cc, 'read_sources', reader), patch.object(cc, 'write_sources', writer), patch.object(cc, 'clone', return_value=upstream), contextlib.redirect_stdout(io.StringIO()):
                 cc.cmd_vendor(argparse.Namespace(names=[]))
                 self.assertEqual((cc.SKILLS/'demo/SKILL.md').read_text(), 'portable\n')
-                self.assertEqual(cc.skill_files('codex')['demo/SKILL.md'], b'codex\n')
+                # git apply honours core.autocrlf, so Windows checkouts get CRLF here
+                self.assertEqual(cc.skill_files('codex')['demo/SKILL.md'].replace(b'\r\n', b'\n'), b'codex\n')
                 recorded = sources.read_bytes()
-                (upstream/'demo/SKILL.md').write_text('upstream changed\n')
+                (upstream/'demo/SKILL.md').write_text('upstream changed\n', newline='\n')
                 with self.assertRaisesRegex(RuntimeError, 'PATCH FAILED'):
                     cc.cmd_vendor(argparse.Namespace(names=[]))
                 self.assertEqual((cc.SKILLS/'demo/SKILL.md').read_text(), 'portable\n')
