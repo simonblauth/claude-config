@@ -1,21 +1,74 @@
 {
   "permissions": {
     "allow": [
+      "Read",
+      "Edit(**)",
+      "Bash(cat *)",
+      "Bash(head *)",
+      "Bash(tail *)",
+      "Bash(nl *)",
+      "Bash(wc *)",
+      "Bash(file *)",
+      "Bash(stat *)",
       "Bash(ls *)",
+      "Bash(tree *)",
+      "Bash(find *)",
+      "Bash(realpath *)",
+      "Bash(dirname *)",
+      "Bash(basename *)",
+      "Bash(which *)",
+      "Bash(type *)",
+      "Bash(pwd)",
+      "Bash(echo *)",
+      "Bash(cd *)",
       "Bash(grep *)",
+      "Bash(rg *)",
+      "Bash(sed -n *)",
+      "Bash(awk *)",
+      "Bash(sort *)",
+      "Bash(uniq *)",
+      "Bash(cut *)",
+      "Bash(tr *)",
+      "Bash(column *)",
+      "Bash(diff *)",
+      "Bash(comm *)",
+      "Bash(jq *)",
+      "Bash(yq *)",
+      "Bash(xargs wc *)",
       "Bash(git status *)",
       "Bash(git log *)",
       "Bash(git diff *)",
+      "Bash(git branch *)",
       "Bash(git add *)",
       "Bash(git commit *)",
       "Bash(git checkout *)",
+      "Bash(git switch *)",
       "Bash(git show *)",
-      "Bash(git switch *)"
+      "Bash(git merge *)",
+      "Bash(git stash *)",
+      "Bash(git rm *)",
+      "Bash(git -C * status *)",
+      "Bash(git -C * log *)",
+      "Bash(git -C * diff *)",
+      "Bash(git -C * branch *)",
+      "Bash(git -C * add *)",
+      "Bash(git -C * commit *)",
+      "Bash(git -C * checkout *)",
+      "Bash(git -C * show *)"
     ],
     "deny": [
       "Bash(az *)",
       "Bash(pwsh *)",
-      "Bash(powershell.exe *)"
+      "Bash(powershell.exe *)",
+      "Read(//**/.env)",
+      "Read(//**/.env.*)",
+      "Read(//**/secrets/**)",
+      "Read(//**/*.pem)",
+      "Read(//**/*.key)",
+      "Read(~/.ssh/**)",
+      "Read(~/.npmrc)",
+      "Read(~/.claude/.credentials.json)",
+      "Bash(cmdkey *)"
     ]
   },
   "autoMemoryEnabled": false,
@@ -25,10 +78,21 @@
   "attribution": {
     "commit": ""
   },
-  "model": "opus",
-  "effortLevel": "xhigh",
+  "model": "claude-opus-5-5",
+  "effortLevel": "medium",
+  "modelSettings": {
+    "claude-opus-5": {
+      "effortLevel": "xhigh"
+    },
+    "claude-fable-5-1": {
+      "effortLevel": "high"
+    },
+    "claude-opus-5-5": {
+      "effortLevel": "medium"
+    }
+  },
   "env": {
-    "CLAUDE_CODE_SUBAGENT_MODEL": "opus"
+    "CLAUDE_CODE_SUBAGENT_MODEL": "claude-opus-5-5"
   },
   "tui": "fullscreen",
   "theme": "dark",
