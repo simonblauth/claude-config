@@ -25,6 +25,7 @@ STATE.md records which files a program reads:
 |---|---|
 | training.md | the runs train a model |
 | performance.md | the runs time an implementation against a reference implementation |
+| feasibility.md | the goal is a go or no-go decision on an idea, not its best configuration |
 | long-runs.md | a run takes longer than 10 minutes, the Bash tool's longest timeout |
 | templates.md | writing a prompt, STATE.md, a registration or a report |
 
@@ -134,8 +135,9 @@ the user says so, or on the stop rule (Explore and exploit).
 1. **Restate** goal metric and its strata, budget per unit, fixed decisions and
    the hard constraints (from the environment rules file, not memory). If the
    user named no metric, take the one the project docs use on real data and
-   log it. Name the subject files, and whether runs are long (time the
-   reference once if unknown); record both in STATE.md. Ask which levers are
+   log it. Name the goal (optimize, or feasibility.md), the subject files,
+   and whether runs are long (time the reference once if unknown); record
+   all three in STATE.md. Ask which levers are
    feasible in deployment. Until answered, run only the subject's safe
    levers; the others wait, logged.
 2. **Set up the research folder** (Documentation) with STATE.md from the
@@ -296,7 +298,8 @@ additions.
   check, off the device, that it can move the target at all.
 - **Stop rule:** stop the search when no class has a reachable gain above the
   noise, or each further run mainly adds design leak; spend the node on
-  calibration or on extending the winner instead.
+  calibration or on extending the winner instead. A feasibility program stops
+  on feasibility.md's rule.
 - **A lever outside the fixed decisions** is logged for the user as soon as
   the evidence names it (it may be the largest gain).
 
@@ -362,7 +365,7 @@ into it, leave a symlink under the old name.
 | File | Holds | Changes |
 |---|---|---|
 | STATE.md | objective, program files, running unit, rules and holds, check-ins, logged decisions, next actions, folder map; under about 100 lines | rewritten after every step; read first at every check-in and after compaction |
-| RECIPE.md | current best: config, numbers against the reference with the noise band, open points | rewritten when the best changes |
+| RECIPE.md | current best: config, numbers against the reference with the noise band, open points (VERDICT.md instead in a feasibility program) | rewritten when the best changes |
 | FINDINGS.md | findings that outlive any run, each with evidence and strength | rewritten when a finding changes |
 | TRIED.md | lever classes, one row per run (class, mode, change, corrected verdict, key numbers), declined levers, errata | a row per run or review |
 | DEFINITIONS.md | every term, statistic, index and subject slot, with the code that computes it | when a term is added |

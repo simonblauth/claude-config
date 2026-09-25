@@ -70,6 +70,7 @@ Updated <date>.
 <the user's goal in one paragraph, the headline metric with its strata>
 
 ## Program
+- Goal: <optimize | feasibility (feasibility.md)>
 - Subjects: <subject files, or "slots in DEFINITIONS.md">
 - Runs: <long (long-runs.md) | short>; the reference run takes <time>
 
@@ -98,6 +99,31 @@ Updated <date>.
 
 ## Map of this folder
 | File | What it is | How it changes |
+```
+
+## VERDICT.md skeleton (feasibility)
+
+```
+# Verdict: <question>
+
+Updated <date>. Answer: <go | no-go | not shown within budget>.
+
+## Registration
+<question, success bar, kill criteria, budget; every change with its
+HISTORY entry>
+
+## Bounds
+- Upper bound: <probe, result against the bar>
+- Trivial baseline: <probe, result against the bar>
+
+## Evidence
+| Probe | Class | Result against the bar | Noise band | Scale |
+
+## What would change the answer
+<...>
+
+## Next step
+<go: what an optimization program starts from | no-go: the reopen condition>
 ```
 
 ## Pre-registration header (in HISTORY.md, before launch)
