@@ -1,6 +1,6 @@
 ---
 name: autonomous-research-loop
-description: Autonomous research loop on one node, one reviewed unit of runs at a time, for training recipes and other research with measurable runs. Runs only on /autonomous-research-loop.
+description: Autonomous research loop on one node, one reviewed unit of runs at a time, for training recipes, implementation performance and other research with measurable runs. Runs only on /autonomous-research-loop.
 argument-hint: "[environment rules file] [task] | check-in <research folder>"
 disable-model-invocation: true
 ---
@@ -24,6 +24,7 @@ STATE.md records which files a program reads:
 | File | Read when |
 |---|---|
 | training.md | the runs train a model |
+| performance.md | the runs time an implementation against a reference implementation |
 | long-runs.md | a run takes longer than 10 minutes, the Bash tool's longest timeout |
 | templates.md | writing a prompt, STATE.md, a registration or a report |
 
