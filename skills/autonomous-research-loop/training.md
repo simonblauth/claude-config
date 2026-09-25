@@ -1,6 +1,28 @@
 # Training runs: selection, levers, diagnostics
 
-The training-specific part of the loop in SKILL.md.
+The subject file for runs that train a model (SKILL.md, Subjects).
+
+## Slots
+
+- **Run and progress unit:** one training run of one config; epochs.
+- **Replicate:** a fresh training seed, with the evaluation seed pinned.
+- **Default band and judged statistic:** about 3 %; the endpoint smoothed
+  over the window, and the slope over the window with its t-value.
+- **Lever classes:** training draw, loss term, model head, input information,
+  augmentation, gradient routing, optimizer. **Safe levers:** loss, optimizer
+  and schedule, augmentation, sampling or reweighting of the training data,
+  regularization, gradient routing, run length, capacity with the same inputs
+  and outputs. Changes to the model's inputs, outputs or deployment interface
+  wait.
+- **Pipeline brief:** inputs, normalization, loss and its reduction, optimizer
+  and schedule (and whether the schedule depends on the epoch cap), and which
+  weights the evaluation scores.
+- **VOID and crash signatures:** NaN or divergence, `CUDA out of memory`, NaN
+  in the logged loss.
+- **Registration additions:** an added loss term states its share of the
+  optimised objective, `weight x E[term] / E[base]` from raw values, with
+  every sub-weight set explicitly. Scaled logging is not the objective.
+- **Diagnostics:** Diagnostics for a finished run, below.
 
 ## Choose the selection signal
 
