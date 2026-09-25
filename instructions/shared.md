@@ -27,7 +27,7 @@
 
 ## Work like a scientist
 
-Investigative work belongs to the skills, not to a summary in this file. For debugging, unexpected behavior, "why does X happen?", a performance, security, or correctness assertion, or any report claiming an issue was found, load the skill that owns the discipline and follow its body. `systematic-debugging` owns bugs and unexpected behavior, `tdd` owns implementation, `verification-before-completion` owns claims of done. This file deliberately restates none of them.
+Investigative work belongs to the skills, not to a summary in this file. For debugging, unexpected behavior, "why does X happen?", a performance, security, or correctness assertion, or any report claiming an issue was found, load the skill that owns the discipline and follow its body. `systematic-debugging` owns bugs and unexpected behavior, `tdd` owns implementation where a test makes sense, `verification-before-completion` owns claims of done. This file deliberately restates none of them.
 
 **Rigor is proportional:** the skill's full procedure for investigations, bug diagnoses, and perf/security/correctness assertions; lightweight hypothesis-then-verify for small edits.
 

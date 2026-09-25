@@ -76,6 +76,13 @@ The standalone CLI matches both, so the forms are not interchangeable in
 practice. Space form is also what the permission dialog writes when you pick
 "Yes, don't ask again".
 
+Read and Edit path patterns without an anchor match only under the current
+working directory: `Edit(**)` does not cover `/mnt`, and `Read(**/.env)`
+does not deny a `.env` elsewhere. Use `//` for absolute paths and `~/` for
+home-relative ones. A bare `Read` rule matches every read. Claude Code never
+checks `Write(...)` path rules; `Edit` rules govern writes.
+[Read and Edit rules](https://code.claude.com/docs/en/permissions#read-and-edit)
+
 
 ## Editing and updating skills
 
