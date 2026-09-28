@@ -71,6 +71,11 @@
       "Bash(cmdkey *)"
     ]
   },
+  "deniedMcpServers": [
+    { "serverName": "claude.ai Gmail" },
+    { "serverName": "claude.ai Google Calendar" },
+    { "serverName": "claude.ai Google Drive" }
+  ],
   "autoMemoryEnabled": false,
   "skillOverrides": {
     "unslop": "user-invocable-only"
