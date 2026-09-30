@@ -2,7 +2,7 @@
 name: researching-training-recipes
 description: Autonomous research loop of long compute runs on one node, one run at a time, each chosen after an independent review. Runs only on /researching-training-recipes.
 argument-hint: "[environment rules file] | check-in <research folder>"
-disable-model-invocation: true
+disable-model-invocation: false
 ---
 
 # Researching with long runs
