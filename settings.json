@@ -46,15 +46,7 @@
       "Bash(git show *)",
       "Bash(git merge *)",
       "Bash(git stash *)",
-      "Bash(git rm *)",
-      "Bash(git -C * status *)",
-      "Bash(git -C * log *)",
-      "Bash(git -C * diff *)",
-      "Bash(git -C * branch *)",
-      "Bash(git -C * add *)",
-      "Bash(git -C * commit *)",
-      "Bash(git -C * checkout *)",
-      "Bash(git -C * show *)"
+      "Bash(git rm *)"
     ],
     "deny": [
       "Bash(az *)",
