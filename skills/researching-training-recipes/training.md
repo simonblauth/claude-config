@@ -136,3 +136,17 @@ seed pinned (SKILL.md, Measurement). Re-read TRIED.md against the band:
 everything inside it is neutral regardless of sign.
 
 The run report template is in templates.md.
+
+## Pages and figures of a training loop
+
+Additions to SKILL.md, Documentation, for a loop that trains models.
+
+| File | Answers | Changes |
+|---|---|---|
+| MODELS.md | Which model should be used? The current best against the candidates, with the numbers that decide and what is missing for the decision | when a candidate appears or the choice changes |
+
+- **Model galleries:** `<topic>/human/galleries/<date>_<models>/`. A new
+  model gets a new dated gallery beside the reference models, in fixed
+  colours.
+- **Bulk raw outputs** outside the folder, under the manifest: checkpoints
+  and exported models.

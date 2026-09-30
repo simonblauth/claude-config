@@ -93,7 +93,97 @@ Updated <date>.
 - <what the next check-in does>
 
 ## Map of this folder
+Environment rules file: <path>. Topics and the folder's rules: the root README.md.
+This folder (<loop>/llm/):
 | File | What it is | How it changes |
+The loop's human pages: ../human/CURRENT.md, MODELS.md, FINDINGS.md.
+```
+
+STATE.md lives in `<loop>/llm/`, the loop folder.
+
+## Root README skeleton
+
+```
+# <Module> <topic> research
+
+<one paragraph: what the program is for, and where the project background is>
+
+Every topic has two parts: `human/` (the pages a person reads to decide)
+and `llm/` (the complete record for agents).
+
+## Topics
+| topic | read first | what it answers | full record |
+|---|---|---|---|
+| <loop> | <loop>/human/CURRENT.md | <the loop's question> | <loop>/llm/ (STATE.md is the entry point) |
+| <study> | <study>/human/<page>.md | <its question> | <study>/llm/ |
+
+## Rules for this folder
+- One source of truth: a human/ page summarises and links; every number it
+  shows is in a file under llm/.
+- Self-contained: every report, script, config and derived table the work
+  rests on is in this folder; bulk raw outputs outside it are listed in the
+  manifest in <loop>/llm/data/.
+- human/ holds only decision pages and the dated galleries; everything else
+  is in llm/, next to the script that made it.
+- Every llm/ folder has a README (what, how made, how to reproduce).
+- No symlinks; real paths only.
+- Run the link checker in <loop>/llm/tools/ after editing any page.
+- The hard rules are in <loop>/llm/STATE.md, "Rules and holds".
+
+## Moved paths
+| old path | new path |
+```
+
+## Human page skeletons
+
+Each page answers one question; its first paragraph is the answer. Keep a
+status page to about one screen and a study report under about 150 lines.
+
+`<loop>/human/CURRENT.md`:
+
+```
+# Where does the <topic> loop stand?
+
+<Date>. <Two sentences: the current best and the state of the loop.>
+
+## While you were away            (only after an unattended stretch)
+| run | what changed | verdict | details |
+
+## Current best
+<model, one line of what it is, the two or three numbers that make it the
+best, each against the reference with the noise band and a link>
+
+## Running now
+<run, what it tests, the result that would change the plan, ETA>
+
+## Decisions for you
+- <question, why it matters, the default taken meanwhile>
+```
+
+`<loop>/human/MODELS.md` (training loop; training.md):
+
+```
+# Which model should be used?
+
+<The answer in one paragraph: the current choice, and whether a candidate
+beats it.>
+
+| | <current best> | <candidate> | noise band |
+|---|---|---|---|
+| <deciding metric> | | | |
+
+## What is missing for a decision
+- <one line each>
+```
+
+`<loop>/human/FINDINGS.md` (or one page per finding):
+
+```
+# What must a reader know?
+
+## <Finding, as a statement>
+<Two to four lines: what was measured, against what, what it means for how
+results are read or what to do. Link to the evidence.>
 ```
 
 ## Pre-registration header (in HISTORY.md, before launch)
@@ -122,7 +212,7 @@ progress if the change alters speed):
 You are a fresh, independent reviewer. Be adversarial and evidence-driven.
 Work fast: the GPU is idle until you report.
 
-CONTEXT. Read <folder>/STATE.md, DEFINITIONS.md, and in HISTORY.md the
+CONTEXT. Read <folder>/<loop>/llm/STATE.md, DEFINITIONS.md, and in HISTORY.md the
 sections <pre-registration and result of the run>. Data: <per-channel CSVs,
 decompositions, TB paths, family map>. Prepared candidates: <list with paths>.
 

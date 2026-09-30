@@ -93,7 +93,8 @@ the user says so, or on the stop rule (Explore and exploit).
 - A rule the user adds mid-run goes into STATE.md verbatim at once, and into
   the next pre-registration; check-ins and the subagent rules block read it
   from there.
-- While the user is away, reports go to STATE.md and HISTORY.md.
+- While the user is away, reports go to STATE.md and HISTORY.md, and a short
+  summary to the top of `<loop>/human/CURRENT.md`.
 
 ## Before the first launch
 
@@ -106,9 +107,10 @@ the user says so, or on the stop rule (Explore and exploit).
    or reweighting of the training data, regularization, gradient routing, run
    length, capacity with the same inputs and outputs); changes to the model's
    inputs, outputs or deployment interface wait, logged.
-2. **Set up the research folder** (Documentation) with STATE.md from the
-   skeleton. If earlier work on the topic exists, extend its folder instead
-   of starting a second one.
+2. **Set up the research folder** (Documentation): the root README,
+   `<loop>/human/` and `<loop>/llm/`, with STATE.md from the skeleton in
+   the loop folder. If earlier work on the topic exists, extend its folder
+   instead of starting a second one.
 3. **Tooling:** reuse the repo's launcher if it has one and it refuses to start
    when the node is busy (else wrap it); otherwise write one that refuses a
    busy node, runs one config, tees a per-run log, and has a dry-run mode whose
@@ -188,7 +190,7 @@ the user says so, or on the stop rule (Explore and exploit).
 
 ### Check-in
 
-1. Read `<research folder>/STATE.md`, then the environment rules file it
+1. Read `<research folder>/<loop>/llm/STATE.md`, then the environment rules file it
    names (Environment rules). Its rules, holds and next actions override this
    list.
 2. Check the job directly: `nvidia-smi`, pgrep for the entry point, the log's
@@ -219,6 +221,7 @@ tmux new-session -d -s research -x 220 -y 50 -c <repo>     # once
 ```
 run exits -> file its numbers (HISTORY entry, TRIED row, runs.csv, STATE)
           -> fresh reviewer analyses it and recommends the next run
+          -> rewrite the human pages the result touches
           -> you choose, pre-register, and file the choice with its reason
           -> implement and test in the worktree; the node is idle now, so
              copy the change into the main tree and re-run its tests there
@@ -359,10 +362,83 @@ changed knob, the reference, the clauses.
 ## Documentation
 
 Everything the program produces goes into one folder in the repo, named for
-the module and topic (`<module>_<topic>_research/`): notes, configs,
-scripts, reviews, derived data, patches. Nothing a document cites may live
-only in a session's temporary directory. When an existing folder is renamed
-into it, leave a symlink under the old name.
+the module and topic (`<module>_<topic>_research/`, the research folder).
+Nothing a document cites may live only in a session's temporary directory.
+
+### Layout
+
+The research folder's root holds only `README.md` and one folder per topic:
+`<loop>/` for this loop (default name `training/`), and one folder per study
+beside it (`evaluation/`, `<study>/`). Every topic holds exactly two folders:
+
+- `human/`: the pages a person reads to decide or act. Nothing else.
+- `llm/`: the complete record for agents: notes, configs, scripts, reviews,
+  derived data, patches, and every figure next to the script that made it.
+
+The root `README.md` maps the topics (what each answers, which human page to
+read first, where its record is) and carries the folder's rules. No symlinks
+anywhere in the folder: pages and scripts name every file by its real path.
+When files move, a "Moved paths" table in the root README maps old to new;
+records written before the move keep their old paths.
+
+**Self-contained.** Someone with only the research folder, the repo it sits
+in and the environment rules file can pick up the work: every document,
+number, script, config, patch, prompt, review and derived table the work
+rests on is inside the folder. Nothing depends on a chat, a session's memory
+or a temporary directory.
+
+- Reports of analyses and reviews are saved into the topic's `llm/reviews/`
+  on arrival, not left in the run directory they were made in.
+- Only bulk raw outputs (run outputs, per-case volumes, caches; for a
+  training loop see training.md) may live outside the folder, and only with a manifest in
+  `<loop>/llm/data/`: path, size, checksum, the command or run that made
+  them, and how to regenerate them. A result a page cites is a table inside
+  the folder, never only a file in a run directory.
+- Launchers and monitors the loop depends on are copied into
+  `<loop>/llm/tools/`, or named in the environment rules file.
+- STATE.md names the environment rules file the loop runs under.
+
+Every `llm/` folder has a README: what is in it, how it was made, how to
+reproduce it. Intermediate files name the script that made them. After
+editing any page, run the link checker in `<loop>/llm/tools/`; a broken
+link fails the edit.
+
+### `human/` is for decisions, not for the record
+
+A page belongs in `human/` only if a person opens it to decide or act, and
+would miss it if it were gone. Everything else goes to `llm/`. It is the
+opposite of a dump: condensed, plain, easy to digest.
+
+- **One question per page.** The title names the question; the first
+  paragraph answers it in plain words. Typical pages: where the program
+  stands, what a study found, and one page per finding a
+  reader must know. Split a page when it starts to answer a second question;
+  never split by run, agent or date.
+- **Budget:** a status page fits on one screen (about 60 lines); a study
+  report stays under about 150. A page over budget is cut or split, never
+  extended; detail goes one level down, into `llm/`, behind a link.
+- **Only numbers that decide,** each with its comparator and noise band and a
+  link to the `llm/` file it comes from. No process history, no agent or
+  script names, no timestamps beyond the date, no list of corrections (one
+  "corrected <date>" link at most).
+- **Say what it means:** the verdict, its one main caveat, what would change
+  it, what the reader should do.
+- **Rewritten, never appended;** stale sentences are deleted, not annotated.
+  Write the pages with the unslop and technical-writing skills when they are
+  installed.
+- **Figures:** only the ones a person must see to decide, in dated galleries
+  (`<topic>/human/galleries/<date>_<subject>/`) whose index names the three
+  to look at first. A gallery is never re-rendered once made (model
+  galleries of a training loop: training.md). Report results are tables;
+  every other figure stays in `llm/`.
+- **One source of truth:** a human page never holds a number that is not in
+  a file under `llm/`. A correction lands in the record first, then the
+  human page states the corrected value only.
+
+### The loop's files
+
+The loop's record lives in `<loop>/llm/` (the loop folder); every loop file
+named in this skill (STATE.md, HISTORY.md, reviews/, …) is relative to it.
 
 | File | Holds | Changes |
 |---|---|---|
@@ -374,10 +450,22 @@ into it, leave a symlink under the old name.
 | HISTORY.md | pre-registrations, interims, results, review summaries, decisions, user rules | append only; a correction is a new entry plus a pointer on the wrong one |
 | runs.csv | one row per run, measured facts, from a script | regenerated, never typed |
 | reviews/ | every subagent prompt and report, reviewer scripts | a file per report, saved on arrival |
-| tools/, data/, patches/ | read-out scripts; derived CSVs and noise bands; code not yet in the main tree | as needed |
+| tools/, data/, patches/ | read-out scripts (link checker included); derived CSVs and noise bands; code not yet in the main tree | as needed |
+
+The loop's human pages live in `<loop>/human/`; start from the skeletons
+in templates.md:
+
+| File | Answers | Changes |
+|---|---|---|
+| CURRENT.md | Where does the loop stand? Current best, what is running and what it tests, open decisions for the user; while the user is away, a short table of what ran and what came out, at the top | rewritten after every run |
+| FINDINGS.md | What must a reader know? The few findings that change how the results are read, each in a few lines with its evidence link | when a finding changes |
+
+A training loop adds a model page and model galleries (training.md, "Pages
+and figures of a training loop").
 
 - After every run or review: append HISTORY, add the TRIED row, regenerate
-  runs.csv, rewrite STATE; rewrite RECIPE and FINDINGS when they change.
+  runs.csv, rewrite STATE; rewrite RECIPE and FINDINGS when they change;
+  rewrite the human pages the result touches.
 - Numbers first; an interpretation is a hypothesis until a review has tried to
   break it. A correction reaches the entry, the TRIED row, STATE, RECIPE and
   FINDINGS.
@@ -403,7 +491,11 @@ into it, leave a symlink under the old name.
 | Trusting a read-out statistic untested | Ideal and null case first |
 | Proxy fit used as a design | Audit feature sources; label it an information check |
 | Correction only in prose | The TRIED row, STATE, RECIPE, FINDINGS too |
-| A cited file left in the session's temp dir | Copy it into the research folder |
+| A cited file left in the session's temp dir, or a report left in a run directory | Copy it into the research folder |
+| Bulk outputs outside the folder with no record | A manifest entry: path, size, checksum, how made |
+| A human page that grows with every run | One question per page, within budget; history goes to llm/ |
+| A number on a human page with no source in llm/ | Link it, or drop it |
+| A symlink in the research folder | Real paths; a "Moved paths" table |
 | Check-ins lost with the session | Recreate the crons at every session start |
 | Tests in a worktree importing the main tree | PYTHONPATH and a `__file__` check |
 | Launching before the tested change is in the main tree | Copy it in during the gap, re-test, check `git diff` |
