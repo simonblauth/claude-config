@@ -12,7 +12,7 @@ skill with no row here, is covered by `LICENSE`.
 | --- | --- | --- | --- |
 | `deslopify` | <https://github.com/JuliusBrussee/skills> | Copyright (c) 2026 Julius Brussee | [MIT License](licenses/JuliusBrussee-skills.txt) |
 | `codebase-design`, `domain-modeling`, `grill-me`, `grill-with-docs`, `grilling`, `handoff`, `improve-codebase-architecture`, `wait-what`, `wizard`, `writing-for-agents` | <https://github.com/mattpocock/skills> | Copyright (c) 2026 Matt Pocock | [MIT License](licenses/mattpocock-skills.txt) |
-| `reflect`, `reflect/references/codex-tools.md`, `technical-writing`, `unslop` | <https://github.com/michael-denyer/pstack-claude> | Copyright (c) 2026 Lauren Tan | [MIT License](licenses/michael-denyer-pstack-claude.txt) |
+| `reflect`, `reflect/references/codex-tools.md`, `technical-writing`, `unslop` | <https://github.com/michael-denyer/pstack-claude> | Copyright (c) 2026 Lauren Tan; Copyright (c) 2026 Michael Denyer | [MIT License](licenses/michael-denyer-pstack-claude.txt) |
 | `systematic-debugging`, `tdd`, `verification-before-completion`, `writing-skills` | <https://github.com/obra/superpowers> | Copyright (c) 2025 Jesse Vincent | [MIT License](licenses/obra-superpowers.txt) |
 
 ## Provenance: pstack-claude

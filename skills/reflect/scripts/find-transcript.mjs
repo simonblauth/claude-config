@@ -6,21 +6,21 @@
 // Prints the newest matching path, or exits 1 with "no transcript". Covers the
 // three layouts under one per-project directory: flat <id>.jsonl, nested
 // <id>/<id>.jsonl, and subagent <id>/subagents/<child>.jsonl. Each candidate is
-// streamed line by line and abandoned at its first `user` record; the first
-// line is session metadata and files run to megabytes.
+// streamed line by line and abandoned at its first typed `user` record; the
+// first line is session metadata and files run to megabytes.
 import { createReadStream, readdirSync, realpathSync, statSync } from "node:fs";
 import { join } from "node:path";
 import process from "node:process";
 import { createInterface } from "node:readline";
 import { fileURLToPath } from "node:url";
 
-export function candidates(projectsDir) {
+export function candidates(projectsDir, maxDepth = 2) {
   const files = [];
   const walk = (dir, depth) => {
     for (const entry of readdirSync(dir, { withFileTypes: true })) {
       const full = join(dir, entry.name);
       if (entry.isFile() && entry.name.endsWith(".jsonl")) files.push(full);
-      else if (entry.isDirectory() && depth < 2) walk(full, depth + 1);
+      else if (entry.isDirectory() && depth < maxDepth) walk(full, depth + 1);
     }
   };
   walk(projectsDir, 0);
@@ -41,6 +41,11 @@ function text(content) {
   return null;
 }
 
+// `user` records Claude Code writes for a local command (/clear, !cmd) and its
+// output, not a prompt the user typed. A skill invocation leads with
+// <command-message> and is kept: its <command-args> carry what the user typed.
+const LOCAL_COMMAND = /^\s*<(?:command-name|local-command-stdout|bash-input)>/u;
+
 export async function openingPrompt(path) {
   const stream = createReadStream(path, { encoding: "utf8" });
   const lines = createInterface({ input: stream, crlfDelay: Infinity });
@@ -52,7 +57,9 @@ export async function openingPrompt(path) {
       } catch {
         continue;
       }
-      if (record?.type === "user") return text(record.message?.content);
+      if (record?.type !== "user" || record.isMeta) continue;
+      const prompt = text(record.message?.content);
+      if (prompt && !LOCAL_COMMAND.test(prompt)) return prompt;
     }
   } finally {
     lines.close();
