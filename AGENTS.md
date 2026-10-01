@@ -11,3 +11,6 @@ when rendering an installation; do not apply them to the shared `skills/` tree.
 Verify changes with temporary install roots and
 `uv run --no-project --python '>=3.11' python -m unittest discover -s tests`.
 Do not use the live user configuration as a test fixture.
+
+Commit a revendor (`cc.py vendor` plus the patch updates it needs) directly to
+`main`. It does not need a pull request.
