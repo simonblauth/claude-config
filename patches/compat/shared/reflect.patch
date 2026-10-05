@@ -1,3 +1,5 @@
+diff --git a/SKILL.md b/SKILL.md
+index 3e14b7d..8d289ad 100644
 --- a/SKILL.md
 +++ b/SKILL.md
 @@ -5,7 +5,7 @@ description: Spawn three parallel review subagents over the active transcript, s
@@ -77,6 +79,8 @@
 -
 -A role value in the override sheet may name a reasoning effort after its model, as in `opus @xhigh`. Levels on Claude Code: `low`, `medium`, `high`, `xhigh`, `max`. Which ones apply depends on the model. A value without `@` takes the sheet's `default effort` line, a level or `session`, and `session` when the sheet has no such line. `session` sets no effort, so the dispatch is the usual one. Strip the suffix before reading the model: `inherit-parent` or `auto` still omits `model` at every level, and a model name is passed as `model`. On Claude Code, a level picks the effort agent from the `subagent_type` you would otherwise use. `pstack:poteto-agent` becomes `subagent_type: "pstack:poteto-agent-<level>"`. `general-purpose`, or no `subagent_type`, becomes `subagent_type: "pstack:effort-<level>"`. The effort agents set only `effort`, so the model you pass still decides the model. On Codex, pass the level as `spawn_agent`'s `reasoning_effort` and keep the usual instructions.
 +Use the model policy in [runtime guidance](references/runtime.md).
+diff --git a/references/codex-tools.md b/references/codex-tools.md
+index 96d1778..96533b5 100644
 --- a/references/codex-tools.md
 +++ b/references/codex-tools.md
 @@ -1,97 +1,19 @@
@@ -134,7 +138,7 @@
 -
 -## Session routing hook
 -
--The native pstack plugin bundles the same `SessionStart` routing hook as the Claude Code plugin. Codex runs it on startup, resume, clear, and compact after the user trusts the hook through `/hooks`. The hook reads `session hook` from the Codex sheet, at the path in [setup-pstack's runtime table](../../setup-pstack/SKILL.md#other-runtimes); `session hook: off` disables injection.
+-The native pstack plugin bundles the same `SessionStart` routing instruction as the Claude Code plugin, through `session-start.sh` on macOS and Linux and `session-start.ps1` on Windows. Codex runs the hook on startup, resume, clear, and compact after the user trusts the hook through `/hooks`. The hook reads `session hook` from the Codex sheet, at the path in [setup-pstack's runtime table](../../setup-pstack/SKILL.md#other-runtimes); `session hook: off` disables injection.
 -
 -A skills-only installation does not include plugin hooks. Request `poteto-mode` explicitly or add a standing instruction to `AGENTS.md` in that case.
 -
@@ -196,6 +200,8 @@
 +Claude `Agent` fields, `general-purpose` types, or a fixed set of Codex tools.
 +If subagents are unavailable, label a sequential review as such. Use
 +[runtime.md](runtime.md) for this skill's transcript and dispatch procedure.
+diff --git a/references/divergent-reviewer.md b/references/divergent-reviewer.md
+index ead10c1..172910e 100644
 --- a/references/divergent-reviewer.md
 +++ b/references/divergent-reviewer.md
 @@ -20,8 +20,8 @@ Scan for:
@@ -209,6 +215,8 @@
  - Tool calls (Shell, Grep, MCP, etc.) that match a skill's documented commands
  
  Two valid finding shapes:
+diff --git a/references/judgment-reviewer.md b/references/judgment-reviewer.md
+index 24446ae..2b467be 100644
 --- a/references/judgment-reviewer.md
 +++ b/references/judgment-reviewer.md
 @@ -19,8 +19,8 @@ Scan for:
@@ -222,6 +230,8 @@
  - Tool calls (Shell, Grep, MCP, etc.) that match a skill's documented commands
  
  Two valid finding shapes:
+diff --git a/references/synthesizer.md b/references/synthesizer.md
+index 6778886..f89a607 100644
 --- a/references/synthesizer.md
 +++ b/references/synthesizer.md
 @@ -14,7 +14,7 @@ Apply each criterion to every finding:
@@ -257,6 +267,8 @@
  
 -For each item, describe the pattern, what was hit, and the suggested mechanism. The parent files each to whatever devex / backlog tracker the team uses.
 +For each item, describe the pattern, what was hit, and the suggested mechanism. The parent proposes these items to the user and files them only when authorized.
+diff --git a/references/tooling-reviewer.md b/references/tooling-reviewer.md
+index ac0dd8f..011991a 100644
 --- a/references/tooling-reviewer.md
 +++ b/references/tooling-reviewer.md
 @@ -32,8 +32,8 @@ Scan for:
