@@ -27,7 +27,7 @@ The brief is a **proposal**. Until the user confirms the plan, it changes nothin
    1. **Claude did**: the entries from step 2, or "Nothing since the last brief."
    2. **Plan**: three proposed priorities for today, or up to three outcomes for the week in week mode. Draw them from `focus: now` projects, due dates, and people to chase. Give one line of reason each.
    3. **Due**: overdue tasks and tasks due today or, in week mode, this week.
-   4. **Waiting on**: person, since when, and for which project.
+   4. **Waiting on**: from project `waiting_on` fields and task `waiting:` tags. Give the person or org, since when, and for which project.
    5. **Meetings**: from the calendar, when available.
    6. **Needs a decision**: at most five items, such as inbox entries or contradictions between notes.
 
