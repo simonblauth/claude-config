@@ -1,17 +1,19 @@
 diff --git a/SKILL.md b/SKILL.md
-index 3e14b7d..8d289ad 100644
+index 1a47fd0..8d289ad 100644
 --- a/SKILL.md
 +++ b/SKILL.md
-@@ -5,7 +5,7 @@ description: Spawn three parallel review subagents over the active transcript, s
+@@ -5,9 +5,7 @@ description: Spawn three parallel review subagents over the active transcript, s
  
  # Reflect
  
 -On Codex, read the [platform mapping](../poteto-mode/references/codex-tools.md), including its per-skill notes, before following this skill.
+-
+-On GitHub Copilot, read the [platform mapping](../poteto-mode/references/copilot-tools.md), including its per-skill notes, before following this skill.
 +Read [runtime guidance](references/runtime.md) before following this skill. Resolve all relative paths from this skill directory.
  
  Mine the current conversation for durable learnings, then route them into skill edits.
  
-@@ -17,33 +17,23 @@ Invoke when the user says "reflect" or "/reflect". Skip when the conversation is
+@@ -19,33 +17,23 @@ Invoke when the user says "reflect" or "/reflect". Skip when the conversation is
  
  ### 1. Locate the active transcript
  
@@ -29,10 +31,10 @@ index 3e14b7d..8d289ad 100644
  ### 2. Spawn three reviewers in parallel
  
 -One message, three `Agent` calls, `subagent_type: "general-purpose"`, with `model` set as below. Reviewers need MCP access for context lookups (tickets, chat threads, observability traces referenced in the transcript). Pick a subagent_type that retains MCP access. The prompt forbids file writes. The parent applies edits.
--
--Each reviewer and the synthesizer name a role line in `pstack-models.md` and a default in [Models](#models). Set `model` to that line's value, or to the default if the sheet or the line is missing. Leave `model` unset when the value is `auto` or `inherit-parent`. If the `Agent` tool rejects a slug, use the default and say so. If it rejects the default, use the closest valid slug of the same family from its error message.
 +Spawn three reviewers with the runtime's subagent tools and model policy. Reviewers need available MCP tools for context lookups referenced in the transcript. Their prompts forbid writes; the parent applies approved edits. If independent subagents are unavailable, report that limitation and perform the three lenses sequentially without claiming independent review.
  
+-Each reviewer and the synthesizer name a role line in `pstack-models.md` and a default in [Models](#models). Set `model` to that line's value, or to the default if the sheet or the line is missing. Leave `model` unset when the value is `auto` or `inherit-parent`. If the `Agent` tool rejects a slug, use the default and say so. If it rejects the default, use the closest valid slug of the same family from its error message.
+-
 -| Lens | Role line | Prompt template |
 +| Lens | `model` | Prompt template |
  |---|---|---|
@@ -53,7 +55,7 @@ index 3e14b7d..8d289ad 100644
  
  ### 4. Structural enforcement check
  
-@@ -58,9 +48,9 @@ Present Backlog items as proposals. File them only when the user authorizes that
+@@ -60,9 +48,9 @@ Present Backlog items as proposals. File them only when the user authorizes that
  For each approved Accepted item, follow the Routing field exactly:
  
  - Trivial existing-skill edit (a one-line bullet, a tightened sentence, a stale fact corrected): parent does directly.
@@ -66,7 +68,7 @@ index 3e14b7d..8d289ad 100644
  
  If your environment ships a SKILL.md validator, run it on every touched skill before declaring done. Skip this step if it doesn't.
  
-@@ -75,11 +65,4 @@ Short list, no preamble:
+@@ -77,11 +65,4 @@ Short list, no preamble:
  
  ## Models
  
@@ -80,10 +82,10 @@ index 3e14b7d..8d289ad 100644
 -A role value in the override sheet may name a reasoning effort after its model, as in `opus @xhigh`. Levels on Claude Code: `low`, `medium`, `high`, `xhigh`, `max`. Which ones apply depends on the model. A value without `@` takes the sheet's `default effort` line, a level or `session`, and `session` when the sheet has no such line. `session` sets no effort, so the dispatch is the usual one. Strip the suffix before reading the model: `inherit-parent` or `auto` still omits `model` at every level, and a model name is passed as `model`. On Claude Code, a level picks the effort agent from the `subagent_type` you would otherwise use. `pstack:poteto-agent` becomes `subagent_type: "pstack:poteto-agent-<level>"`. `general-purpose`, or no `subagent_type`, becomes `subagent_type: "pstack:effort-<level>"`. The effort agents set only `effort`, so the model you pass still decides the model. On Codex, pass the level as `spawn_agent`'s `reasoning_effort` and keep the usual instructions.
 +Use the model policy in [runtime guidance](references/runtime.md).
 diff --git a/references/codex-tools.md b/references/codex-tools.md
-index 96d1778..96533b5 100644
+index e867652..96533b5 100644
 --- a/references/codex-tools.md
 +++ b/references/codex-tools.md
-@@ -1,97 +1,19 @@
+@@ -1,99 +1,19 @@
 -# Codex tool mapping for pstack
 -
 -pstack skills are written in Claude Code tool language (the `Skill` tool, the `Agent` tool, `AskUserQuestion`, Claude model names). On Codex the skills are the same files; only the tool names resolve differently. Read this when a pstack skill names a Claude tool, a driver or bundled skill, or a Claude model. This file is Codex-specific. Gemini CLI, opencode, Prime Agent, and other runtimes must use their own concrete tools, model names, and configuration paths.
@@ -102,7 +104,7 @@ index 96d1778..96533b5 100644
 -| Dispatch a subagent (the `Agent`/`Task` tool) | `spawn_agent` |
 -| Dispatch N parallel subagents in one turn | N `spawn_agent` calls in one response |
 -| Wait for a subagent result | `wait_agent` |
--| Free a finished subagent slot | `close_agent` |
+-| Free a finished subagent slot | `close_agent`, when the session exposes it. Some Codex hosts don't. |
 -| Track tasks (the todolist; `TaskCreate` / `TaskUpdate`, or `TodoWrite` on Claude Code) | `update_plan` |
 -| Ask the human a fixed-choice question (`AskUserQuestion`) | Ask in plain text and let the user answer. Codex has no structured-choice tool. |
 -
@@ -113,7 +115,9 @@ index 96d1778..96533b5 100644
 -multi_agent = true
 -```
 -
--Without it, `spawn_agent` is unavailable and the fan-out skills (`interrogate`, `why`, `how`, `arena`, `reflect`) degrade to a single sequential pass.
+-Without it, `spawn_agent` is unavailable and the fan-out skills (`interrogate`, `why`, `how`, `arena`, `reflect`) degrade to a single sequential pass. A required independent review does not degrade. It stays blocked, as poteto-mode's [Subagents](../SKILL.md#subagents) section says.
+-
+-Enabling `multi_agent` does not lift the host's thread limit. A thread-limit error from `spawn_agent` is a capacity error, not a rejected model slug, so the skills' fallback to another model does not apply. After the first capacity rejection, stop spawning. Close a finished agent with `close_agent` before you try again, and where the session has no `close_agent`, do not assume a finished agent's slot is free.
 -
 -## Subagent policy
 -
@@ -176,7 +180,7 @@ index 96d1778..96533b5 100644
 -
 -## Vendored scripts
 -
--`skills/poteto-mode/scripts/` ships the `watch-pr` PR watcher, the `orch` store CLI, and `worktree-audit.mjs`. The `watch-pr/ship-pr` command owns pending-merge inspection and cancellation; `resume.mjs` owns the shared checkpoint locator described in [Resume storage](resume-storage.md). These scripts use bun and Node.js and run the same on Codex; invoke them through `shell`. They need `bun`, `gh`, and (for stack work) `gt`. `worktree-audit.mjs` reads Claude Code transcripts under `~/.claude/projects/`; point it at your runtime's transcript directory instead when you run it elsewhere. It imports the transcript walker from `skills/reflect/scripts/find-transcript.mjs`, so keep the `reflect` skill installed beside `poteto-mode`.
+-`skills/poteto-mode/scripts/` ships the `watch-pr` PR watcher, the `orch` store CLI, and `worktree-audit.mjs`. The `watch-pr/ship-pr` command owns pending-merge inspection and cancellation; `resume.mjs` owns the shared checkpoint locator described in [Resume storage](resume-storage.md). These scripts use bun and Node.js and run the same on Codex; invoke them through `shell`. They need `bun`, `gh`, and (for stack work) `gt`. Run `worktree-audit.mjs` with `node`, as its shebang does. The audit follows each link in a worktree's ancestor directories with `stat` and matches it by the directory it lands on, under bun and node alike. A worktree whose own path bun cannot resolve loses its last chat and lands in `review`. A dangling or looping link is ignored. Any other link that `stat` cannot follow puts every worktree under the link's directory in `review`, with a warning that names the link. `worktree-audit.mjs` scans Codex sessions under `$CODEX_HOME/sessions` and `$CODEX_HOME/archived_sessions` (default `~/.codex`), along with any Claude Code or Pi transcript directory that exists. It imports the transcript walker from `skills/reflect/scripts/find-transcript.mjs`, so keep the `reflect` skill installed beside `poteto-mode`.
 -
 -## Instructions file
 -

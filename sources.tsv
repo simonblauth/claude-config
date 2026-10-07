@@ -7,11 +7,11 @@ grilling	https://github.com/mattpocock/skills.git	skills/productivity/grilling	m
 grill-me	https://github.com/mattpocock/skills.git	skills/productivity/grill-me	main	c55ee46073ed923f86ce59a5eb3b6d895095d1b7	14c292fe16c0aed8
 writing-for-agents	https://github.com/mattpocock/skills.git	skills/productivity/writing-for-agents	main	c55ee46073ed923f86ce59a5eb3b6d895095d1b7	dc53f07d1f662137
 wait-what	https://github.com/mattpocock/skills.git	skills/productivity/wait-what	main	24fe0ef7737efae15c87225755e9f6f5965e4888	7eb4f8dd850b6870
-handoff	https://github.com/mattpocock/skills.git	skills/productivity/handoff	main	c55ee46073ed923f86ce59a5eb3b6d895095d1b7	fe287d0ae54ed66c
+handoff	https://github.com/mattpocock/skills.git	skills/productivity/handoff	main	6fd947921b935b7e1e69293a200400f0fdd5c15f	77c2607c751b7c52
 improve-codebase-architecture	https://github.com/mattpocock/skills.git	skills/engineering/improve-codebase-architecture	main	24fe0ef7737efae15c87225755e9f6f5965e4888	21e81aed6d25a2b1
 unslop	https://github.com/michael-denyer/pstack-claude.git	plugins/pstack/skills/unslop	main	7b08003c3321884ed3f6c38ee62e336f89207d37	a57f86b55718a359
 technical-writing	https://github.com/michael-denyer/pstack-claude.git	plugins/pstack/skills/technical-writing	main	dc8e617f179cf0bdc68b61e672f33e9eb64c20cf	a7146fb164cb5d56
-reflect	https://github.com/michael-denyer/pstack-claude.git	plugins/pstack/skills/reflect	main	dc8e617f179cf0bdc68b61e672f33e9eb64c20cf	a3c60649971e57d2
+reflect	https://github.com/michael-denyer/pstack-claude.git	plugins/pstack/skills/reflect	main	552b1c85f990f1b0bb7d9806aa2e8461ce5438d0	236376358bb3936f
 codebase-design	https://github.com/mattpocock/skills.git	skills/engineering/codebase-design	main	24fe0ef7737efae15c87225755e9f6f5965e4888	e91e18258598832e
 domain-modeling	https://github.com/mattpocock/skills.git	skills/engineering/domain-modeling	main	24fe0ef7737efae15c87225755e9f6f5965e4888	18a9314d338b8135
 grill-with-docs	https://github.com/mattpocock/skills.git	skills/engineering/grill-with-docs	main	c55ee46073ed923f86ce59a5eb3b6d895095d1b7	2dff19547f0f7200
