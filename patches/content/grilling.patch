@@ -2,7 +2,7 @@ diff --git a/SKILL.md b/SKILL.md
 index 8ca78c6..cfa4fe6 100644
 --- a/SKILL.md
 +++ b/SKILL.md
-@@ -10,15 +10,22 @@ Work the tree in **rounds**. The **frontier** is every decision whose prerequisi
+@@ -10,13 +10,20 @@ Work the tree in **rounds**. The **frontier** is every decision whose prerequisi
  Format a round like so:
  
  ```
@@ -27,5 +27,3 @@ index 8ca78c6..cfa4fe6 100644
 -➡️ <your recommended answer>
 +➡️ **(a)**, because <reason>
  ```
- 
- Each round the user answers reshapes the tree: settled decisions push the frontier outward and unblock questions that depended on them. Recompute the frontier and ask the next round. A question whose answer depends on another question still open in this round belongs to a _later_ round, not this one.
