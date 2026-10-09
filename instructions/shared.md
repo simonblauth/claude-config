@@ -7,12 +7,13 @@
 - Subject ≤50 chars, imperative mood. Conventional Commits, minus the `feat:` prefix.
 - Most commits need no body. When one earns its place: ≤10 lines, under 5 preferred, ~70 chars/line, plain prose with no section headers. The PR body is a separate artifact, so don't restate it here.
 - One commit per purpose. Split a multi-purpose change into a handful of logical commits, not one omnibus and not a swarm of micro-commits.
-- Signing is configured and a locked gpg agent fails the commit. Ask the user to unlock it rather than routing around the signature.
+- Commits and tags are SSH-signed, and signing never fails in a healthy setup. A signing error means the setup is broken: stop, show the user the error, and keep every commit signed.
 
 ### Pushing
 
 - Never push automatically. Only push when explicitly instructed.
 - **Push authorization is single-turn only.** An instruction like "pls push" grants permission to push exactly once, in the current turn. It never extends to the rest of the session. Each subsequent push requires a fresh explicit instruction, no matter how the earlier one was phrased.
+- **Exception: the vault.** In the repo at `$VAULT_DIR` (default `~/vault`), commit and push to its own `origin` after every change, as its `CLAUDE.md` says. The exception covers no other repo or remote.
 
 ### Remote Work
 

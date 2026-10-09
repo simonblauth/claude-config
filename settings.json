@@ -94,6 +94,20 @@
   "tui": "fullscreen",
   "theme": "dark",
   "agentPushNotifEnabled": true,
+  "autoMode": {
+    "environment": [
+      "$defaults",
+      "Trusted repo: the user's private notes vault, the git repository at ~/vault (or $VAULT_DIR), and its configured origin remote on a private self-hosted server."
+    ],
+    "allow": [
+      "$defaults",
+      "Vault sync: from any working directory, Claude may commit to the vault repo at ~/vault (or $VAULT_DIR), push it to its origin remote, and git rm its daily notes after the weekly journal is committed."
+    ],
+    "soft_deny": [
+      "$defaults",
+      "Vault privacy: content from the vault at ~/vault must not enter any other repository, commit message, issue, PR, gist or public surface unless the user names the content and the destination."
+    ]
+  },
   "hooks": {
     "SessionStart": [
       {
