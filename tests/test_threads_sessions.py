@@ -6,7 +6,7 @@ import sys
 import tempfile
 import unittest
 
-SCRIPT = Path(__file__).resolve().parent.parent / 'skills' / 'threads' / 'scripts' / 'sessions.py'
+SCRIPT = Path(__file__).resolve().parent.parent / 'skills' / 'vault' / 'threads' / 'scripts' / 'sessions.py'
 
 
 def proc_start(pid):

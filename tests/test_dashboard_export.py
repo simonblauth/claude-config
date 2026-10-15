@@ -6,7 +6,7 @@ import tempfile
 import textwrap
 import unittest
 
-SCRIPT = Path(__file__).resolve().parent.parent / 'skills' / 'dashboard' / 'scripts' / 'export.py'
+SCRIPT = Path(__file__).resolve().parent.parent / 'skills' / 'vault' / 'dashboard' / 'scripts' / 'export.py'
 
 PROJECT = '''\
 ---
