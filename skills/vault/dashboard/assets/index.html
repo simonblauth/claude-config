@@ -13,7 +13,7 @@
 .vd-tab { appearance: none; background: none; border: 0; border-bottom: 2px solid transparent; margin-bottom: -1px; padding: var(--cds-pad-sm) var(--cds-pad-md); font: inherit; color: var(--color-fg-muted); cursor: pointer; white-space: nowrap; }
 .vd-tab:hover { color: var(--color-fg); }
 .vd-tab[aria-selected="true"] { color: var(--color-fg); border-bottom-color: var(--color-fg); font-weight: var(--cds-font-weight-medium); }
-.vd button:focus-visible, .vd input:focus-visible { outline: 2px solid var(--color-fg); outline-offset: 2px; }
+.vd button:focus-visible, .vd input:focus-visible, .vd select:focus-visible { outline: 2px solid var(--color-fg); outline-offset: 2px; }
 .vd-panel { display: flex; flex-direction: column; gap: var(--cds-gap-md); min-width: 0; }
 .vd-card { background: var(--color-panel); border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); padding: var(--cds-pad-lg); display: flex; flex-direction: column; gap: var(--cds-gap-sm); min-width: 0; }
 .vd-card h2, .vd-card h3 { margin: 0; font-size: var(--cds-font-size-heading); font-weight: var(--cds-font-weight-medium); text-wrap: balance; }
@@ -68,8 +68,8 @@
 .vd-tip { position: absolute; pointer-events: none; background: var(--cds-surface-popover); border: 1px solid var(--cds-border); border-radius: var(--cds-radius); box-shadow: var(--cds-shadow-popover); padding: var(--cds-pad-xs) var(--cds-pad-sm); font-size: var(--cds-font-size-caption); max-width: 18rem; z-index: 2; display: flex; flex-direction: column; gap: 2px; }
 .vd-tip-head { color: var(--cds-text-secondary); }
 .vd-tools { display: flex; flex-wrap: wrap; gap: var(--cds-gap-sm); align-items: center; }
-.vd-search { font: inherit; font-size: var(--cds-font-size-caption); padding: var(--cds-pad-xs) var(--cds-pad-sm); border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); background: var(--color-bg); color: var(--color-fg); min-width: 0; flex: 1 1 12rem; max-width: 20rem; }
-.vd-tablebox { max-height: 34rem; overflow: auto; }
+.vd-search, .vd-select { font: inherit; font-size: var(--cds-font-size-caption); padding: var(--cds-pad-xs) var(--cds-pad-sm); border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); background: var(--color-bg); color: var(--color-fg); min-width: 0; flex: 1 1 12rem; max-width: 20rem; }
+.vd-select { flex: 0 1 14rem; }
 .vd-table { width: 100%; border-collapse: collapse; font-size: var(--cds-font-size-caption); }
 .vd-table th { position: sticky; top: 0; background: var(--color-panel); text-align: left; font-weight: var(--cds-font-weight-medium); border-bottom: 1px solid var(--color-border-line); padding: 0; z-index: 1; }
 .vd-table th button { appearance: none; background: none; border: 0; font: inherit; color: var(--color-fg-muted); cursor: pointer; padding: var(--cds-pad-xs) var(--cds-pad-sm); width: 100%; text-align: left; white-space: nowrap; }
@@ -151,6 +151,7 @@
       <p class="vd-note">Every open task under a project's Next. Select a row to open its project.</p>
       <div class="vd-tools">
         <input class="vd-search" id="task-search" type="search" placeholder="Search tasks" aria-label="Search tasks">
+        <select class="vd-select" id="task-project" aria-label="Project"><option value="">All projects</option></select>
         <div class="vd-seg" id="task-filter" aria-label="Filter">
           <button type="button" data-f="all" aria-pressed="true">All</button>
           <button type="button" data-f="now" aria-pressed="false">Focus now</button>
@@ -158,7 +159,7 @@
           <button type="button" data-f="due" aria-pressed="false">Has a due date</button>
         </div>
       </div>
-      <div class="vd-tablebox">
+      <div>
         <table class="vd-table" id="task-table" data-source="tasks" data-row-key="id">
           <thead><tr>
             <th data-field="text"><button type="button" data-k="text">Task</button></th>
@@ -224,7 +225,7 @@ const isoDay = (d) => d.toISOString().slice(0, 10);
 const latestDay = (D) => D.days.map((r) => r.date).sort().at(-1) ?? D.log.map((r) => r.date).filter((d) => d.length === 10).sort().at(-1) ?? isoDay(new Date());
 const prettyDay = (s) => (s && s.length === 10 ? fmtShort(parseDay(s)) : s || '');
 
-const state = { tab: 'today', day: null, open: null, filter: 'all', query: '', sort: { key: 'due', dir: 1 } };
+const state = { tab: 'today', day: null, open: null, filter: 'all', project: '', query: '', sort: { key: 'due', dir: 1 } };
 
 function el(tag, cls, text) {
   const e = document.createElement(tag);
@@ -652,6 +653,8 @@ function projectCard(p, D, lastDay) {
 /* ---------- tasks ---------- */
 const search = document.getElementById('task-search');
 search.addEventListener('input', () => { state.query = search.value.trim().toLowerCase(); draw(); });
+const projectPick = document.getElementById('task-project');
+projectPick.addEventListener('change', () => { state.project = projectPick.value; draw(); });
 document.querySelectorAll('#task-filter button').forEach((b) => b.addEventListener('click', () => { state.filter = b.dataset.f; draw(); }));
 document.querySelectorAll('#task-table th button').forEach((b) => b.addEventListener('click', () => {
   const k = b.dataset.k;
@@ -663,8 +666,23 @@ document.querySelector('#task-table tbody').addEventListener('click', (event) =>
   if (tr) openProject(tr.dataset.project);
 });
 
+function drawProjectPick(tasks) {
+  const titles = new Map(tasks.map((t) => [t.project, t.project_title]));
+  if (!titles.has(state.project)) state.project = '';
+  const options = [...titles].sort((a, b) => d3.ascending(a[1], b[1])).map(([slug, title]) => {
+    const o = el('option', null, title);
+    o.value = slug;
+    return o;
+  });
+  const all = el('option', null, 'All projects');
+  all.value = '';
+  projectPick.replaceChildren(all, ...options);
+  projectPick.value = state.project;
+}
+
 function drawTasks(D) {
   const lastDay = latestDay(D);
+  drawProjectPick(D.tasks);
   document.querySelectorAll('#task-filter button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.f === state.filter)));
   document.querySelectorAll('#task-table th').forEach((th) => {
     const k = th.querySelector('button').dataset.k;
@@ -679,6 +697,7 @@ function drawTasks(D) {
   }[state.filter];
   const { key, dir } = state.sort;
   const rows = D.tasks.filter(keep)
+    .filter((t) => !state.project || t.project === state.project)
     .filter((t) => !state.query || [t.text, t.project_title, t.waiting_on, t.details].join(' ').toLowerCase().includes(state.query))
     .sort((a, b) => {
       const va = a[key] || '', vb = b[key] || '';
