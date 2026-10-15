@@ -38,5 +38,6 @@ The brief is a **proposal**. Until the user confirms the plan, it changes nothin
 4. When the user confirms or adjusts the plan:
    1. Create `daily/YYYY-MM-DD.md` with the sections from `CLAUDE.md`. Put the confirmed plan under `## Brief`.
    2. Commit as `Start daily note YYYY-MM-DD` and push.
+   3. Refresh the dashboard with the `dashboard` skill.
 
-The brief is complete when today's daily note holds the confirmed plan and the commit is pushed.
+The brief is complete when today's daily note holds the confirmed plan, the commit is pushed, and the dashboard shows today's note.

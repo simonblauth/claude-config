@@ -32,11 +32,13 @@ The vault lives at `$VAULT_DIR` (default `~/vault`). Its `CLAUDE.md` and `schema
    2. Commit the journal.
    3. Remove the week's daily notes with `git rm`, and commit. Their content now lives in the journal and in the history.
    4. Run the gardening pass below.
-8. Reply in this shape:
+8. Refresh the dashboard with the `dashboard` skill.
+9. Reply in this shape:
    1. **Recorded**: one line per change.
    2. **Claude did**: the `auto:` changes.
    3. **Questions**: numbered, at most eight.
    4. **Gardening**: week mode only.
+   5. **Dashboard**: the line from the `dashboard` skill.
 
 ## Gardening pass
 
@@ -51,4 +53,4 @@ List findings. Change nothing in this pass.
 - `running` experiments with no Log activity in 14 days
 - claims in a note that a newer note contradicts
 
-The wrap is complete when the user's report is recorded, the daily note has its Wrap, every commit is pushed as `CLAUDE.md` says, and, in week mode, the journal exists and the daily notes are gone.
+The wrap is complete when the user's report is recorded, the daily note has its Wrap, every commit is pushed as `CLAUDE.md` says, the dashboard shows the pushed vault, and, in week mode, the journal exists and the daily notes are gone.
