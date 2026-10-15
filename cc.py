@@ -408,12 +408,26 @@ def render_instructions(target: str) -> bytes:
                         for name in ("shared.md", f"{target}.md")) + "\n").encode()
 
 
+def skill_dirs() -> list[Path]:
+    """Every skill under skills/. A folder without a SKILL.md groups skills in
+    this repo only; installation places each skill in it at the top level."""
+    found: dict[str, Path] = {}
+    for entry in sorted(SKILLS.iterdir()):
+        if not entry.is_dir():
+            continue
+        members = [entry] if (entry / "SKILL.md").exists() else sorted(
+            d for d in entry.iterdir() if (d / "SKILL.md").exists())
+        for skill in members:
+            if skill.name in found:
+                raise RuntimeError(f"skill {skill.name} is in both {found[skill.name]} and {skill}")
+            found[skill.name] = skill
+    return sorted(found.values(), key=lambda d: d.name)
+
+
 def skill_files(target: str) -> dict[str, bytes]:
     out = {}
     with tempfile.TemporaryDirectory() as tmp:
-        for source in sorted(SKILLS.iterdir()):
-            if not source.is_dir():
-                continue
+        for source in skill_dirs():
             stage = Path(tmp) / source.name
             shutil.copytree(source, stage)
             apply_patch(source.name, stage, f"compat/{target}")

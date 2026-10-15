@@ -86,7 +86,9 @@ checks `Write(...)` path rules; `Edit` rules govern writes.
 
 ## Editing and updating skills
 
-Edit shared skills under `skills/`, then reinstall the desired target. For a
+Edit shared skills under `skills/`, then reinstall the desired target. A folder
+there without a `SKILL.md`, such as `skills/vault/`, only groups skills in this
+repo: installation places each skill in it at the top level. For a
 vendored skill, also record the edit in the appropriate patch so re-vendoring
 preserves it. Patches use paths relative to the skill directory:
 
