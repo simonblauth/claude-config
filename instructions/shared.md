@@ -12,7 +12,7 @@
 ### Pushing
 
 - Never push automatically. Only push when explicitly instructed, or to an owned remote as "Owned remotes" below allows.
-- **Push authorization is single-turn only.** An instruction like "pls push" grants permission to push exactly once, in the current turn. It never extends to the rest of the session. Each subsequent push requires a fresh explicit instruction, no matter how the earlier one was phrased.
+- **Push authorization is single-turn only.** An instruction like "pls push" grants permission to push exactly once, in the current turn. It never extends to the rest of the session. Each subsequent push requires a fresh explicit instruction, no matter how the earlier one was phrased. "Owned remotes" below lifts this for the pushes it covers.
 - **Exception: the vault.** In the repo at `$VAULT_DIR` (default `~/vault`), commit and push to its own `origin` after every change, as its `CLAUDE.md` says. The exception covers no other repo or remote.
 
 ### Remote Work
