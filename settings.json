@@ -105,7 +105,7 @@
     ],
     "soft_deny": [
       "$defaults",
-      "Vault privacy: content from the vault at ~/vault must not enter any other repository, commit message, issue, PR, gist or public surface unless the user names the content and the destination."
+      "Vault privacy: content from the vault at ~/vault (or $VAULT_DIR) must not enter any other repository, commit message, issue, PR, gist or public surface unless the user names the content and the destination."
     ]
   },
   "hooks": {
