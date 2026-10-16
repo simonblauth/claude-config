@@ -204,6 +204,29 @@ class SettingsTests(unittest.TestCase):
                 self.assertEqual('heredoc_guard.py' in settings, windows)
                 self.assertEqual('PreToolUse' in settings, windows)
 
+    def repo_auto_mode(self):
+        return json.loads((cc.REPO / 'settings.json').read_text()).get('autoMode')
+
+    def test_owned_remotes_extend_the_auto_mode_environment(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            rules = Path(tmp) / 'rules'
+            rules.mkdir()
+            (rules / 'owned-remotes.md').write_text(
+                '# Local\n\n- not-a-remote\n\n## Owned remotes\n\n'
+                '- github.com/me/* (private)\n- gitlab.example.com/team/tool\n\n'
+                '## Other\n\n- also-not-a-remote\n')
+            settings = json.loads(cc.render_settings(Path(tmp)))
+        repo_env = (self.repo_auto_mode() or {}).get('environment', ['$defaults'])
+        env = settings['autoMode']['environment']
+        self.assertEqual(env[:-1], repo_env)
+        self.assertIn('github.com/me/* (private), gitlab.example.com/team/tool', env[-1])
+        self.assertNotIn('not-a-remote', env[-1])
+
+    def test_without_owned_remotes_auto_mode_is_the_repo_value(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            settings = json.loads(cc.render_settings(Path(tmp)))
+        self.assertEqual(settings.get('autoMode'), self.repo_auto_mode())
+
 
 class RepoCheckTests(unittest.TestCase):
     def git(self, *args):

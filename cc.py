@@ -547,7 +547,29 @@ def render_settings(cfg: Path) -> bytes:
     for key in SETTINGS_LOCAL_KEYS:
         if key in installed:
             planned[key] = installed[key]
+    owned = owned_remotes(cfg / "rules" / "owned-remotes.md")
+    if owned:
+        # The auto mode classifier trusts only the working repo's remotes by
+        # default; this lets it allow writes to the other owned repos.
+        env = planned.setdefault("autoMode", {}).setdefault("environment", ["$defaults"])
+        env.append("Source control: owned remotes, where CLAUDE.md lets Claude push "
+                   f"non-default branches and write issues and PRs: {', '.join(owned)}")
     return (json.dumps(planned, indent=2) + "\n").encode("utf-8")
+
+
+def owned_remotes(path: Path) -> list[str]:
+    """The bullets under the `## Owned remotes` heading of a machine-local rules file."""
+    try:
+        lines = path.read_text(encoding="utf-8").splitlines()
+    except OSError:
+        return []
+    out, inside = [], False
+    for line in lines:
+        if line.startswith("#"):
+            inside = line.strip() == "## Owned remotes"
+        elif inside and line.startswith("- "):
+            out.append(line[2:].strip())
+    return out
 
 
 def drop_hook(hooks: dict, event: str, script: str) -> None:

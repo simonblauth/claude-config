@@ -93,6 +93,12 @@ for Claude, `local-instructions.md` for Codex. Merging and pushing to the defaul
 branch still need approval each time. The entry format and the full rules are
 under "Owned remotes" in `instructions/shared.md`.
 
+Claude's auto mode trusts only the current repo's remotes by default, so
+`install` also adds the list to `autoMode.environment` in `settings.json`.
+Re-run `install` after you edit `owned-remotes.md`; until then, `check`
+reports `settings.json` drift.
+[Auto mode configuration](https://code.claude.com/docs/en/auto-mode-config)
+
 ## Claude permission rules
 
 Write Bash permission rules in space form — `Bash(uv run pytest *)`, not
