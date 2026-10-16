@@ -42,6 +42,15 @@ check with the appropriate target. **After installing Codex, review and trust
 its hook with `/hooks`**; Codex requires review again when the hook changes.
 [Codex hook documentation](https://learn.chatgpt.com/docs/hooks)
 
+## Vault
+
+The skills under `skills/vault/` keep a private markdown vault of projects,
+tasks, and research notes in its own git repo at `$VAULT_DIR` (default
+`~/vault`). Ask Claude to set up a vault: the `setup-vault` skill creates one
+from the template in `skills/vault/setup-vault/assets/vault/`, whose rules fix
+the note formats every vault skill reads. The same skill updates an existing
+vault when the template changes.
+
 ## Instructions and settings
 
 Edit `instructions/shared.md` for common policy and `instructions/claude.md`
