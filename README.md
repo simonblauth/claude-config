@@ -83,6 +83,16 @@ agent to read `$CODEX_HOME/local-instructions.md` if present (default
 `~/.codex/local-instructions.md`). That file is not managed. Write file scopes
 as explicit conditions there; Claude `paths:` rules are not converted.
 
+### Owned remotes
+
+Outside the vault, every push and every write on a remote needs your approval in the
+turn it happens. To let agents push feature branches and open, update, and
+answer issues and PRs on your own repos without that, list those repos in an
+`## Owned remotes` section of a machine-local file: `~/.claude/rules/owned-remotes.md`
+for Claude, `local-instructions.md` for Codex. Merging and pushing to the default
+branch still need approval each time. The entry format and the full rules are
+under "Owned remotes" in `instructions/shared.md`.
+
 ## Claude permission rules
 
 Write Bash permission rules in space form — `Bash(uv run pytest *)`, not

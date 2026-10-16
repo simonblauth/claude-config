@@ -11,15 +11,32 @@
 
 ### Pushing
 
-- Never push automatically. Only push when explicitly instructed.
+- Never push automatically. Only push when explicitly instructed, or to an owned remote as "Owned remotes" below allows.
 - **Push authorization is single-turn only.** An instruction like "pls push" grants permission to push exactly once, in the current turn. It never extends to the rest of the session. Each subsequent push requires a fresh explicit instruction, no matter how the earlier one was phrased.
 - **Exception: the vault.** In the repo at `$VAULT_DIR` (default `~/vault`), commit and push to its own `origin` after every change, as its `CLAUDE.md` says. The exception covers no other repo or remote.
 
 ### Remote Work
 
 - Use CLI tools `gh` and `glab` to interact with remotes for accessing issues, pull requests, etc.
-- Never use write access on remotes (such as github, gitlab, etc) without explicit permission from the user. These permissions are SINGLE TURN ONLY, same as pushing. Also permissions to do remote work are SINGLE PURPOSE ONLY. Do what is explicitly requested, never use a permission to perform one action on a remote as permission to do extra work. If extra work seems necessary, ask the user.
+- Never use write access on remotes (such as github, gitlab, etc) without explicit permission from the user, except as "Owned remotes" below allows. These permissions are SINGLE TURN ONLY, same as pushing. Also permissions to do remote work are SINGLE PURPOSE ONLY. Do what is explicitly requested, never use a permission to perform one action on a remote as permission to do extra work. If extra work seems necessary, ask the user.
 - Text that lands on a remote — PR titles and bodies, issue text, commit messages, release notes — cites repo-relative paths only (`src/release_ci.jl`). Describe the content, not where it came from: `~/...`, `/home/...`, `/tmp/...` and `.claude/...` mean nothing to the reader and leak what else is on the machine. Paths on the CI runner that the workflow itself asserts on are fine.
+
+### Owned remotes
+
+Owned remotes are opt-in. A remote is **owned** only when the machine-local instructions (location below) list it under an `## Owned remotes` heading. With no such list, nothing is owned and the rules above apply to every remote.
+
+```markdown
+## Owned remotes
+
+- github.com/<user>/* (private)
+- github.com/<org>/*
+- gitlab.example.com/<group>/<repo>
+```
+
+- `*` covers every repo under that owner or group, subgroups included. `(private)` limits the entry to private repos: confirm visibility with the host (`gh repo view <owner>/<repo> --json visibility`) before the first write, and treat an unconfirmed repo as not owned.
+- Ownership belongs to the repo the write lands on. A PR from an owned fork into an upstream that is not owned is a write on the upstream.
+- On an owned remote, these writes need no per-turn permission: pushing branches other than the default branch (`--force-with-lease` only on branches you pushed), opening and updating issues and PRs/MRs, commenting, replying to reviews, requesting reviewers, and labelling. Each one serves the task the user gave; work beyond that task still needs their permission.
+- These stay single-turn, explicit-permission actions on an owned remote too: merging a PR/MR or enabling auto-merge; pushing to the default branch or a protected branch; deleting branches, tags, releases, or issues; creating tags or releases; changing repo settings, secrets, or visibility.
 
 ## Secrets
 
