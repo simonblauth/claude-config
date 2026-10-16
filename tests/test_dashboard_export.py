@@ -11,7 +11,7 @@ SCRIPT = Path(__file__).resolve().parent.parent / 'skills' / 'vault' / 'dashboar
 PROJECT = '''\
 ---
 type: project
-title: Dose calc
+title: Parser rewrite
 created: 2026-01-05
 updated: 2026-01-07
 status: active
@@ -20,11 +20,11 @@ people: [ada]
 ---
 ## State
 
-Fixes the dose drift in [[dose-engine]]s and [[lab]]s. More detail follows.
+Fixes the slowdown in [[tokenizer]]s and [[lab]]s. More detail follows.
 
 ## Next
 
-- [ ] rerun with a fixed `seed` @ada due:2026-01-09 every:friday
+- [ ] profile with a fixed `size` @ada due:2026-01-09 every:friday
 - [ ] merge the fix waiting:ada waiting:lab
   - first item
   - second item
@@ -32,7 +32,7 @@ Fixes the dose drift in [[dose-engine]]s and [[lab]]s. More detail follows.
 ## Log
 
 - 2025-12 started
-- 2026-01-06 done: reproduced the drift with **seed 3**
+- 2026-01-06 done: reproduced the slowdown with **input 3**
 - 2026-01-07 dropped: the second machine
 
 ## Ideas
@@ -47,12 +47,12 @@ DAILY = '''\
 
 Outcomes for the week:
 
-1. Drift fixed ([[dose-calc]]).
+1. Slowdown fixed ([[parser-rewrite]]).
 
 Today:
 
-1. agent · [[dose-calc]]: rerun with the fixed seed, as [[ada|Ada]] asked.
-2. user · [[dose-calc]]: mail the [[lab]].
+1. agent · [[parser-rewrite]]: profile with the fixed size, as [[ada|Ada]] asked.
+2. user · [[parser-rewrite]]: mail the [[lab]].
 
 Meetings: Jour fixe 11:00, Team 13:00.
 
@@ -60,7 +60,7 @@ Decisions: The rerun waits. Ada reviews.
 
 ## Captures
 
-- New task: plot the drift ([[dose-calc]])
+- New task: plot the slowdown ([[parser-rewrite]])
 
 ## Claude did
 
@@ -68,7 +68,7 @@ Decisions: The rerun waits. Ada reviews.
 
 Done:
 
-- Reproduced the drift ([[dose-calc]]).
+- Reproduced the slowdown ([[parser-rewrite]]).
 
 Moves to tomorrow:
 
@@ -91,10 +91,10 @@ class ExportTests(unittest.TestCase):
         cls.addClassCleanup(tmp.cleanup)
         vault = Path(tmp.name) / 'vault'
         files = {
-            'projects/dose-calc.md': PROJECT,
+            'projects/parser-rewrite.md': PROJECT,
             'people/ada.md': note('Ada Lovelace (Al)', 'person'),
             'orgs/lab.md': note('The Lab', 'org'),
-            'concepts/dose-engine.md': note('Dose engines', 'concept'),
+            'concepts/tokenizer.md': note('Tokenizers', 'concept'),
             'daily/2026-01-05.md': daily,
         }
         for rel, text in files.items():
@@ -114,15 +114,15 @@ class ExportTests(unittest.TestCase):
 
     def test_project_row_counts_and_resolves_links(self):
         p = self.rows['projects'][0]
-        self.assertEqual((p['slug'], p['status'], p['focus']), ('dose-calc', 'active', 'now'))
-        self.assertEqual(p['summary'], 'Fixes the dose drift in Dose engines and The Labs.')
+        self.assertEqual((p['slug'], p['status'], p['focus']), ('parser-rewrite', 'active', 'now'))
+        self.assertEqual(p['summary'], 'Fixes the slowdown in Tokenizers and The Labs.')
         self.assertEqual(p['people'], 'Ada Lovelace')
         self.assertEqual((p['open_tasks'], p['waiting_tasks'], p['log_entries'], p['ideas']), (2, 1, 3, 1))
         self.assertEqual(p['last_activity'], '2026-01-07')
 
     def test_task_tags_become_fields(self):
         first, second = self.rows['tasks']
-        self.assertEqual(first['text'], 'rerun with a fixed seed')
+        self.assertEqual(first['text'], 'profile with a fixed size')
         self.assertEqual((first['owner'], first['due'], first['every']), ('ada', '2026-01-09', 'friday'))
         self.assertEqual(second['waiting_on'], 'Ada Lovelace, The Lab')
         self.assertEqual(second['details'], 'first item; second item')
@@ -131,7 +131,7 @@ class ExportTests(unittest.TestCase):
         kinds = [(e['date'], e['kind'], e['text']) for e in self.rows['log']]
         self.assertEqual(kinds, [
             ('2025-12', 'event', 'started'),
-            ('2026-01-06', 'done', 'reproduced the drift with seed 3'),
+            ('2026-01-06', 'done', 'reproduced the slowdown with input 3'),
             ('2026-01-07', 'dropped', 'the second machine'),
         ])
 
@@ -139,14 +139,14 @@ class ExportTests(unittest.TestCase):
         by = {}
         for r in self.rows['days']:
             by.setdefault(r['section'], []).append(r)
-        self.assertEqual([r['text'] for r in by['outcome']], ['Drift fixed (Dose calc).'])
+        self.assertEqual([r['text'] for r in by['outcome']], ['Slowdown fixed (Parser rewrite).'])
         agent, user = by['brief']
-        self.assertEqual((agent['who'], agent['project'], agent['text']), ('agent', 'dose-calc', 'rerun with the fixed seed, as Ada asked.'))
+        self.assertEqual((agent['who'], agent['project'], agent['text']), ('agent', 'parser-rewrite', 'profile with the fixed size, as Ada asked.'))
         self.assertEqual((user['who'], user['text']), ('user', 'mail the The Lab.'))
         self.assertEqual([r['text'] for r in by['meeting']], ['Jour fixe 11:00', 'Team 13:00'])
         self.assertEqual([r['text'] for r in by['decision']], ['The rerun waits.', 'Ada reviews.'])
-        self.assertEqual(by['capture'][0]['project'], 'dose-calc')
-        self.assertEqual([r['text'] for r in by['done']], ['Reproduced the drift (Dose calc).'])
+        self.assertEqual(by['capture'][0]['project'], 'parser-rewrite')
+        self.assertEqual([r['text'] for r in by['done']], ['Reproduced the slowdown (Parser rewrite).'])
         self.assertEqual([r['text'] for r in by['moves']], ['Merge the fix.'])
         self.assertNotIn('claude_did', by)
 

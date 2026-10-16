@@ -21,7 +21,7 @@ class SessionsTests(unittest.TestCase):
         self.base = Path(tmp.name)
         self.config = self.base / 'config'
         (self.config / 'sessions').mkdir(parents=True)
-        self.workspace = self.base / 'dose-calc'
+        self.workspace = self.base / 'parser-rewrite'
         self.workspace.mkdir()
         self.sleeper = subprocess.Popen(['sleep', '60'])
         self.addCleanup(self.sleeper.wait)
@@ -42,25 +42,25 @@ class SessionsTests(unittest.TestCase):
         return {s['name']: s for s in map(json.loads, out.stdout.splitlines())}
 
     def test_live_session_carries_workspace_description_and_repos(self):
-        (self.workspace / 'CLAUDE.md').write_text('# Workspace: dose-calc\n\nFixes the dose drift.\nBoth twins.\n\n## More\n')
-        repo = self.base / 'dosecalc-repo'
+        (self.workspace / 'CLAUDE.md').write_text('# Workspace: parser-rewrite\n\nFixes the slowdown.\nBoth twins.\n\n## More\n')
+        repo = self.base / 'parser-repo'
         subprocess.run(['git', 'init', '-q', repo], check=True)
-        subprocess.run(['git', '-C', repo, 'remote', 'add', 'origin', 'git@github.com:org/DoseCalc.jl.git'], check=True)
-        (self.workspace / 'DoseCalc').symlink_to(repo)
-        self.register(self.sleeper.pid, 'dose')
+        subprocess.run(['git', '-C', repo, 'remote', 'add', 'origin', 'git@github.com:org/Parser.jl.git'], check=True)
+        (self.workspace / 'Parser').symlink_to(repo)
+        self.register(self.sleeper.pid, 'parser')
 
-        session = self.run_script()['dose']
+        session = self.run_script()['parser']
 
         self.assertEqual(session['cwd'], str(self.workspace))
-        self.assertEqual(session['remote_id'], 'session_dose')
+        self.assertEqual(session['remote_id'], 'session_parser')
         self.assertFalse(session['self'])
-        self.assertEqual(session['description'], 'Workspace: dose-calc. Fixes the dose drift. Both twins.')
-        self.assertEqual(session['repos'], [{'dir': 'DoseCalc', 'remote': 'git@github.com:org/DoseCalc.jl.git'}])
+        self.assertEqual(session['description'], 'Workspace: parser-rewrite. Fixes the slowdown. Both twins.')
+        self.assertEqual(session['repos'], [{'dir': 'Parser', 'remote': 'git@github.com:org/Parser.jl.git'}])
 
     def test_description_keeps_the_list_a_colon_introduces(self):
         (self.workspace / 'README.md').write_text('Moves the engine to newer releases:\n\n1. 1.5 to 1.7.\n2. 1.7 to 1.8.\n\nOther text.\n')
-        self.register(self.sleeper.pid, 'dose')
-        self.assertEqual(self.run_script()['dose']['description'], 'Moves the engine to newer releases: 1. 1.5 to 1.7. 2. 1.7 to 1.8.')
+        self.register(self.sleeper.pid, 'parser')
+        self.assertEqual(self.run_script()['parser']['description'], 'Moves the engine to newer releases: 1. 1.5 to 1.7. 2. 1.7 to 1.8.')
 
     def test_dead_and_reused_pids_are_skipped(self):
         done = subprocess.Popen(['true'])
