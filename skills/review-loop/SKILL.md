@@ -17,7 +17,7 @@ A reviewer that reads the code before it reads your defense of the code. Each ro
 
 An explicit user invocation of `review-loop` (`/review-loop` or `$review-loop`) authorizes exactly one remote write: the step-6 summary note on the named request. Not approving, not merging, not a label. Reached from `issue-to-pr`, that skill's grant already covers the note and the loop's pushes.
 
-Pushing the fixes depends on the remote. On an **owned remote**, as the global instructions define it, step 4 pushes each round's commits to the request's head branch. Anywhere else a standalone run leaves its fixes as **local commits**: pushing them is a fresh ask, and until it happens the note says the fixes are local and absent from the request's diff. A note that credits commits a human cannot find is worse than no note.
+Pushing the fixes depends on the target. When the run was invoked with a request number and that request lives on an **owned remote**, as the global instructions define it, step 4 pushes each round's commits to its head branch. Otherwise, including every run with no argument, a standalone run leaves its fixes as **local commits**: pushing them is a fresh ask, and until it happens the note says the fixes are local and absent from the request's diff. A note that credits commits a human cannot find is worse than no note.
 
 ## 1. Resolve the target
 
@@ -66,7 +66,7 @@ Nothing is left in a third state. A finding you have not checked is not worked.
 
 ## 4. Carry the round forward
 
-On an owned remote, push the round's commits to the head branch with a plain `git push` as soon as the round is worked, before the next round or step 5. Never force: the head branch may carry someone else's commits.
+With a request on an owned remote, push the round's commits to its head branch with a plain `git push` as soon as the round is worked, before the next round or step 5. Never force: the head branch may carry someone else's commits.
 
 Round N+1's prompt fills the reviewer's earlier-rounds block with both halves of round N: each fix with its mechanism and commit, and each decline with your reason. The reviewer then either drops a declined point or comes back with new evidence, and files a failure at a fixed mechanism as a missed site rather than a new bug. Without the declines the loop can never go quiet, because a fresh agent re-raises what the last one raised. Without the fixes it cannot tell you that a fix was a patch.
 
@@ -98,5 +98,5 @@ One note, not one thread per finding. An agent opening threads against its own r
 | "A costlier model would review better" | Follow the runtime model policy; do not silently escalate. |
 | "One thread per finding is more traceable" | One note. Threads against your own request are theater. |
 | "The base is `main`, that is what the API said" | Both forges return a bare name. Fetch, then diff against `origin/main`. |
-| "The fixes are committed, so the note can claim them" | Off an owned remote, standalone commits are local until a fresh ask pushes them. The note says which. |
+| "The fixes are committed, so the note can claim them" | Without a request on an owned remote, standalone commits are local until a fresh ask pushes them. The note says which. |
 | "The number names the request, so the diff is right" | The number is remote, HEAD is local. Confirm HEAD is on the head ref. |
