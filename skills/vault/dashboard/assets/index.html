@@ -1,0 +1,763 @@
+<style>
+.vd { container-type: inline-size; display: flex; flex-direction: column; gap: var(--cds-gap-lg); font-family: var(--font-anthropic-sans); color: var(--color-fg); }
+.vd p { margin: 0; }
+.vd-head { display: flex; flex-direction: column; gap: var(--cds-gap-xs); }
+.vd-title { margin: 0; font-family: var(--font-anthropic-serif); font-weight: 400; font-size: var(--cds-font-size-title); line-height: 1.15; text-wrap: balance; }
+.vd-sub { color: var(--color-fg-muted); }
+.vd-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 8.5rem), 1fr)); gap: var(--cds-gap-sm); }
+.vd-tile { background: var(--color-panel); border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); padding: var(--cds-pad-md); display: flex; flex-direction: column; gap: var(--cds-gap-xs); min-width: 0; }
+.vd-tile-label { font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
+.vd-tile-num { font-family: var(--font-anthropic-serif); font-weight: 400; font-size: var(--cds-font-size-title); line-height: 1.1; font-variant-numeric: tabular-nums; }
+.vd-tile-num.is-warn { color: var(--color-warn); }
+.vd-tabs { display: flex; gap: var(--cds-gap-xs); border-bottom: 1px solid var(--color-border-line); overflow-x: auto; }
+.vd-tab { appearance: none; background: none; border: 0; border-bottom: 2px solid transparent; margin-bottom: -1px; padding: var(--cds-pad-sm) var(--cds-pad-md); font: inherit; color: var(--color-fg-muted); cursor: pointer; white-space: nowrap; }
+.vd-tab:hover { color: var(--color-fg); }
+.vd-tab[aria-selected="true"] { color: var(--color-fg); border-bottom-color: var(--color-fg); font-weight: var(--cds-font-weight-medium); }
+.vd button:focus-visible, .vd input:focus-visible, .vd select:focus-visible { outline: 2px solid var(--color-fg); outline-offset: 2px; }
+.vd-panel { display: flex; flex-direction: column; gap: var(--cds-gap-md); min-width: 0; }
+.vd-card { background: var(--color-panel); border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); padding: var(--cds-pad-lg); display: flex; flex-direction: column; gap: var(--cds-gap-sm); min-width: 0; }
+.vd-card h2, .vd-card h3 { margin: 0; font-size: var(--cds-font-size-heading); font-weight: var(--cds-font-weight-medium); text-wrap: balance; }
+.vd-card h3 { font-size: var(--cds-font-size-body); }
+.vd-note { color: var(--color-fg-muted); font-size: var(--cds-font-size-caption); }
+.vd-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr)); gap: var(--cds-gap-md); align-items: start; }
+.vd-today { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--cds-gap-md); align-items: start; }
+.vd-side { display: flex; flex-direction: column; gap: var(--cds-gap-md); min-width: 0; }
+@container (min-width: 52rem) { .vd-today { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); } }
+.vd-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.vd-item { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding-block: var(--cds-pad-sm); border-top: 1px solid var(--color-border-line); min-width: 0; overflow-wrap: anywhere; }
+.vd-item:first-child { border-top: 0; padding-top: 0; }
+.vd-item.is-small { font-size: var(--cds-font-size-caption); padding-block: var(--cds-pad-xs); }
+.vd-empty { color: var(--color-fg-muted); font-size: var(--cds-font-size-caption); }
+.vd-chip { appearance: none; font: inherit; font-size: var(--cds-font-size-caption); line-height: 1.6; border: 1px solid var(--color-border-line); border-radius: 999px; padding: 0 var(--cds-pad-sm); background: transparent; color: var(--color-fg-muted); cursor: pointer; white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+.vd-chip:hover { color: var(--color-fg); border-color: var(--color-fg-muted); }
+.vd-meta { display: flex; flex-wrap: wrap; align-items: center; gap: var(--cds-gap-xs) var(--cds-gap-sm); font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
+.vd-pill { font-size: var(--cds-font-size-caption); line-height: 1.6; border-radius: 999px; padding: 0 var(--cds-pad-sm); color: var(--color-fg-muted); background: color-mix(in srgb, var(--color-fg) 7%, transparent); white-space: nowrap; }
+.vd-pill[data-tone="active"] { color: var(--color-ok); background: color-mix(in srgb, var(--color-ok) 13%, transparent); }
+.vd-pill[data-tone="waiting"] { color: var(--color-warn); background: color-mix(in srgb, var(--color-warn) 14%, transparent); }
+.vd-pill[data-tone="late"] { color: var(--color-bad); background: color-mix(in srgb, var(--color-bad) 12%, transparent); }
+.vd-seg { display: flex; flex-wrap: wrap; gap: var(--cds-gap-xs); }
+.vd-seg button { appearance: none; font: inherit; font-size: var(--cds-font-size-caption); border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); padding: var(--cds-pad-xs) var(--cds-pad-sm); background: transparent; color: var(--color-fg-muted); cursor: pointer; font-variant-numeric: tabular-nums; }
+.vd-seg button[aria-pressed="true"] { color: var(--color-fg); border-color: var(--color-fg); }
+.vd-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--cds-gap-sm); }
+.vd-week { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--cds-gap-sm); }
+@container (min-width: 52rem) { .vd-week { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
+.vd-day { background: var(--color-panel); border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); padding: var(--cds-pad-md); display: flex; flex-direction: column; gap: var(--cds-gap-sm); min-width: 0; }
+.vd-day.is-today { border-color: var(--color-fg-muted); }
+.vd-day-head { appearance: none; background: none; border: 0; padding: 0; font: inherit; text-align: left; cursor: pointer; color: var(--color-fg); display: flex; flex-direction: column; gap: 2px; }
+.vd-day-name { font-weight: var(--cds-font-weight-medium); }
+.vd-day-head:hover .vd-day-name { text-decoration: underline; }
+.vd-stats { display: flex; gap: var(--cds-gap-sm); font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); font-variant-numeric: tabular-nums; }
+.vd .vd-stats b { color: var(--color-fg); font-weight: var(--cds-font-weight-medium); }
+.vd-board { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--cds-gap-md); align-items: start; }
+@container (min-width: 52rem) { .vd-board { grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 1fr); } }
+.vd-lane { display: flex; flex-direction: column; gap: var(--cds-gap-sm); min-width: 0; }
+.vd-lane-head { display: flex; flex-direction: column; gap: 2px; padding-inline: var(--cds-pad-xs); }
+.vd-lane-head h2 { margin: 0; font-size: var(--cds-font-size-heading); font-weight: var(--cds-font-weight-medium); }
+.vd-proj { background: var(--color-panel); border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); min-width: 0; }
+.vd-proj.is-open { border-color: var(--color-fg-muted); }
+.vd-proj-btn { appearance: none; background: none; border: 0; font: inherit; color: inherit; text-align: left; cursor: pointer; width: 100%; padding: var(--cds-pad-md); display: flex; flex-direction: column; gap: var(--cds-gap-xs); border-radius: var(--cds-radius); }
+.vd-proj-top { display: flex; justify-content: space-between; align-items: baseline; gap: var(--cds-gap-sm); }
+.vd-proj-title { font-weight: var(--cds-font-weight-medium); }
+.vd-proj-sum { color: var(--color-fg-muted); font-size: var(--cds-font-size-caption); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.vd-proj.is-open .vd-proj-sum { display: none; }
+.vd-proj-detail { padding: 0 var(--cds-pad-md) var(--cds-pad-md); display: flex; flex-direction: column; gap: var(--cds-gap-md); }
+.vd-prose { white-space: pre-line; font-size: var(--cds-font-size-caption); line-height: 1.55; max-width: 70ch; }
+.vd-num { font-variant-numeric: tabular-nums; }
+.vd-heat { position: relative; min-height: 12rem; }
+.vd-heat svg { display: block; }
+.vd-tip { position: absolute; pointer-events: none; background: var(--cds-surface-popover); border: 1px solid var(--cds-border); border-radius: var(--cds-radius); box-shadow: var(--cds-shadow-popover); padding: var(--cds-pad-xs) var(--cds-pad-sm); font-size: var(--cds-font-size-caption); max-width: 18rem; z-index: 2; display: flex; flex-direction: column; gap: 2px; }
+.vd-tip-head { color: var(--cds-text-secondary); }
+.vd-tools { display: flex; flex-wrap: wrap; gap: var(--cds-gap-sm); align-items: center; }
+.vd-search, .vd-select { font: inherit; font-size: var(--cds-font-size-caption); padding: var(--cds-pad-xs) var(--cds-pad-sm); border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); background: var(--color-bg); color: var(--color-fg); min-width: 0; flex: 1 1 12rem; max-width: 20rem; }
+.vd-select { flex: 0 1 14rem; }
+.vd-table { width: 100%; border-collapse: collapse; font-size: var(--cds-font-size-caption); }
+.vd-table th { position: sticky; top: 0; background: var(--color-panel); text-align: left; font-weight: var(--cds-font-weight-medium); border-bottom: 1px solid var(--color-border-line); padding: 0; z-index: 1; }
+.vd-table th button { appearance: none; background: none; border: 0; font: inherit; color: var(--color-fg-muted); cursor: pointer; padding: var(--cds-pad-xs) var(--cds-pad-sm); width: 100%; text-align: left; white-space: nowrap; }
+.vd-table th[aria-sort] button { color: var(--color-fg); }
+.vd-table td { padding: var(--cds-pad-xs) var(--cds-pad-sm); border-bottom: 1px solid var(--color-border-line); vertical-align: top; overflow-wrap: anywhere; }
+.vd-table td.is-late { color: var(--color-bad); }
+.vd-table td.is-wait { color: var(--color-warn); }
+.vd-table tr[data-key] { cursor: pointer; }
+.vd-table tr[data-key]:hover td { background: color-mix(in srgb, var(--color-fg) 4%, transparent); }
+@container (max-width: 40rem) { .vd-wide { display: none; } }
+.vd-failed { display: flex; align-items: center; justify-content: center; gap: var(--cds-gap-xs); min-height: 8rem; color: var(--color-fg-muted); font-size: var(--cds-font-size-caption); }
+.vd-failed::before { content: ""; width: .375rem; height: .375rem; border-radius: 50%; background: var(--color-bad); }
+.vd-loading { min-height: 16rem; }
+.vd [data-dash-source-state=refreshing] { opacity: .5; transition: opacity var(--cds-dur-slow); }
+.vd [data-dash-source-state=empty] { color: transparent; }
+</style>
+
+<div class="vd">
+  <header class="vd-head" id="overview">
+    <h1 class="vd-title">Vault</h1>
+    <p class="vd-sub">Brief for <span class="dash-skeleton" data-source="headline" data-field="day" data-row="0">—</span>, from the newest daily note.</p>
+  </header>
+
+  <section class="vd-tiles" id="glance" aria-label="At a glance">
+    <div class="vd-tile"><span class="vd-tile-label">Agent threads today</span><span class="vd-tile-num dash-skeleton" data-source="headline" data-field="agent_items" data-row="0">—</span></div>
+    <div class="vd-tile"><span class="vd-tile-label">Items for you today</span><span class="vd-tile-num dash-skeleton" data-source="headline" data-field="user_items" data-row="0">—</span></div>
+    <div class="vd-tile"><span class="vd-tile-label">Meetings today</span><span class="vd-tile-num dash-skeleton" data-source="headline" data-field="meetings" data-row="0">—</span></div>
+    <div class="vd-tile"><span class="vd-tile-label">Tasks waiting on others</span><span class="vd-tile-num dash-skeleton" data-source="headline" data-field="waiting_tasks" data-row="0">—</span></div>
+    <div class="vd-tile"><span class="vd-tile-label">Due within 7 days</span><span class="vd-tile-num dash-skeleton" id="tile-due" data-source="headline" data-field="due_soon" data-row="0">—</span></div>
+    <div class="vd-tile"><span class="vd-tile-label">Active projects</span><span class="vd-tile-num dash-skeleton" data-source="headline" data-field="active_projects" data-row="0">—</span></div>
+  </section>
+
+  <nav class="vd-tabs" role="tablist" aria-label="Views">
+    <button class="vd-tab" role="tab" id="tab-today" data-tab="today" aria-selected="true">Today</button>
+    <button class="vd-tab" role="tab" id="tab-week" data-tab="week" aria-selected="false">Week</button>
+    <button class="vd-tab" role="tab" id="tab-projects" data-tab="projects" aria-selected="false">Projects</button>
+    <button class="vd-tab" role="tab" id="tab-tasks" data-tab="tasks" aria-selected="false">Tasks</button>
+  </nav>
+
+  <section class="vd-panel" id="today" role="tabpanel" aria-labelledby="tab-today">
+    <div class="vd-bar">
+      <p class="vd-note">Pick a day of this week to see its brief, captures and wrap.</p>
+      <div class="vd-seg" id="day-picker" data-source="days" aria-label="Day"></div>
+    </div>
+    <div class="vd-today" id="today-body">
+      <div class="vd-card vd-loading dash-skeleton"></div>
+    </div>
+  </section>
+
+  <section class="vd-panel" id="week" role="tabpanel" aria-labelledby="tab-week" hidden>
+    <div class="vd-card" id="week-outcomes">
+      <h2>Outcomes for the week</h2>
+      <p class="vd-note">Set in Monday's brief.</p>
+      <ol class="vd-list" id="outcome-list" data-source="days"></ol>
+    </div>
+    <div class="vd-week" id="week-days" data-source="days by_day"></div>
+    <div class="vd-cols">
+      <div class="vd-card" id="activity">
+        <h2>Project activity</h2>
+        <p class="vd-note">Log entries per project and workday, last three weeks. Darker means more entries.</p>
+        <div class="vd-heat" id="heat" data-source="log"></div>
+      </div>
+      <div class="vd-card" id="due">
+        <h2>Coming due</h2>
+        <p class="vd-note">Open tasks with a due date, soonest first.</p>
+        <ul class="vd-list" id="due-list" data-source="tasks"></ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="vd-panel" id="projects" role="tabpanel" aria-labelledby="tab-projects" hidden>
+    <p class="vd-note">Projects by focus. Select a card for its state, next tasks and latest log.</p>
+    <div class="vd-board" id="board" data-source="projects tasks log"></div>
+  </section>
+
+  <section class="vd-panel" id="tasks" role="tabpanel" aria-labelledby="tab-tasks" hidden>
+    <div class="vd-card">
+      <h2>Open tasks</h2>
+      <p class="vd-note">Every open task under a project's Next. Select a row to open its project.</p>
+      <div class="vd-tools">
+        <input class="vd-search" id="task-search" type="search" placeholder="Search tasks" aria-label="Search tasks">
+        <select class="vd-select" id="task-project" aria-label="Project"><option value="">All projects</option></select>
+        <div class="vd-seg" id="task-filter" aria-label="Filter">
+          <button type="button" data-f="all" aria-pressed="true">All</button>
+          <button type="button" data-f="now" aria-pressed="false">Focus now</button>
+          <button type="button" data-f="waiting" aria-pressed="false">Waiting on others</button>
+          <button type="button" data-f="due" aria-pressed="false">Has a due date</button>
+        </div>
+      </div>
+      <div>
+        <table class="vd-table" id="task-table" data-source="tasks" data-row-key="id">
+          <thead><tr>
+            <th data-field="text"><button type="button" data-k="text">Task</button></th>
+            <th data-field="project_title"><button type="button" data-k="project_title">Project</button></th>
+            <th data-field="focus" class="vd-wide"><button type="button" data-k="focus">Focus</button></th>
+            <th data-field="due"><button type="button" data-k="due">Due</button></th>
+            <th data-field="waiting_on"><button type="button" data-k="waiting_on">Waiting on</button></th>
+            <th data-field="details" class="vd-wide"><button type="button" data-k="details">Notes</button></th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script>
+dash.calc('headline', {
+  title: 'Today at a glance',
+  description: 'Counts from the newest daily note, plus open tasks that wait on someone or are due within 7 days of it. With no daily note, the day is the newest log date.',
+  inputs: ['days', 'tasks', 'projects', 'log'],
+  fn: (days, tasks, projects, log) => {
+    const day = days.map((r) => r.date).sort().at(-1) ?? log.map((r) => r.date).filter((d) => d.length === 10).sort().at(-1);
+    const today = days.filter((r) => r.date === day);
+    const brief = today.filter((r) => r.section === 'brief');
+    const weekOut = day ? new Date(Date.parse(day) + 7 * 864e5).toISOString().slice(0, 10) : '';
+    return [{
+      day,
+      agent_items: brief.filter((r) => r.who === 'agent').length,
+      user_items: brief.filter((r) => r.who === 'user').length,
+      meetings: today.filter((r) => r.section === 'meeting').length,
+      waiting_tasks: tasks.filter((t) => t.waiting_on).length,
+      due_soon: tasks.filter((t) => t.due && t.due <= weekOut).length,
+      active_projects: projects.filter((p) => p.status === 'active').length,
+    }];
+  },
+});
+
+dash.calc('by_day', {
+  title: 'Planned and done per day',
+  description: 'Per daily note: brief items planned, wrap items done, items moved on, and project log entries dated that day.',
+  inputs: ['days', 'log'],
+  fn: (days, log) => [...new Set(days.map((r) => r.date))].sort().map((date) => ({
+    date,
+    planned: days.filter((r) => r.date === date && r.section === 'brief').length,
+    done: days.filter((r) => r.date === date && r.section === 'done').length,
+    moved_on: days.filter((r) => r.date === date && r.section === 'moves').length,
+    log_entries: log.filter((r) => r.date === date).length,
+  })),
+});
+
+const DATASETS = ['projects', 'tasks', 'log', 'days'];
+const TABS = ['today', 'week', 'projects', 'tasks'];
+const FOCI = [['now', 'Now', 'Moves this week or next'], ['next', 'Next', 'Up after the current focus'], ['later', 'Later', 'Parked or not started']];
+const STATUS_ORDER = ['active', 'waiting', 'paused', 'idea', 'done', 'dropped'];
+const SECTION_TITLES = { meeting: 'Meetings', decision: 'Decisions', capture: 'Captures', claude_did: 'Claude did', done: 'Done', moves: 'Moves to tomorrow' };
+const fmtLong = d3.utcFormat('%A, %-d %B');
+const fmtDay = d3.utcFormat('%a %b %-d');
+const fmtShort = d3.utcFormat('%b %-d');
+const fmtWeekday = d3.utcFormat('%a');
+const parseDay = (s) => new Date(s + 'T00:00:00Z');
+const isoDay = (d) => d.toISOString().slice(0, 10);
+const latestDay = (D) => D.days.map((r) => r.date).sort().at(-1) ?? D.log.map((r) => r.date).filter((d) => d.length === 10).sort().at(-1) ?? isoDay(new Date());
+const prettyDay = (s) => (s && s.length === 10 ? fmtShort(parseDay(s)) : s || '');
+
+const state = { tab: 'today', day: null, open: null, filter: 'all', project: '', query: '', sort: { key: 'due', dir: 1 } };
+
+function el(tag, cls, text) {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text != null) e.textContent = text;
+  return e;
+}
+function mark(e, source, field, where) {
+  e.dataset.source = source;
+  if (field) e.dataset.field = field;
+  if (where) e.dataset.where = where;
+  return e;
+}
+const whereId = (id) => 'id=' + encodeURIComponent(id);
+const whereSlug = (slug) => 'slug=' + encodeURIComponent(slug);
+
+function projectChip(slug, projects) {
+  const p = projects.find((x) => x.slug === slug);
+  if (!p) return null;
+  const b = mark(el('button', 'vd-chip', p.title), 'projects', 'title', whereSlug(slug));
+  b.type = 'button';
+  b.addEventListener('click', () => openProject(slug));
+  return b;
+}
+
+function statusPill(p) {
+  const s = mark(el('span', 'vd-pill', p.status), 'projects', 'status', whereSlug(p.slug));
+  s.dataset.tone = p.status;
+  return s;
+}
+
+function dayItem(row, projects, small) {
+  const li = el('li', 'vd-item' + (small ? ' is-small' : ''));
+  const chip = row.project ? projectChip(row.project, projects) : null;
+  if (chip) li.append(chip);
+  li.append(mark(el('span', null, row.text), 'days', 'text', whereId(row.id)));
+  return li;
+}
+
+function sectionCard(title, rows, projects, emptyText, id) {
+  const card = el('div', 'vd-card');
+  if (id) card.id = id;
+  card.append(el('h2', null, title));
+  if (rows.length) {
+    const ul = el('ul', 'vd-list');
+    rows.forEach((r) => ul.append(dayItem(r, projects, true)));
+    card.append(ul);
+  } else {
+    card.append(el('p', 'vd-empty', emptyText));
+  }
+  return card;
+}
+
+function failedBox(text) {
+  return el('div', 'vd-failed', text);
+}
+
+/* ---------- tabs and links ---------- */
+function showTab(tab, push) {
+  state.tab = tab;
+  TABS.forEach((t) => {
+    document.getElementById(t).hidden = t !== tab;
+    document.getElementById('tab-' + t).setAttribute('aria-selected', String(t === tab));
+  });
+  if (push !== false) dash.setLink(tab);
+  draw();
+}
+document.querySelectorAll('.vd-tab').forEach((b) => b.addEventListener('click', () => showTab(b.dataset.tab)));
+
+function openProject(slug) {
+  state.open = slug;
+  showTab('projects', false);
+  dash.setLink('projects');
+  const card = document.getElementById('proj-' + slug);
+  if (card) card.scrollIntoView({ block: 'nearest' });
+}
+
+/* ---------- header ---------- */
+function drawHeader() {
+  const h = dash.data('headline');
+  const nodes = document.querySelectorAll('[data-source="headline"]');
+  nodes.forEach((n) => {
+    if (h.status === 'ok' && h.data.length) {
+      n.classList.remove('dash-skeleton');
+      const v = h.data[0][n.dataset.field];
+      n.textContent = v == null ? '—' : n.dataset.field === 'day' ? fmtLong(parseDay(v)) : d3.format(',')(v);
+    } else if (h.status === 'error') {
+      n.classList.remove('dash-skeleton');
+      n.textContent = '—';
+    }
+  });
+  const due = document.getElementById('tile-due');
+  due.classList.toggle('is-warn', h.status === 'ok' && h.data.length > 0 && h.data[0].due_soon > 0);
+}
+
+/* ---------- today ---------- */
+function drawToday(D) {
+  const dates = [...new Set(D.days.map((r) => r.date))].sort();
+  if (!state.day || !dates.includes(state.day)) state.day = dates.at(-1);
+  const picker = document.getElementById('day-picker');
+  if (!dates.length) {
+    picker.replaceChildren();
+    const card = el('div', 'vd-card');
+    card.append(el('h2', null, 'No daily notes this week yet'), el('p', 'vd-note', 'The next brief starts one.'));
+    document.getElementById('today-body').replaceChildren(card);
+    return;
+  }
+  picker.replaceChildren(...dates.map((d) => {
+    const b = el('button', null, fmtDay(parseDay(d)));
+    b.type = 'button';
+    b.setAttribute('aria-pressed', String(d === state.day));
+    b.addEventListener('click', () => { state.day = d; draw(); });
+    return b;
+  }));
+
+  const rows = D.days.filter((r) => r.date === state.day);
+  const of = (s) => rows.filter((r) => r.section === s);
+  const body = document.getElementById('today-body');
+
+  const main = el('div', 'vd-card');
+  main.id = 'brief';
+  main.append(el('h2', null, 'Brief · ' + fmtLong(parseDay(state.day))));
+  const brief = of('brief');
+  if (!brief.length) {
+    main.append(el('p', 'vd-empty', 'No brief in this daily note yet.'));
+  } else {
+    const cols = el('div', 'vd-cols');
+    [['agent', 'Agent threads', 'Work handed to Claude sessions.'], ['user', 'For you', 'What only you can do today.']].forEach(([who, title, note]) => {
+      const group = el('div', 'vd-side');
+      const head = el('div');
+      head.append(el('h3', null, title), el('p', 'vd-note', note));
+      const ul = el('ul', 'vd-list');
+      const items = brief.filter((r) => r.who === who);
+      items.forEach((r) => ul.append(dayItem(r, D.projects)));
+      group.append(head, items.length ? ul : el('p', 'vd-empty', 'Nothing listed.'));
+      cols.append(group);
+    });
+    main.append(cols);
+  }
+
+  const side = el('div', 'vd-side');
+  side.append(
+    sectionCard('Meetings', of('meeting'), D.projects, 'No meetings listed.', 'meetings'),
+    sectionCard('Decisions', of('decision'), D.projects, 'No decisions recorded.', 'decisions'),
+    sectionCard('Captures', of('capture'), D.projects, 'Nothing captured yet.', 'captures'),
+    sectionCard('Claude did', of('claude_did'), D.projects, 'No changes on Claude\'s own initiative yet.', 'claude-did'),
+  );
+  const wrapDone = of('done'), wrapMoves = of('moves');
+  if (wrapDone.length || wrapMoves.length) {
+    side.append(sectionCard('Wrap: done', wrapDone, D.projects, 'Nothing listed.', 'wrap-done'));
+    side.append(sectionCard('Wrap: moves to tomorrow', wrapMoves, D.projects, 'Nothing moves on.', 'wrap-moves'));
+  } else {
+    side.append(sectionCard('Wrap', [], D.projects, 'This day is not wrapped yet.', 'wrap'));
+  }
+  body.replaceChildren(main, side);
+}
+
+/* ---------- week ---------- */
+function weekDates(lastDay) {
+  const mon = d3.utcMonday.floor(parseDay(lastDay));
+  return d3.range(5).map((i) => isoDay(d3.utcDay.offset(mon, i)));
+}
+
+function drawWeek(D, byDay) {
+  const lastDay = latestDay(D);
+  const week = weekDates(lastDay);
+
+  const outcomes = D.days.filter((r) => r.section === 'outcome' && week.includes(r.date));
+  const ol = document.getElementById('outcome-list');
+  ol.replaceChildren(...outcomes.map((r) => dayItem(r, D.projects)));
+  document.getElementById('week-outcomes').hidden = !outcomes.length;
+
+  const wrap = document.getElementById('week-days');
+  wrap.replaceChildren(...week.map((date) => {
+    const col = el('div', 'vd-day' + (date === lastDay ? ' is-today' : ''));
+    const head = el('button', 'vd-day-head');
+    head.type = 'button';
+    head.title = 'Open this day in Today';
+    head.append(el('span', 'vd-day-name', fmtWeekday(parseDay(date))), el('span', 'vd-note', fmtShort(parseDay(date))));
+    col.append(head);
+    const stats = byDay.find((r) => r.date === date);
+    if (stats) {
+      head.addEventListener('click', () => { state.day = date; showTab('today'); });
+      const s = el('div', 'vd-stats');
+      [['planned', 'planned'], ['done', 'done'], ['log_entries', 'logged']].forEach(([f, label]) => {
+        const span = el('span');
+        span.append(mark(el('b', null, String(stats[f])), 'by_day', f, 'date=' + date), ' ' + label);
+        s.append(span);
+      });
+      col.append(s);
+      const done = D.days.filter((r) => r.date === date && r.section === 'done');
+      if (done.length) {
+        const ul = el('ul', 'vd-list');
+        done.forEach((r) => ul.append(dayItem(r, D.projects, true)));
+        col.append(ul);
+      } else {
+        col.append(el('p', 'vd-empty', date === lastDay ? 'In progress; wrap pending.' : 'Not wrapped.'));
+      }
+    } else {
+      head.disabled = true;
+      col.append(el('p', 'vd-empty', date > lastDay ? 'Ahead.' : 'No daily note.'));
+    }
+    return col;
+  }));
+
+  const dueRows = D.tasks.filter((t) => t.due).sort((a, b) => d3.ascending(a.due, b.due));
+  const dl = document.getElementById('due-list');
+  if (!dueRows.length) {
+    dl.replaceChildren(el('li', 'vd-empty', 'No open task has a due date.'));
+  } else {
+    dl.replaceChildren(...dueRows.map((t) => {
+      const li = el('li', 'vd-item');
+      const meta = el('div', 'vd-meta');
+      const pill = mark(el('span', 'vd-pill', prettyDay(t.due)), 'tasks', 'due', whereId(t.id));
+      if (t.due < lastDay) pill.dataset.tone = 'late';
+      else if (t.due <= isoDay(d3.utcDay.offset(parseDay(lastDay), 7))) pill.dataset.tone = 'waiting';
+      meta.append(pill);
+      const chip = projectChip(t.project, D.projects);
+      if (chip) meta.append(chip);
+      if (t.every) meta.append(mark(el('span', null, t.every), 'tasks', 'every', whereId(t.id)));
+      li.append(meta, mark(el('span', null, t.text), 'tasks', 'text', whereId(t.id)));
+      return li;
+    }));
+  }
+
+  drawHeat(D, lastDay);
+}
+
+function fitText(node, maxW) {
+  const full = node.textContent;
+  if (node.getComputedTextLength() <= maxW) return;
+  let n = full.length;
+  while (n > 1 && node.getComputedTextLength() > maxW) node.textContent = full.slice(0, --n) + '…';
+}
+
+function drawHeat(D, lastDay) {
+  const box = document.getElementById('heat');
+  const mon = d3.utcMonday.floor(parseDay(lastDay));
+  const cols = d3.range(15).map((i) => isoDay(d3.utcDay.offset(d3.utcMonday.offset(mon, -2), Math.floor(i / 5) * 7 + (i % 5))));
+  const inWin = D.log.filter((r) => cols.includes(r.date));
+  const byProj = d3.group(inWin, (r) => r.project);
+  const rows = D.projects.filter((p) => byProj.has(p.slug))
+    .sort((a, b) => d3.descending(byProj.get(a.slug).length, byProj.get(b.slug).length) || d3.ascending(a.title, b.title));
+  box.replaceChildren();
+  if (!rows.length) { box.append(el('p', 'vd-empty', 'No log entries in the last three weeks.')); return; }
+
+  const W = Math.max(280, box.clientWidth);
+  const svg = d3.select(box).append('svg').attr('width', '100%');
+  const probe = svg.append('text').attr('font-size', 12).text(rows.reduce((a, p) => (p.title.length > a.length ? p.title : a), ''));
+  const widest = probe.node().getComputedTextLength();
+  probe.remove();
+  const labelW = Math.min(widest + 10, W * 0.42);
+  const weekGap = 8, pad = 2, headH = 20;
+  const cell = Math.max(10, Math.min(26, (W - labelW - 2 * weekGap) / 15 - pad));
+  const x = (i) => labelW + i * (cell + pad) + Math.floor(i / 5) * weekGap;
+  const H = headH + rows.length * (cell + pad);
+  const width = x(14) + cell;
+  svg.attr('viewBox', `0 0 ${width} ${H}`).attr('height', null);
+  box.style.minHeight = '';
+
+  const max = d3.max(rows, (p) => d3.max(d3.rollups(byProj.get(p.slug), (v) => v.length, (r) => r.date), (d) => d[1])) || 1;
+  const counts = new Map(inWin.map((r) => [r.project + '|' + r.date, 0]));
+  inWin.forEach((r) => counts.set(r.project + '|' + r.date, counts.get(r.project + '|' + r.date) + 1));
+
+  [0, 5, 10].forEach((i) => {
+    svg.append('text').attr('x', x(i)).attr('y', 13).attr('font-size', 11)
+      .style('fill', 'var(--color-fg-muted)').text('Week of ' + fmtShort(parseDay(cols[i])));
+  });
+
+  const tip = el('div', 'vd-tip');
+  tip.hidden = true;
+  box.append(tip);
+
+  rows.forEach((p, ri) => {
+    const y = headH + ri * (cell + pad);
+    const label = svg.append('text').attr('x', 0).attr('y', y + cell / 2).attr('dy', '0.35em').attr('font-size', 12)
+      .style('fill', 'var(--color-fg)').style('cursor', 'pointer').text(p.title)
+      .on('click', () => openProject(p.slug));
+    fitText(label.node(), labelW - 8);
+    cols.forEach((date, ci) => {
+      const n = counts.get(p.slug + '|' + date) || 0;
+      const future = date > lastDay;
+      const r = svg.append('rect').attr('x', x(ci)).attr('y', y).attr('width', cell).attr('height', cell).attr('rx', 3);
+      if (n) {
+        r.style('fill', dash.colors[0]).style('fill-opacity', 0.25 + 0.75 * (n / max));
+      } else {
+        r.style('fill', 'var(--cds-chart-grid)').style('fill-opacity', future ? 0.35 : 1);
+      }
+      if (date === lastDay) r.style('stroke', 'var(--cds-chart-reference)').style('stroke-width', 1);
+      r.on('mouseenter mousemove', (event) => {
+        const entries = (byProj.get(p.slug) || []).filter((e) => e.date === date);
+        tip.replaceChildren(el('span', 'vd-tip-head', fmtDay(parseDay(date)) + ' · ' + p.title));
+        if (!entries.length) tip.append(el('span', null, future ? 'Ahead' : 'No log entries'));
+        entries.slice(0, 4).forEach((e) => tip.append(el('span', null, (e.kind === 'done' ? 'Done: ' : '') + (e.text.length > 110 ? e.text.slice(0, 109) + '…' : e.text))));
+        if (entries.length > 4) tip.append(el('span', 'vd-tip-head', `and ${entries.length - 4} more`));
+        tip.hidden = false;
+        const bx = box.getBoundingClientRect();
+        const tw = tip.offsetWidth, th = tip.offsetHeight;
+        let left = event.clientX - bx.left + 12, top = event.clientY - bx.top + 12;
+        if (left + tw > bx.width) left = Math.max(0, event.clientX - bx.left - tw - 12);
+        if (top + th > bx.height) top = Math.max(0, event.clientY - bx.top - th - 12);
+        tip.style.left = left + 'px';
+        tip.style.top = top + 'px';
+      }).on('mouseleave', () => { tip.hidden = true; });
+    });
+  });
+}
+
+/* ---------- projects ---------- */
+function drawProjects(D) {
+  const board = document.getElementById('board');
+  const lastDay = latestDay(D);
+  board.replaceChildren(...FOCI.map(([focus, title, note]) => {
+    const lane = el('div', 'vd-lane');
+    lane.id = 'lane-' + focus;
+    const head = el('div', 'vd-lane-head');
+    head.append(el('h2', null, title), el('p', 'vd-note', note));
+    lane.append(head);
+    const items = D.projects.filter((p) => p.focus === focus).sort((a, b) =>
+      d3.ascending(STATUS_ORDER.indexOf(a.status), STATUS_ORDER.indexOf(b.status)) || d3.descending(a.last_activity, b.last_activity) || d3.ascending(a.title, b.title));
+    if (!items.length) lane.append(el('p', 'vd-empty', 'No projects.'));
+    items.forEach((p) => lane.append(projectCard(p, D, lastDay)));
+    return lane;
+  }));
+}
+
+function projectCard(p, D, lastDay) {
+  const open = state.open === p.slug;
+  const card = el('article', 'vd-proj' + (open ? ' is-open' : ''));
+  card.id = 'proj-' + p.slug;
+  const btn = el('button', 'vd-proj-btn');
+  btn.type = 'button';
+  btn.setAttribute('aria-expanded', String(open));
+  btn.addEventListener('click', () => { state.open = open ? null : p.slug; draw(); });
+
+  const top = el('div', 'vd-proj-top');
+  top.append(mark(el('span', 'vd-proj-title', p.title), 'projects', 'title', whereSlug(p.slug)), statusPill(p));
+  btn.append(top);
+  if (p.summary) btn.append(mark(el('span', 'vd-proj-sum', p.summary), 'projects', 'summary', whereSlug(p.slug)));
+
+  const meta = el('div', 'vd-meta');
+  const num = (field, label) => {
+    const s = el('span');
+    s.append(mark(el('span', 'vd-num', String(p[field])), 'projects', field, whereSlug(p.slug)), ' ' + label);
+    return s;
+  };
+  meta.append(num('open_tasks', 'open'));
+  if (p.waiting_tasks) meta.append(num('waiting_tasks', 'waiting'));
+  if (p.last_activity) {
+    const s = el('span');
+    s.append('last log ', mark(el('span', 'vd-num', prettyDay(p.last_activity)), 'projects', 'last_activity', whereSlug(p.slug)));
+    meta.append(s);
+  }
+  if (p.waiting_on) {
+    const s = el('span', 'vd-pill');
+    s.dataset.tone = 'waiting';
+    s.append('on ', mark(el('span', null, p.waiting_on), 'projects', 'waiting_on', whereSlug(p.slug)));
+    meta.append(s);
+  }
+  btn.append(meta);
+  card.append(btn);
+
+  if (open) {
+    const detail = el('div', 'vd-proj-detail');
+    const st = el('div');
+    st.append(el('h3', null, 'State'), mark(el('p', 'vd-prose', p.state || '—'), 'projects', 'state', whereSlug(p.slug)));
+    if (p.people) st.append(el('p', 'vd-note', 'People: ' + p.people));
+    detail.append(st);
+
+    const tasks = D.tasks.filter((t) => t.project === p.slug);
+    const next = el('div');
+    next.append(el('h3', null, 'Next'));
+    if (!tasks.length) next.append(el('p', 'vd-empty', 'No open tasks.'));
+    else {
+      const ul = el('ul', 'vd-list');
+      tasks.forEach((t) => {
+        const li = el('li', 'vd-item is-small');
+        li.append(mark(el('span', null, t.text), 'tasks', 'text', whereId(t.id)));
+        if (t.details) li.append(mark(el('span', 'vd-note', t.details), 'tasks', 'details', whereId(t.id)));
+        const m = el('div', 'vd-meta');
+        if (t.due) {
+          const d = mark(el('span', 'vd-pill', 'due ' + prettyDay(t.due)), 'tasks', 'due', whereId(t.id));
+          if (t.due < lastDay) d.dataset.tone = 'late';
+          m.append(d);
+        }
+        if (t.waiting_on) {
+          const w = el('span', 'vd-pill');
+          w.dataset.tone = 'waiting';
+          w.append('waiting on ', mark(el('span', null, t.waiting_on), 'tasks', 'waiting_on', whereId(t.id)));
+          m.append(w);
+        }
+        if (m.childNodes.length) li.append(m);
+        ul.append(li);
+      });
+      next.append(ul);
+    }
+    detail.append(next);
+
+    const log = D.log.filter((r) => r.project === p.slug).slice(-6).reverse();
+    const lg = el('div');
+    lg.append(el('h3', null, 'Latest log'));
+    if (!log.length) lg.append(el('p', 'vd-empty', 'No log entries.'));
+    else {
+      const ul = el('ul', 'vd-list');
+      log.forEach((r) => {
+        const li = el('li', 'vd-item is-small');
+        const m = el('div', 'vd-meta');
+        m.append(mark(el('span', 'vd-num', prettyDay(r.date)), 'log', 'date', whereId(r.id)));
+        if (r.kind !== 'event') {
+          const k = mark(el('span', 'vd-pill', r.kind), 'log', 'kind', whereId(r.id));
+          if (r.kind === 'done') k.dataset.tone = 'active';
+          m.append(k);
+        }
+        li.append(m, mark(el('span', null, r.text), 'log', 'text', whereId(r.id)));
+        ul.append(li);
+      });
+      lg.append(ul);
+    }
+    detail.append(lg);
+    card.append(detail);
+  }
+  return card;
+}
+
+/* ---------- tasks ---------- */
+const search = document.getElementById('task-search');
+search.addEventListener('input', () => { state.query = search.value.trim().toLowerCase(); draw(); });
+const projectPick = document.getElementById('task-project');
+projectPick.addEventListener('change', () => { state.project = projectPick.value; draw(); });
+document.querySelectorAll('#task-filter button').forEach((b) => b.addEventListener('click', () => { state.filter = b.dataset.f; draw(); }));
+document.querySelectorAll('#task-table th button').forEach((b) => b.addEventListener('click', () => {
+  const k = b.dataset.k;
+  state.sort = { key: k, dir: state.sort.key === k ? -state.sort.dir : 1 };
+  draw();
+}));
+document.querySelector('#task-table tbody').addEventListener('click', (event) => {
+  const tr = event.target.closest('tr[data-key]');
+  if (tr) openProject(tr.dataset.project);
+});
+
+function drawProjectPick(tasks) {
+  const titles = new Map(tasks.map((t) => [t.project, t.project_title]));
+  if (!titles.has(state.project)) state.project = '';
+  const options = [...titles].sort((a, b) => d3.ascending(a[1], b[1])).map(([slug, title]) => {
+    const o = el('option', null, title);
+    o.value = slug;
+    return o;
+  });
+  const all = el('option', null, 'All projects');
+  all.value = '';
+  projectPick.replaceChildren(all, ...options);
+  projectPick.value = state.project;
+}
+
+function drawTasks(D) {
+  const lastDay = latestDay(D);
+  drawProjectPick(D.tasks);
+  document.querySelectorAll('#task-filter button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.f === state.filter)));
+  document.querySelectorAll('#task-table th').forEach((th) => {
+    const k = th.querySelector('button').dataset.k;
+    if (k === state.sort.key) th.setAttribute('aria-sort', state.sort.dir > 0 ? 'ascending' : 'descending');
+    else th.removeAttribute('aria-sort');
+  });
+  const keep = {
+    all: () => true,
+    now: (t) => t.focus === 'now',
+    waiting: (t) => !!t.waiting_on,
+    due: (t) => !!t.due,
+  }[state.filter];
+  const { key, dir } = state.sort;
+  const rows = D.tasks.filter(keep)
+    .filter((t) => !state.project || t.project === state.project)
+    .filter((t) => !state.query || [t.text, t.project_title, t.waiting_on, t.details].join(' ').toLowerCase().includes(state.query))
+    .sort((a, b) => {
+      const va = a[key] || '', vb = b[key] || '';
+      if (!va && vb) return 1;
+      if (va && !vb) return -1;
+      return dir * d3.ascending(va, vb);
+    });
+  const tbody = document.querySelector('#task-table tbody');
+  if (!rows.length) {
+    const tr = el('tr');
+    const td = el('td', 'vd-empty', 'No tasks match.');
+    td.colSpan = 6;
+    tr.append(td);
+    tbody.replaceChildren(tr);
+    return;
+  }
+  tbody.replaceChildren(...rows.map((t) => {
+    const tr = el('tr');
+    tr.dataset.key = t.id;
+    tr.dataset.project = t.project;
+    const due = el('td', t.due && t.due < lastDay ? 'is-late' : null, prettyDay(t.due));
+    tr.append(
+      el('td', null, t.text),
+      el('td', null, t.project_title),
+      el('td', 'vd-wide', t.focus),
+      due,
+      el('td', t.waiting_on ? 'is-wait' : null, t.waiting_on),
+      el('td', 'vd-wide', t.details),
+    );
+    return tr;
+  }));
+}
+
+/* ---------- main ---------- */
+function draw() {
+  drawHeader();
+  const st = Object.fromEntries(DATASETS.map((id) => [id, dash.data(id)]));
+  const failed = DATASETS.some((id) => ['error', 'missing'].includes(st[id].status));
+  const ready = DATASETS.every((id) => st[id].status === 'ok');
+  const D = ready ? Object.fromEntries(DATASETS.map((id) => [id, st[id].data])) : null;
+  const byDay = dash.data('by_day');
+
+  if (!ready) {
+    const box = failed ? () => failedBox('Failed to load') : () => el('div', 'vd-card vd-loading dash-skeleton');
+    document.getElementById('today-body').replaceChildren(box());
+    document.getElementById('week-days').replaceChildren(box());
+    document.getElementById('heat').replaceChildren();
+    document.getElementById('due-list').replaceChildren();
+    document.getElementById('outcome-list').replaceChildren();
+    document.getElementById('board').replaceChildren(box());
+    document.querySelector('#task-table tbody').replaceChildren();
+    return;
+  }
+  if (state.tab === 'today') drawToday(D);
+  if (state.tab === 'week') drawWeek(D, byDay.status === 'ok' ? byDay.data : []);
+  if (state.tab === 'projects') drawProjects(D);
+  if (state.tab === 'tasks') drawTasks(D);
+}
+
+const linked = location.hash.slice(1);
+if (TABS.includes(linked)) showTab(linked, false);
+dash.onData(draw);
+</script>

@@ -1,0 +1,102 @@
+# Note types of this vault. tools/check.py enforces every rule in this file.
+#
+# fields:    frontmatter keys every note of the type must carry
+#            (in addition to common_fields)
+# optional:  frontmatter keys the type may carry
+# enums:     allowed values per field
+# links:     fields whose values are note slugs (a string or a list)
+# sections:  `## ` headings the body must contain
+# when:      fields required only while another field has a given value
+
+common_fields: [type, title, created, updated]
+date_fields: [created, updated]
+
+# Notes without a type: no frontmatter rules, but their links are checked
+# and their slugs are link targets.
+untyped_dirs: [daily, journal]
+untyped_files: [inbox.md]
+
+task_every: [day, weekday, week, month, monday, tuesday, wednesday, thursday, friday]
+
+types:
+  question:
+    dir: questions
+    fields: [status]
+    optional: [questions]
+    enums:
+      status: [open, answered, abandoned]
+    links: [questions]
+    sections: [Why it matters, Current answer]
+
+  project:
+    dir: projects
+    fields: [status, focus]
+    optional: [questions, implementations, people, waiting_on]
+    enums:
+      status: [idea, active, waiting, paused, done, dropped]
+      focus: [now, next, later]
+    links: [questions, implementations, people, waiting_on]
+    sections: [State, Next, Log, Ideas]
+    when:
+      - field: status
+        value: waiting
+        require: [waiting_on]
+
+  experiment:
+    dir: experiments
+    fields: [status, questions]
+    optional: [project, implementations]
+    enums:
+      status: [planned, running, analysed, concluded, inconclusive]
+    links: [questions, project, implementations]
+    sections: [Hypothesis, Setup, Results, Conclusion]
+
+  implementation:
+    dir: implementations
+    fields: [status, repo]
+    optional: [questions, decisions]
+    enums:
+      status: [active, maintained, retired]
+    links: [questions, decisions]
+    sections: [Purpose, Limits]
+
+  decision:
+    dir: decisions
+    fields: [status, about]
+    optional: [superseded_by]
+    enums:
+      status: [proposed, accepted, superseded]
+    links: [about, superseded_by]
+    sections: [Context, Options, Decision, Consequences]
+    when:
+      - field: status
+        value: superseded
+        require: [superseded_by]
+
+  concept:
+    dir: concepts
+    fields: []
+    optional: [related]
+    links: [related]
+    sections: []
+
+  source:
+    dir: sources
+    fields: [kind]
+    optional: [url, questions]
+    enums:
+      kind: [paper, dataset, standard, document, talk, software]
+    links: [questions]
+    sections: [Summary]
+
+  person:
+    dir: people
+    fields: []
+    optional: [role, org]
+    links: [org]
+    sections: []
+
+  org:
+    dir: orgs
+    fields: []
+    sections: []

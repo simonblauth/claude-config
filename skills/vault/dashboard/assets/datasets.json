@@ -1,0 +1,30 @@
+{
+  "projects": {
+    "title": "Vault projects",
+    "description": "One row per project note: status, focus, State prose, and counts of open tasks, waiting tasks and log entries. Exported from projects/*.md.",
+    "name": "vault-projects.json",
+    "staleAfterHours": 48,
+    "schedule": "Re-exported from the vault after each brief and wrap"
+  },
+  "tasks": {
+    "title": "Open project tasks",
+    "description": "One row per open task under a project's Next section, with owner, due date, repeat and who it waits on. Exported from projects/*.md.",
+    "name": "vault-tasks.json",
+    "staleAfterHours": 48,
+    "schedule": "Re-exported from the vault after each brief and wrap"
+  },
+  "log": {
+    "title": "Project log entries",
+    "description": "One row per dated line in a project's Log section, marked done, dropped or event. Exported from projects/*.md.",
+    "name": "vault-log.json",
+    "staleAfterHours": 48,
+    "schedule": "Re-exported from the vault after each brief and wrap"
+  },
+  "days": {
+    "title": "Daily notes this week",
+    "description": "One row per item in this week's daily notes: brief items (agent or user), week outcomes, meetings, decisions, captures, Claude did, and the wrap's done and moves. Exported from daily/*.md.",
+    "name": "vault-days.json",
+    "staleAfterHours": 24,
+    "schedule": "Re-exported from the vault after each brief and wrap"
+  }
+}

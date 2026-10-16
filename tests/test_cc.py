@@ -311,6 +311,29 @@ class VendorTests(unittest.TestCase):
                 self.assertEqual(sources.read_bytes(), recorded)
 
 
+class SkillGroupTests(unittest.TestCase):
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.skills = Path(tmp.name) / 'skills'
+        for rel in ('solo/SKILL.md', 'team/beta/SKILL.md', 'team/gamma/SKILL.md', 'team/gamma/scripts/run.py'):
+            (self.skills / rel).parent.mkdir(parents=True, exist_ok=True)
+            (self.skills / rel).write_text(rel + '\n')
+        p = patch.object(cc, 'SKILLS', self.skills)
+        p.start()
+        self.addCleanup(p.stop)
+
+    def test_group_folder_installs_its_skills_flat(self):
+        self.assertEqual(sorted(cc.skill_files('claude')), [
+            'beta/SKILL.md', 'gamma/SKILL.md', 'gamma/scripts/run.py', 'solo/SKILL.md'])
+
+    def test_same_name_in_two_places_fails(self):
+        (self.skills / 'team/solo').mkdir()
+        (self.skills / 'team/solo/SKILL.md').write_text('again\n')
+        with self.assertRaisesRegex(RuntimeError, 'solo'):
+            cc.skill_files('claude')
+
+
 class SourceReproductionTests(unittest.TestCase):
     def test_pinned_sources_reproduce_shared_tree_and_both_targets(self):
         """Offline integration check when the vendoring cache is available."""
