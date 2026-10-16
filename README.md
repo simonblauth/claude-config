@@ -95,6 +95,9 @@ under "Owned remotes" in `instructions/shared.md`.
 
 Claude's auto mode trusts only the current repo's remotes by default, so
 `install` also adds the list to `autoMode.environment` in `settings.json`.
+It leaves out `(private)` entries: the classifier cannot check a repo's
+visibility, so it would trust public repos under them too. Auto mode still
+blocks writes to those repos from any other repo you work in.
 Re-run `install` after you edit `owned-remotes.md`; until then, `check`
 reports `settings.json` drift.
 [Auto mode configuration](https://code.claude.com/docs/en/auto-mode-config)

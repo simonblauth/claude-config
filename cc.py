@@ -547,10 +547,12 @@ def render_settings(cfg: Path) -> bytes:
     for key in SETTINGS_LOCAL_KEYS:
         if key in installed:
             planned[key] = installed[key]
-    owned = owned_remotes(cfg / "rules" / "owned-remotes.md")
+    # The auto mode classifier trusts only the working repo's remotes by
+    # default; this lets it allow writes to the other owned repos. It cannot
+    # check visibility, so a `(private)` entry would trust public repos too.
+    owned = [r for r in owned_remotes(cfg / "rules" / "owned-remotes.md")
+             if not r.endswith("(private)")]
     if owned:
-        # The auto mode classifier trusts only the working repo's remotes by
-        # default; this lets it allow writes to the other owned repos.
         env = planned.setdefault("autoMode", {}).setdefault("environment", ["$defaults"])
         env.append("Source control: owned remotes, where CLAUDE.md lets Claude push "
                    f"non-default branches and write issues and PRs: {', '.join(owned)}")

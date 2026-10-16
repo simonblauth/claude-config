@@ -219,8 +219,18 @@ class SettingsTests(unittest.TestCase):
         repo_env = (self.repo_auto_mode() or {}).get('environment', ['$defaults'])
         env = settings['autoMode']['environment']
         self.assertEqual(env[:-1], repo_env)
-        self.assertIn('github.com/me/* (private), gitlab.example.com/team/tool', env[-1])
+        self.assertIn('gitlab.example.com/team/tool', env[-1])
         self.assertNotIn('not-a-remote', env[-1])
+
+    def test_private_owned_remotes_stay_out_of_the_auto_mode_environment(self):
+        # The classifier cannot check visibility, so it would trust a public
+        # repo under a `(private)` entry.
+        with tempfile.TemporaryDirectory() as tmp:
+            (Path(tmp) / 'rules').mkdir()
+            (Path(tmp) / 'rules' / 'owned-remotes.md').write_text(
+                '## Owned remotes\n\n- github.com/me/* (private)\n')
+            settings = json.loads(cc.render_settings(Path(tmp)))
+        self.assertEqual(settings.get('autoMode'), self.repo_auto_mode())
 
     def test_without_owned_remotes_auto_mode_is_the_repo_value(self):
         with tempfile.TemporaryDirectory() as tmp:
