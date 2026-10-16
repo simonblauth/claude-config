@@ -11,7 +11,7 @@ Resolved by step 0 of [`../SKILL.md`](../SKILL.md). Everything here drives steps
 - with the `copilot` reviewer, up to three Copilot review requests on that PR, one per round, and replies to review threads on it
 - one summary comment on that PR, when the loop stops
 
-Nothing else. Resolving threads stays with the humans.
+Nothing else, beyond what the SKILL.md grant says an owned remote adds. Resolving threads stays with the humans.
 
 ## Step 1. Read the issue
 

@@ -547,7 +547,25 @@ def render_settings(cfg: Path) -> bytes:
     for key in SETTINGS_LOCAL_KEYS:
         if key in installed:
             planned[key] = installed[key]
+    # The auto mode classifier trusts only the working repo's remotes by
+    # default; this lets it allow writes to the other owned repos. It cannot
+    # check visibility, so a `(private)` entry would trust public repos too.
+    owned = [r for r in owned_remotes(cfg / "rules" / "owned-remotes.md")
+             if not r.endswith("(private)")]
+    if owned:
+        env = planned.setdefault("autoMode", {}).setdefault("environment", ["$defaults"])
+        env.append("Source control: owned remotes, where the Owned remotes rules in CLAUDE.md "
+                   f"let Claude push its branches and write issues and PRs: {', '.join(owned)}")
     return (json.dumps(planned, indent=2) + "\n").encode("utf-8")
+
+
+def owned_remotes(path: Path) -> list[str]:
+    """Each bullet of the owned-remotes file is one entry."""
+    try:
+        lines = path.read_text(encoding="utf-8").splitlines()
+    except OSError:
+        return []
+    return [m[1].strip() for line in lines if (m := re.match(r"\s*[-*+]\s+(\S.*)", line))]
 
 
 def drop_hook(hooks: dict, event: str, script: str) -> None:

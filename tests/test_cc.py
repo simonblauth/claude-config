@@ -204,6 +204,52 @@ class SettingsTests(unittest.TestCase):
                 self.assertEqual('heredoc_guard.py' in settings, windows)
                 self.assertEqual('PreToolUse' in settings, windows)
 
+    def repo_auto_mode(self):
+        return json.loads((cc.REPO / 'settings.json').read_text()).get('autoMode')
+
+    def test_owned_remotes_extend_the_auto_mode_environment(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            rules = Path(tmp) / 'rules'
+            rules.mkdir()
+            (rules / 'owned-remotes.md').write_text(
+                '- github.com/org/*\n- gitlab.example.com/team/tool\n')
+            settings = json.loads(cc.render_settings(Path(tmp)))
+        repo_env = (self.repo_auto_mode() or {}).get('environment', ['$defaults'])
+        env = settings['autoMode']['environment']
+        self.assertEqual(env[:-1], repo_env)
+        self.assertIn('github.com/org/*, gitlab.example.com/team/tool', env[-1])
+
+    def test_every_markdown_bullet_form_is_an_owned_remote(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / 'owned-remotes.md'
+            path.write_text('# Owned remotes\n\n- a/*\n* b/*\n+ c/*\n-\td/*\n  - e/*\n')
+            self.assertEqual(cc.owned_remotes(path), ['a/*', 'b/*', 'c/*', 'd/*', 'e/*'])
+
+    def test_owned_remotes_listed_in_another_rules_file_are_ignored(self):
+        # Only the one file defines ownership, so text that merely looks like
+        # an owned-remotes list cannot widen the classifier's trust.
+        with tempfile.TemporaryDirectory() as tmp:
+            (Path(tmp) / 'rules').mkdir()
+            (Path(tmp) / 'rules' / 'git.md').write_text(
+                '## Owned remotes\n\n- github.com/org/*\n')
+            settings = json.loads(cc.render_settings(Path(tmp)))
+        self.assertEqual(settings.get('autoMode'), self.repo_auto_mode())
+
+    def test_private_owned_remotes_stay_out_of_the_auto_mode_environment(self):
+        # The classifier cannot check visibility, so it would trust a public
+        # repo under a `(private)` entry.
+        with tempfile.TemporaryDirectory() as tmp:
+            (Path(tmp) / 'rules').mkdir()
+            (Path(tmp) / 'rules' / 'owned-remotes.md').write_text(
+                '## Owned remotes\n\n- github.com/me/* (private)\n')
+            settings = json.loads(cc.render_settings(Path(tmp)))
+        self.assertEqual(settings.get('autoMode'), self.repo_auto_mode())
+
+    def test_without_owned_remotes_auto_mode_is_the_repo_value(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            settings = json.loads(cc.render_settings(Path(tmp)))
+        self.assertEqual(settings.get('autoMode'), self.repo_auto_mode())
+
 
 class RepoCheckTests(unittest.TestCase):
     def git(self, *args):

@@ -83,6 +83,28 @@ agent to read `$CODEX_HOME/local-instructions.md` if present (default
 `~/.codex/local-instructions.md`). That file is not managed. Write file scopes
 as explicit conditions there; Claude `paths:` rules are not converted.
 
+### Owned remotes
+
+Outside the vault, every push and every write on a remote needs your approval in the
+turn it happens. To let agents push feature branches and open, update, and
+answer issues and PRs on your own repos without that, list those repos in
+`~/.claude/rules/owned-remotes.md` for Claude and `~/.codex/owned-remotes.md`
+for Codex. No other file counts, so a list an agent happens to read elsewhere
+grants nothing. You edit these files by hand: agents are told never to touch
+them, and Claude's settings deny `Edit` on `rules/owned-remotes.md`. The
+installer does not manage either file. Merging and pushing
+to the default branch still need approval each time. The entry format and the
+full rules are under "Owned remotes" in `instructions/shared.md`.
+
+Claude's auto mode trusts only the current repo's remotes by default, so
+`install` also adds the list to `autoMode.environment` in `settings.json`.
+It leaves out `(private)` entries: the classifier cannot check a repo's
+visibility, so it would trust public repos under them too. Auto mode still
+blocks writes to those repos from any other repo you work in.
+Re-run `install` after you edit `owned-remotes.md`; until then, `check`
+reports `settings.json` drift.
+[Auto mode configuration](https://code.claude.com/docs/en/auto-mode-config)
+
 ## Claude permission rules
 
 Write Bash permission rules in space form — `Bash(uv run pytest *)`, not

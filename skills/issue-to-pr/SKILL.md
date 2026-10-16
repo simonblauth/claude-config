@@ -19,9 +19,9 @@ Steps 3 through 6 read the same on every forge. Steps 1, 7 and 8 take their comm
 
 Explicitly invoking `issue-to-pr` (for example `/issue-to-pr` on Claude Code or `$issue-to-pr` on Codex) is the explicit remote-write instruction the applicable project instructions (`CLAUDE.md` or `AGENTS.md`) require. The grant applies only to an explicit user invocation, never to an agent loading this file on its own. Step 0's reference file enumerates the verbs it authorizes, because the two forges spell them differently.
 
-The whole-run span is the one relaxation of the single-turn rule, because step 8 needs later pushes. Scope stays single-purpose: that branch, that request. Add commits, since the grant stops at `--force`.
+The whole-run span is the one relaxation of the single-turn rule, because step 8 needs later pushes. Scope stays single-purpose: that branch, that request. Add commits rather than rewriting them, owned remote or not: review replies, the summary note and later rounds cite them by hash.
 
-Behind a fresh ask, as always: any other branch, the default branch, merging or closing the request, opening or closing any issue, labels, assignees, other repositories.
+Behind a fresh ask, as always: any other branch, the default branch, merging or closing the request, opening or closing any issue, labels, assignees, other repositories. On an **owned remote**, as the global instructions define it, labels leave this list; the rest stays.
 
 ## 0. Resolve the forge
 
@@ -144,7 +144,7 @@ A claim that **holds** is a bug report against your own diff, and it takes step 
 
 Report the forge, the request URL, the branch, the step-3 command before and after, each finding with what it got, and every adjacent problem you found and left alone. Say where the worktree is, and leave it on disk.
 
-The grant ends here. A later review round needs a fresh `/issue-to-pr`.
+The grant ends here. A later review round needs a fresh `/issue-to-pr`, or on an owned remote just the user's request.
 
 ## Rationalizations
 
@@ -154,7 +154,7 @@ The grant ends here. A later review round needs a fresh `/issue-to-pr`.
 | "The reviewer flagged it, so change it" | Check the claim. A decline with a reason is a finished finding. |
 | "The reviewer found it, so it is in scope" | The reviewer read the diff, not the issue. A real finding outside the boundary gets a decline and a proposed issue in step 9. |
 | "The reviewer said line 42, so fix line 42" | The anchor is a symptom. Step 3's bug row, then one commit at the mechanism. |
-| "Amend and force-push, the history is cleaner" | Add commits. The grant stops at `--force`. |
+| "Amend and force-push, the history is cleaner" | Add commits. Review replies and later rounds cite them by hash. |
 | "The new test passes, so the suite is covered" | Row two of step 6 is the whole suite. |
 | "This one needs a decision" (a name, a file, a helper) | That is step 4's own list. Pick what matches the code and record it in the request body. |
 | "While I am in here" | Out of the diff, into step 9. |
