@@ -1,0 +1,52 @@
+diff --git a/SKILL.md b/SKILL.md
+index 3fd5617..b01c44f 100644
+--- a/SKILL.md
++++ b/SKILL.md
+@@ -8,7 +8,9 @@ disable-model-invocation: true
+ 
+ Move issues on the project issue tracker through a small state machine of triage roles.
+ 
+-If this repo treats external pull requests as a request surface (see the issue-tracker config), triage covers them too: **a PR is an issue with attached code**, using the same roles, same states, and same machine, with a few deltas marked "for a PR" below. Resolve a bare `#42` to an issue or PR per the tracker config.
++The issue tracker is the forge of `origin`: use `gh` on GitHub and `glab` on GitLab.
++
++When the maintainer names a pull request, triage covers it too: **a PR is an issue with attached code**, using the same roles, same states, and same machine, with a few deltas marked "for a PR" below. Resolve a bare `#42` to whichever of the two the forge reports.
+ 
+ Every comment or issue posted to the issue tracker during triage **must** start with this disclaimer:
+ 
+@@ -38,9 +40,16 @@ Five **state** roles:
+ 
+ For a PR, the same states read against the attached code: `ready-for-agent` means a brief is attached and an agent should take the next step on the diff; `ready-for-human` means it's ready for a human to merge.
+ 
+-Every triaged issue should carry exactly one category role and one state role. If state roles conflict, flag it and ask the maintainer before doing anything else.
++One **source** role, on issues an agent skill filed:
++
++- `source:improve`: filed by the `improve` skill
++- `source:architecture`: filed by the `improve-codebase-architecture` skill
++
++An issue with a source role already carries an implementation plan as its body, stamped with the commit it was written against. An issue without one was filed by a person.
+ 
+-These are canonical role names. The actual label strings used in the issue tracker may differ. The mapping should have been provided to you. If not, tell the user to run `/setup-matt-pocock-skills`.
++Every triaged issue should carry exactly one category role and one state role, plus its source role if it has one. If state roles conflict, flag it and ask the maintainer before doing anything else.
++
++The label strings are these role names verbatim. If a label is missing from the repo, list the missing ones for the maintainer rather than creating them.
+ 
+ State transitions: an unlabeled issue normally goes to `needs-triage` first; from there it moves to `needs-info`, `ready-for-agent`, `ready-for-human`, or `wontfix`. `needs-info` returns to `needs-triage` once the reporter replies. The maintainer can override at any time; flag transitions that look unusual and ask before proceeding.
+ 
+@@ -61,8 +70,6 @@ Query the issue tracker and present three buckets, oldest first:
+ 2. **`needs-triage`**: evaluation in progress.
+ 3. **`needs-info` with reporter activity since the last triage notes**: needs re-evaluation.
+ 
+-When PRs are in scope, include external PRs in these buckets and tag each line `[PR]` or `[issue]`. Discovery surfaces only *external* PRs (the tracker config defines who counts as external), so a collaborator's in-flight PR is not triage work. This filter is discovery-only; an explicitly named PR is always triaged regardless of author.
+-
+ Show counts and a one-line summary per item. Let the maintainer pick.
+ 
+ ## Triage a specific issue or PR
+@@ -76,7 +83,7 @@ Show counts and a one-line summary per item. Let the maintainer pick.
+ 4. **Grill (if needed).** If the request needs fleshing out, call the Skill tool twice, for "grilling" and "domain-modeling", and grill it into shape a round of questions at a time, sharpening domain terms and updating `GLOSSARY.md`/ADRs inline as decisions land.
+ 
+ 5. **Apply the outcome:**
+-   - `ready-for-agent`: post an agent brief comment ([AGENT-BRIEF.md](AGENT-BRIEF.md)).
++   - `ready-for-agent`: post an agent brief comment ([AGENT-BRIEF.md](AGENT-BRIEF.md)). For an issue with a source role, the plan in its body is the brief: run the plan's drift check against the default branch instead, and post a comment that corrects only what has drifted. A plan whose premise no longer holds is a `wontfix` (already implemented) or goes back to `needs-triage` with what changed.
+    - `ready-for-human`: same structure as an agent brief, but note why it can't be delegated (judgment calls, external access, design decisions, manual testing).
+    - `needs-info`: post triage notes (template below).
+    - For `wontfix`, close the issue, with the comment depending on *why*:
