@@ -57,6 +57,11 @@ def short_title(title):
     return re.sub(r"\s*\(.*?\)\s*$", "", str(title))
 
 
+def slugs(value):
+    """A link field holds one slug or a list of them."""
+    return value if isinstance(value, list) else [value] if value else []
+
+
 def iso(value):
     return value.isoformat() if isinstance(value, datetime.date) else str(value or "")
 
@@ -156,8 +161,8 @@ def export_projects(vault):
             "updated": iso(fm.get("updated")),
             "summary": re.split(r"(?<=[.!?])\s", state, maxsplit=1)[0] if state else "",
             "state": state,
-            "people": ", ".join(vault.title(s) for s in fm.get("people") or []),
-            "waiting_on": ", ".join(vault.title(s) for s in fm.get("waiting_on") or []),
+            "people": ", ".join(vault.title(s) for s in slugs(fm.get("people"))),
+            "waiting_on": ", ".join(vault.title(s) for s in slugs(fm.get("waiting_on"))),
             "open_tasks": len(p_tasks),
             "waiting_tasks": sum(bool(t["waiting_on"]) for t in p_tasks),
             "log_entries": len(p_log),

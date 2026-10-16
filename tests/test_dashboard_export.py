@@ -86,12 +86,12 @@ def note(title, kind):
 @unittest.skipUnless(shutil.which('uv'), 'needs uv')
 class ExportTests(unittest.TestCase):
     @classmethod
-    def export(cls, daily):
+    def export(cls, daily, project=PROJECT):
         tmp = tempfile.TemporaryDirectory()
         cls.addClassCleanup(tmp.cleanup)
         vault = Path(tmp.name) / 'vault'
         files = {
-            'projects/parser-rewrite.md': PROJECT,
+            'projects/parser-rewrite.md': project,
             'people/ada.md': note('Ada Lovelace (Al)', 'person'),
             'orgs/lab.md': note('The Lab', 'org'),
             'concepts/tokenizer.md': note('Tokenizers', 'concept'),
@@ -119,6 +119,12 @@ class ExportTests(unittest.TestCase):
         self.assertEqual(p['people'], 'Ada Lovelace')
         self.assertEqual((p['open_tasks'], p['waiting_tasks'], p['log_entries'], p['ideas']), (2, 1, 3, 1))
         self.assertEqual(p['last_activity'], '2026-01-07')
+
+    def test_single_slug_link_fields(self):
+        project = PROJECT.replace('people: [ada]', 'people: ada\nwaiting_on: lab').replace('status: active', 'status: waiting')
+        _, rows = self.export(DAILY, project)
+        p = rows['projects'][0]
+        self.assertEqual((p['people'], p['waiting_on']), ('Ada Lovelace', 'The Lab'))
 
     def test_task_tags_become_fields(self):
         first, second = self.rows['tasks']
