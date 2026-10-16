@@ -29,15 +29,13 @@ NUMBERED = re.compile(r"^\d+\. (.*)$")
 WHO = re.compile(r"^(agent|user) · \[\[([^\]|#]+)[^\]]*\]\]: (.*)$")
 
 
-def label(line, name):
-    """Text after `name` when a sentence of a prose line starts with it, else None.
+PART = re.compile(r"(?:^|[.!?]\s+)([^.!?]+):$")
 
-    The brief may lead in, as in "Week plan confirmed. Outcomes for the week:".
-    """
-    if NUMBERED.match(line) or line.startswith("- "):
-        return None
-    m = re.search(rf"(?:^|(?<=[.!?])\s){re.escape(name)}", line)
-    return line[m.end():] if m else None
+
+def part_label(line):
+    """The label a prose line ends on, as in "Week plan confirmed. Outcomes for the week:"."""
+    m = None if NUMBERED.match(line) or line.startswith("- ") else PART.search(line)
+    return m.group(1) if m else None
 
 
 def frontmatter(text):
@@ -187,15 +185,15 @@ def export_day(vault, path):
 
     part = "brief"
     for line in sec.get("Brief", "").splitlines():
-        if label(line, "Outcomes for the week") is not None:
+        if part_label(line) == "Outcomes for the week":
             part = "outcome"
-        elif label(line, "Today") is not None:
+        elif part_label(line) == "Today":
             part = "brief"
-        elif (meetings := label(line, "Meetings:")) is not None:
-            for meeting in meetings.strip().rstrip(".").split(", "):
+        elif line.startswith("Meetings:"):
+            for meeting in line.removeprefix("Meetings:").strip().rstrip(".").split(", "):
                 add("meeting", meeting)
-        elif (decisions := label(line, "Decisions:")) is not None:
-            for decision in re.split(r"(?<=\.)\s+", decisions.strip()):
+        elif line.startswith("Decisions:"):
+            for decision in re.split(r"(?<=\.)\s+", line.removeprefix("Decisions:").strip()):
                 add("decision", decision)
         elif m := NUMBERED.match(line):
             who = WHO.match(m.group(1)) if part == "brief" else None
@@ -211,9 +209,9 @@ def export_day(vault, path):
 
     part = None
     for line in sec.get("Wrap", "").splitlines():
-        if label(line, "Done") is not None:
+        if part_label(line) == "Done":
             part = "done"
-        elif label(line, "Moves to tomorrow") is not None:
+        elif part_label(line) == "Moves to tomorrow":
             part = "moves"
         elif part and line.startswith("- "):
             add(part, line[2:])

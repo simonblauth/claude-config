@@ -76,7 +76,7 @@ Moves to tomorrow:
 '''
 
 
-LABELS = ('Outcomes for the week:', 'Today:', 'Meetings:', 'Decisions:', 'Done:', 'Moves to tomorrow:')
+PARTS = ('Outcomes for the week:', 'Today:', 'Done:', 'Moves to tomorrow:')
 
 
 def note(title, kind):
@@ -150,13 +150,20 @@ class ExportTests(unittest.TestCase):
         self.assertEqual([r['text'] for r in by['moves']], ['Merge the fix.'])
         self.assertNotIn('claude_did', by)
 
-    def test_labels_after_a_lead_in_sentence(self):
+    def test_part_labels_after_a_lead_in_sentence(self):
         daily = DAILY
-        for label in LABELS:
+        for label in PARTS:
             daily = daily.replace(f'\n{label}', f'\nPlan confirmed. {label}')
-        self.assertEqual(daily.count('Plan confirmed.'), len(LABELS))
+        self.assertEqual(daily.count('Plan confirmed.'), len(PARTS))
         _, rows = self.export(daily)
         self.assertEqual(rows['days'], self.rows['days'])
+
+    def test_part_label_words_inside_a_sentence_are_content(self):
+        daily = DAILY.replace('Decisions: The rerun waits. Ada reviews.',
+                              'Decisions: The rerun waits. Today stays free. Outcomes for the week stay.')
+        _, rows = self.export(daily)
+        decisions = [r['text'] for r in rows['days'] if r['section'] == 'decision']
+        self.assertEqual(decisions, ['The rerun waits.', 'Today stays free.', 'Outcomes for the week stay.'])
 
 
 if __name__ == '__main__':
