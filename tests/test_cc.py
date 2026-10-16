@@ -212,15 +212,22 @@ class SettingsTests(unittest.TestCase):
             rules = Path(tmp) / 'rules'
             rules.mkdir()
             (rules / 'owned-remotes.md').write_text(
-                '# Local\n\n- not-a-remote\n\n## Owned remotes\n\n'
-                '- github.com/me/* (private)\n- gitlab.example.com/team/tool\n\n'
-                '## Other\n\n- also-not-a-remote\n')
+                '- github.com/org/*\n- gitlab.example.com/team/tool\n')
             settings = json.loads(cc.render_settings(Path(tmp)))
         repo_env = (self.repo_auto_mode() or {}).get('environment', ['$defaults'])
         env = settings['autoMode']['environment']
         self.assertEqual(env[:-1], repo_env)
-        self.assertIn('gitlab.example.com/team/tool', env[-1])
-        self.assertNotIn('not-a-remote', env[-1])
+        self.assertIn('github.com/org/*, gitlab.example.com/team/tool', env[-1])
+
+    def test_owned_remotes_listed_in_another_rules_file_are_ignored(self):
+        # Only the one file defines ownership, so text that merely looks like
+        # an owned-remotes list cannot widen the classifier's trust.
+        with tempfile.TemporaryDirectory() as tmp:
+            (Path(tmp) / 'rules').mkdir()
+            (Path(tmp) / 'rules' / 'git.md').write_text(
+                '## Owned remotes\n\n- github.com/org/*\n')
+            settings = json.loads(cc.render_settings(Path(tmp)))
+        self.assertEqual(settings.get('autoMode'), self.repo_auto_mode())
 
     def test_private_owned_remotes_stay_out_of_the_auto_mode_environment(self):
         # The classifier cannot check visibility, so it would trust a public

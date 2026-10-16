@@ -560,18 +560,12 @@ def render_settings(cfg: Path) -> bytes:
 
 
 def owned_remotes(path: Path) -> list[str]:
-    """The bullets under the `## Owned remotes` heading of a machine-local rules file."""
+    """Each bullet of the owned-remotes file is one entry."""
     try:
         lines = path.read_text(encoding="utf-8").splitlines()
     except OSError:
         return []
-    out, inside = [], False
-    for line in lines:
-        if line.startswith("#"):
-            inside = line.strip() == "## Owned remotes"
-        elif inside and line.startswith("- "):
-            out.append(line[2:].strip())
-    return out
+    return [line[2:].strip() for line in lines if line.startswith("- ")]
 
 
 def drop_hook(hooks: dict, event: str, script: str) -> None:

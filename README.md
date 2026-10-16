@@ -87,11 +87,12 @@ as explicit conditions there; Claude `paths:` rules are not converted.
 
 Outside the vault, every push and every write on a remote needs your approval in the
 turn it happens. To let agents push feature branches and open, update, and
-answer issues and PRs on your own repos without that, list those repos in an
-`## Owned remotes` section of a machine-local file: `~/.claude/rules/owned-remotes.md`
-for Claude, `local-instructions.md` for Codex. Merging and pushing to the default
-branch still need approval each time. The entry format and the full rules are
-under "Owned remotes" in `instructions/shared.md`.
+answer issues and PRs on your own repos without that, list those repos in
+`~/.claude/rules/owned-remotes.md` for Claude and `~/.codex/owned-remotes.md`
+for Codex. No other file counts, so a list an agent happens to read elsewhere
+grants nothing. The installer does not manage either file. Merging and pushing
+to the default branch still need approval each time. The entry format and the
+full rules are under "Owned remotes" in `instructions/shared.md`.
 
 Claude's auto mode trusts only the current repo's remotes by default, so
 `install` also adds the list to `autoMode.environment` in `settings.json`.
