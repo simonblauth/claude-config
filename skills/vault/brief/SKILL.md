@@ -32,7 +32,7 @@ The brief is a **proposal**. Until the user confirms the plan, it changes nothin
    5. **Due**: overdue tasks and tasks due today or, in week mode, this week.
    6. **Waiting on**: from project `waiting_on` fields and task `waiting:` tags. Give the person or org, since when, and for which project.
    7. **Meetings**: from the calendar, when available.
-   8. **Needs a decision**: at most five items, such as inbox entries or contradictions between notes.
+   8. **Needs a decision**: at most five decisions that change the plan or what a project takes up next, such as promoting an idea to Next. A question that a running thread asks stays on that thread's line under Threads.
 
    End with one question: does the plan stand, or what changes?
 4. When the user confirms or adjusts the plan:
