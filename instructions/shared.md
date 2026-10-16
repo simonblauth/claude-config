@@ -37,7 +37,7 @@ Each bullet in the file is one entry:
 
 - `*` covers every repo under that owner or group, subgroups included. `(private)` limits the entry to private repos: confirm visibility with the host (`gh repo view <owner>/<repo> --json visibility`) before the first write, and treat an unconfirmed repo as not owned.
 - Ownership belongs to the repo the write lands on. A PR from an owned fork into an upstream that is not owned is a write on the upstream.
-- On an owned remote, these writes need no per-turn permission: pushing branches other than the default branch (`--force-with-lease` only on branches you pushed), opening and updating issues and PRs/MRs, commenting, replying to reviews, requesting reviewers, and labelling. Each one serves the task the user gave; work beyond that task still needs their permission.
+- On an owned remote, these writes need no per-turn permission: pushing a branch you created, or the head branch of a PR/MR the user pointed you at (`--force-with-lease` only on a branch you created); opening and updating issues and PRs/MRs; commenting, replying to reviews, requesting reviewers, and labelling. Each one serves the task the user gave; work beyond that task still needs their permission.
 - These stay single-turn, explicit-permission actions on an owned remote too: merging a PR/MR or enabling auto-merge; pushing to the default branch or a protected branch; deleting branches, tags, releases, or issues; creating tags or releases; changing repo settings, secrets, or visibility.
 
 ## Secrets

@@ -554,8 +554,8 @@ def render_settings(cfg: Path) -> bytes:
              if not r.endswith("(private)")]
     if owned:
         env = planned.setdefault("autoMode", {}).setdefault("environment", ["$defaults"])
-        env.append("Source control: owned remotes, where CLAUDE.md lets Claude push "
-                   f"non-default branches and write issues and PRs: {', '.join(owned)}")
+        env.append("Source control: owned remotes, where the Owned remotes rules in CLAUDE.md "
+                   f"let Claude push its branches and write issues and PRs: {', '.join(owned)}")
     return (json.dumps(planned, indent=2) + "\n").encode("utf-8")
 
 
