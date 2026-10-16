@@ -10,7 +10,7 @@ Resolved by step 0 of [`../SKILL.md`](../SKILL.md). Everything here drives steps
 - one `glab mr create` from that branch, plus edits to that MR's title and body
 - one summary note on that MR
 
-Nothing else. No approve, no merge, no `--force`. Resolving threads stays with the humans.
+Nothing else, beyond what the SKILL.md grant says an owned remote adds. No approve, no merge, no `--force`. Resolving threads stays with the humans.
 
 ## Step 1. Read the issue
 
