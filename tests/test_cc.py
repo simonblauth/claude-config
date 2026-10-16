@@ -219,6 +219,12 @@ class SettingsTests(unittest.TestCase):
         self.assertEqual(env[:-1], repo_env)
         self.assertIn('github.com/org/*, gitlab.example.com/team/tool', env[-1])
 
+    def test_every_markdown_bullet_form_is_an_owned_remote(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / 'owned-remotes.md'
+            path.write_text('# Owned remotes\n\n- a/*\n* b/*\n+ c/*\n-\td/*\n  - e/*\n')
+            self.assertEqual(cc.owned_remotes(path), ['a/*', 'b/*', 'c/*', 'd/*', 'e/*'])
+
     def test_owned_remotes_listed_in_another_rules_file_are_ignored(self):
         # Only the one file defines ownership, so text that merely looks like
         # an owned-remotes list cannot widen the classifier's trust.

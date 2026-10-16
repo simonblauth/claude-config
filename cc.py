@@ -565,7 +565,7 @@ def owned_remotes(path: Path) -> list[str]:
         lines = path.read_text(encoding="utf-8").splitlines()
     except OSError:
         return []
-    return [line[2:].strip() for line in lines if line.startswith("- ")]
+    return [m[1].strip() for line in lines if (m := re.match(r"\s*[-*+]\s+(\S.*)", line))]
 
 
 def drop_hook(hooks: dict, event: str, script: str) -> None:
