@@ -31,7 +31,7 @@ class TemplateTests(unittest.TestCase):
     def test_checker_suite_passes(self):
         result = subprocess.run(['uv', 'run', '--quiet', '--no-project', '--with', 'pyyaml',
                                  'python', '-m', 'unittest', 'test_check'],
-                                cwd=TEMPLATE / 'tools', capture_output=True, text=True)
+                                cwd=self.vault / 'tools', capture_output=True, text=True)
         self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_fresh_vault_passes_the_checker(self):
