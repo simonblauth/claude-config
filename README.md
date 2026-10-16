@@ -90,7 +90,9 @@ turn it happens. To let agents push feature branches and open, update, and
 answer issues and PRs on your own repos without that, list those repos in
 `~/.claude/rules/owned-remotes.md` for Claude and `~/.codex/owned-remotes.md`
 for Codex. No other file counts, so a list an agent happens to read elsewhere
-grants nothing. The installer does not manage either file. Merging and pushing
+grants nothing. You edit these files by hand: agents are told never to touch
+them, and Claude's settings deny `Edit` on `rules/owned-remotes.md`. The
+installer does not manage either file. Merging and pushing
 to the default branch still need approval each time. The entry format and the
 full rules are under "Owned remotes" in `instructions/shared.md`.
 

@@ -74,7 +74,8 @@
       "Read(~/.ssh/**)",
       "Read(~/.npmrc)",
       "Read(~/.claude/.credentials.json)",
-      "Bash(cmdkey *)"
+      "Bash(cmdkey *)",
+      "Edit(//**/rules/owned-remotes.md)"
     ]
   },
   "deniedMcpServers": [
