@@ -1,0 +1,13 @@
+diff --git a/SKILL.md b/SKILL.md
+index b01c44f..5285d76 100644
+--- a/SKILL.md
++++ b/SKILL.md
+@@ -80,7 +80,7 @@ Show counts and a one-line summary per item. Let the maintainer pick.
+ 
+ 3. **Verify the claim.** Before any grilling, check that the claim holds up. For a bug, reproduce it from the reporter's steps. For a PR, confirm the diff does what it claims: check it out, run the relevant tests or commands. Report what happened: confirmed (with code path), failed, or insufficient detail (a strong `needs-info` signal). A confirmed verification makes a much stronger agent brief.
+ 
+-4. **Grill (if needed).** If the request needs fleshing out, call the Skill tool twice, for "grilling" and "domain-modeling", and grill it into shape a round of questions at a time, sharpening domain terms and updating `GLOSSARY.md`/ADRs inline as decisions land.
++4. **Grill (if needed).** If the request needs fleshing out, load and follow the skills "grilling" and "domain-modeling", and grill it into shape a round of questions at a time, sharpening domain terms and updating `GLOSSARY.md`/ADRs inline as decisions land.
+ 
+ 5. **Apply the outcome:**
+    - `ready-for-agent`: post an agent brief comment ([AGENT-BRIEF.md](AGENT-BRIEF.md)). For an issue with a source role, the plan in its body is the brief: run the plan's drift check against the default branch instead, and post a comment that corrects only what has drifted. A plan whose premise no longer holds is a `wontfix` (already implemented) or goes back to `needs-triage` with what changed.

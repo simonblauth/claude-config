@@ -11,9 +11,10 @@ skill with no row here, is covered by `LICENSE`.
 | Skills | Upstream | Copyright | License |
 | --- | --- | --- | --- |
 | `deslopify` | <https://github.com/JuliusBrussee/skills> | Copyright (c) 2026 Julius Brussee | [MIT License](licenses/JuliusBrussee-skills.txt) |
-| `codebase-design`, `domain-modeling`, `grill-me`, `grill-with-docs`, `grilling`, `handoff`, `improve-codebase-architecture`, `to-questionnaire`, `wait-what`, `wizard`, `writing-for-agents` | <https://github.com/mattpocock/skills> | Copyright (c) 2026 Matt Pocock | [MIT License](licenses/mattpocock-skills.txt) |
+| `codebase-design`, `domain-modeling`, `grill-me`, `grill-with-docs`, `grilling`, `handoff`, `improve-codebase-architecture`, `to-questionnaire`, `triage`, `wait-what`, `wizard`, `writing-for-agents` | <https://github.com/mattpocock/skills> | Copyright (c) 2026 Matt Pocock | [MIT License](licenses/mattpocock-skills.txt) |
 | `reflect`, `reflect/references/codex-tools.md`, `technical-writing`, `unslop` | <https://github.com/michael-denyer/pstack-claude> | Copyright (c) 2026 Lauren Tan; Copyright (c) 2026 Michael Denyer | [MIT License](licenses/michael-denyer-pstack-claude.txt) |
 | `systematic-debugging`, `tdd`, `verification-before-completion`, `writing-skills` | <https://github.com/obra/superpowers> | Copyright (c) 2025 Jesse Vincent | [MIT License](licenses/obra-superpowers.txt) |
+| `improve` | <https://github.com/shadcn/improve> | Copyright (c) 2026 shadcn | [MIT License](licenses/shadcn-improve.txt) |
 
 ## Provenance: pstack-claude
 

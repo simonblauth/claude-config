@@ -1,0 +1,16 @@
+--- a/SKILL.md
++++ b/SKILL.md
+@@ -1,5 +1,4 @@
+ ---
+ name: triage
+ description: Move issues and external PRs through a state machine of triage roles, categorise, verify, grill if needed, and write agent-ready briefs.
+-disable-model-invocation: true
+ ---
+--- a/agents/openai.yaml
++++ b/agents/openai.yaml
+@@ -1,5 +1,2 @@
+-interface:
+-  display_name: "Triage"
+-  short_description: "Move issues through triage roles"
+ policy:
+   allow_implicit_invocation: false
