@@ -4,7 +4,7 @@
 
 ### Commits
 
-- Subject ≤50 chars, imperative mood. Conventional Commits, minus the `feat:` prefix.
+- Subject in imperative mood. Conventional Commits, minus the `feat:` prefix.
 - Most commits need no body. When one earns its place: ≤10 lines, under 5 preferred, ~70 chars/line, plain prose with no section headers. The PR body is a separate artifact, so don't restate it here.
 - One commit per purpose. Split a multi-purpose change into a handful of logical commits, not one omnibus and not a swarm of micro-commits.
 - Commits and tags are SSH-signed, and signing never fails in a healthy setup. A signing error means the setup is broken: stop, show the user the error, and keep every commit signed.
