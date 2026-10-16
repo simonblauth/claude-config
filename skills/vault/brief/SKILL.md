@@ -11,14 +11,16 @@ The brief is a **proposal**. Until the user confirms the plan, it changes nothin
 
 ## Pick the mode
 
-- **Week brief**: no daily note exists yet for the current ISO week. The plan covers the week and today.
+A brief has run on a day when that day's daily note has content under `## Brief`. A capture or an `auto:` change can create the note before any brief runs.
+
+- **Week brief**: no brief has run yet in the current ISO week. The plan covers the week and today.
 - **Day brief**: otherwise. The plan covers today.
 
 ## Steps
 
 1. Pull, as the vault's `CLAUDE.md` says under sync.
 2. Gather, reading only:
-   - every `## Claude did` entry since the last brief: the latest daily note, or the latest journal note in week mode
+   - every `## Claude did` entry since the last brief: in day mode, the daily notes from the last day a brief ran through today; in week mode, the latest journal note and this week's daily notes
    - in week mode, the latest journal note's `## Next week`
    - every project with status `active` or `waiting`: `focus`, State, open Next tasks, due dates, and recurring tasks due today
    - `inbox.md`
@@ -36,8 +38,8 @@ The brief is a **proposal**. Until the user confirms the plan, it changes nothin
 
    End with one question: does the plan stand, or what changes?
 4. When the user confirms or adjusts the plan:
-   1. Create `daily/YYYY-MM-DD.md` with the sections from `CLAUDE.md`. Put the confirmed plan under `## Brief`.
-   2. Commit as `Start daily note YYYY-MM-DD` and push.
+   1. Put the confirmed plan under `## Brief` in `daily/YYYY-MM-DD.md`. When the note is missing, create it with the sections from `CLAUDE.md` first. Keep everything an existing note already holds.
+   2. Commit as `Brief YYYY-MM-DD` and push.
    3. Refresh the dashboard with the `dashboard` skill.
 
 The brief is complete when today's daily note holds the confirmed plan, the commit is pushed, and the dashboard shows today's note.
