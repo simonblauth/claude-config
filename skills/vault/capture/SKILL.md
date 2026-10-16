@@ -16,7 +16,7 @@ A capture is a quick save. Interrupt the user's current work as little as possib
 
    | Item | Destination |
    | --- | --- |
-   | Task for a known project | That project's `## Next`. If Next already has 5 open tasks, put it under `## Ideas` and say so. |
+   | Task for a known project | That project's `## Next`. |
    | Idea for a known project | That project's `## Ideas` |
    | Finding or event in a known project | A dated line in that project's `## Log` |
    | Anything with no clear project | `inbox.md`, as a dated line |
