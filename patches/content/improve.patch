@@ -1,0 +1,45 @@
+diff --git a/SKILL.md b/SKILL.md
+index df5b900..83c3492 100644
+--- a/SKILL.md
++++ b/SKILL.md
+@@ -38,7 +38,7 @@ If the repo has no working verification command (no tests, broken build), record
+ 
+ ### Phase 2 — Audit (parallel)
+ 
+-Audit the codebase across the categories in [references/audit-playbook.md](references/audit-playbook.md) — read it now. Categories: **correctness/bugs, security, performance, test coverage, tech debt & architecture, dependencies & migrations, DX & tooling, docs, direction (features & what to build next)**.
++Audit the codebase across the categories in [references/audit-playbook.md](references/audit-playbook.md) — read it now. Categories: **correctness/bugs, security, performance, test coverage, tech debt & architecture, dependencies & migrations (including modernization against the project's version floor), DX & tooling, docs, direction (features & what to build next)**. The dependencies & migrations subagent needs web access for the changelog research its section requires.
+ 
+ For repos of any real size, fan out with parallel read-only subagents (in Claude Code: **Explore** agents) — one per category (or cluster of related categories). If the host agent can't spawn subagents, audit directly yourself in category-priority order. **Subagents do not inherit this skill's context**, so each subagent prompt must include:
+ 
+@@ -108,7 +108,7 @@ Finish by writing `plans/README.md` with the recommended execution order, depend
+ 
+ - Bare invocation → full workflow above.
+ - `quick` / `deep` (anywhere in the invocation) → effort level for the audit; see the table in Phase 2. Composes with everything: `quick security`, `deep --issues`. Default is `standard`.
+-- With a focus argument (e.g. `security`, `perf`, `tests`) → run Recon, then audit only that category, then plan.
++- With a focus argument (e.g. `security`, `perf`, `tests`, `modernize` for dependencies & migrations) → run Recon, then audit only that category, then plan.
+ - `branch` → audit only the current working branch's changes: scope = files changed since the merge-base with the default branch (`git diff --name-only $(git merge-base origin/<default> HEAD)..HEAD`) plus their direct importers/callers. Light recon, all categories, usually no subagents. **Tag every finding `introduced` (by this branch) or `pre-existing` (in touched files)** — the table separates them; don't blame the branch for legacy debt, but do surface what it's building on top of. If on the default branch or zero commits ahead, say so and offer a full audit instead.
+ - `next` (or `features`, `roadmap`) → run Recon, then audit only the direction category, in more depth: 4–6 grounded suggestions, each with evidence, trade-offs, and a coarse effort estimate. Selected ones become design/spike plans, not build-everything plans.
+ - `plan <description>` → skip the audit; the user already knows what they want. Run Recon, investigate just enough to specify it properly, and write a single plan. If the description is too ambiguous to specify honestly, first try to resolve each ambiguity from the codebase itself; only what's left becomes questions to the user — asked one at a time, each with a recommended answer.
+diff --git a/references/audit-playbook.md b/references/audit-playbook.md
+index 6c2278c..aceb24a 100644
+--- a/references/audit-playbook.md
++++ b/references/audit-playbook.md
+@@ -73,8 +73,18 @@ The goal is not a percentage — it's *which untested code is dangerous*.
+ - Abandoned dependencies (no release in years, archived repos) on critical paths.
+ - Duplicate dependencies solving the same problem (two date libs, two HTTP clients).
+ - Lockfile/manifest drift, version pinning inconsistencies across a monorepo.
++- Dependencies the stdlib or runtime has since absorbed (native `fetch`, `structuredClone`, `tomllib`, `std::format`). Retiring one deletes code and a dependency at once, so it ranks high.
++- Old idioms the project's own floor already allows: boilerplate written before a language feature existed (pattern matching, dataclasses/records, `async`/`await` over callbacks, native nullability). Report it only when the swap buys something concrete (less code, stronger types, a dropped dependency); a merely newer spelling of a working, undeprecated API is not a finding.
+ - For each migration candidate, estimate blast radius (files touched) — that drives effort and whether to recommend it at all.
+ 
++### The floor
++
++The **floor** is the oldest runtime or language version the project promises to run on: an app's deploy target, a library's declared `engines`, `requires-python`, `rust-version`, or edition. Read it from the manifest range, not the lockfile, which often resolves far above it. With no declared floor, the local toolchain is the floor.
++
++- A feature newer than the floor cannot be adopted for free: it silently raises the floor and breaks consumers. Report it as a **flagged bump** that names the version it requires, separate from the findings that fit under the floor.
++- Never trust memory for "added in version X". Ground every version claim in the official changelog or release notes, cited with the release and its date. Drop a candidate whose version claim you cannot source. Prefer official codemods and migration guides where they exist, and name them in the fix sketch.
++- A modernization changes how the code is written, never what it does. A swap that would change behavior, public API, or error modes is a feature change; report it as one.
++
+ ## 7. DX & Tooling
+ 
+ - Missing or broken: typecheck script, lint config, formatter, pre-commit hooks, editorconfig.
