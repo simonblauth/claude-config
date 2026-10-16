@@ -76,6 +76,9 @@ Moves to tomorrow:
 '''
 
 
+LABELS = ('Outcomes for the week:', 'Today:', 'Meetings:', 'Decisions:', 'Done:', 'Moves to tomorrow:')
+
+
 def note(title, kind):
     return f'---\ntype: {kind}\ntitle: {title}\ncreated: 2026-01-05\nupdated: 2026-01-05\n---\n'
 
@@ -83,7 +86,7 @@ def note(title, kind):
 @unittest.skipUnless(shutil.which('uv'), 'needs uv')
 class ExportTests(unittest.TestCase):
     @classmethod
-    def setUpClass(cls):
+    def export(cls, daily):
         tmp = tempfile.TemporaryDirectory()
         cls.addClassCleanup(tmp.cleanup)
         vault = Path(tmp.name) / 'vault'
@@ -92,15 +95,19 @@ class ExportTests(unittest.TestCase):
             'people/ada.md': note('Ada Lovelace (Al)', 'person'),
             'orgs/lab.md': note('The Lab', 'org'),
             'concepts/dose-engine.md': note('Dose engines', 'concept'),
-            'daily/2026-01-05.md': DAILY,
+            'daily/2026-01-05.md': daily,
         }
         for rel, text in files.items():
             (vault / rel).parent.mkdir(parents=True, exist_ok=True)
             (vault / rel).write_text(text)
         out = Path(tmp.name) / 'out'
-        cls.stdout = subprocess.run(['uv', 'run', '--quiet', '--script', SCRIPT, vault, out],
-                                    capture_output=True, text=True, check=True).stdout
-        cls.rows = {n: json.loads((out / f'vault-{n}.json').read_text()) for n in ('projects', 'tasks', 'log', 'days')}
+        stdout = subprocess.run(['uv', 'run', '--quiet', '--script', SCRIPT, vault, out],
+                                capture_output=True, text=True, check=True).stdout
+        return stdout, {n: json.loads((out / f'vault-{n}.json').read_text()) for n in ('projects', 'tasks', 'log', 'days')}
+
+    @classmethod
+    def setUpClass(cls):
+        cls.stdout, cls.rows = cls.export(DAILY)
 
     def test_prints_row_counts(self):
         self.assertEqual(self.stdout.split('\n')[:4], ['projects 1', 'tasks 2', 'log 3', 'days 10'])
@@ -142,6 +149,14 @@ class ExportTests(unittest.TestCase):
         self.assertEqual([r['text'] for r in by['done']], ['Reproduced the drift (Dose calc).'])
         self.assertEqual([r['text'] for r in by['moves']], ['Merge the fix.'])
         self.assertNotIn('claude_did', by)
+
+    def test_labels_after_a_lead_in_sentence(self):
+        daily = DAILY
+        for label in LABELS:
+            daily = daily.replace(f'\n{label}', f'\nPlan confirmed. {label}')
+        self.assertEqual(daily.count('Plan confirmed.'), len(LABELS))
+        _, rows = self.export(daily)
+        self.assertEqual(rows['days'], self.rows['days'])
 
 
 if __name__ == '__main__':
