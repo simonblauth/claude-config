@@ -24,8 +24,8 @@ Each run is a single stage, so each stage gets its own schedule. A person steps 
 Arguments:
 
 - `--parallel N`: subagents running at once. Default 3.
-- `--max N`: targets per run. Default 10. A selection larger than `--max` takes the oldest targets first and names the rest in the summary.
-- `--dry-run`: run steps 0 to 2, print the targets, and stop.
+- `--max N`: targets per run. Default 10. A selection larger than `--max` keeps the first N in step 2's order and names the rest in the summary.
+- `--dry-run`: run steps 0 to 2, print the targets and the labels step 3 would create, and stop.
 - Anything else after the skill name passes through to the skill, for example `quick` or `modernize` for `improve`.
 
 GitHub only. GitLab scopes stop at step 0 with that reason.
@@ -34,7 +34,7 @@ GitHub only. GitLab scopes stop at step 0 with that reason.
 
 Dispatch runs only on owned remotes, as the global instructions define them. Read the owned-remotes file (on Claude Code, `${CLAUDE_CONFIG_DIR:-~/.claude}/rules/owned-remotes.md`). Each repo in scope must match an entry. An entry marked `(private)` needs `gh repo view <owner>/<repo> --json visibility` to say `PRIVATE`.
 
-The owned-remote rules cover every write the four skills make: issues, comments, labels, branches they create, and pull requests. Merging and everything else those rules hold back stays with the user. Invoking dispatch, by hand or from a schedule the user set, also grants one write those rules leave out: creating the missing labels of step 1's set.
+The owned-remote rules cover every write the four skills make: issues, comments, labels, branches they create, and pull requests. Merging and everything else those rules hold back stays with the user. Invoking dispatch, by hand or from a schedule the user set, also grants one write those rules leave out: creating the missing labels of step 3's label set.
 
 **Done when** every repo in scope is owned or listed as refused. A scope with no owned repo stops here, and the summary says why.
 
@@ -42,11 +42,31 @@ The owned-remote rules cover every write the four skills make: issues, comments,
 
 For a bare owner:
 
-    gh repo list <owner> --no-archived --source --limit 1000 --json nameWithOwner,visibility,defaultBranchRef
+    gh repo list <owner> --no-archived --source --limit 1000 --json nameWithOwner,visibility,defaultBranchRef,pushedAt
 
 A result of exactly 1000 repos means the list is truncated: stop and say so. Forks are left out, because their issues live upstream.
 
-Make sure each repo has the label set below. Read its labels with `gh label list -R <repo> --limit 200 --json name`, and compare names ignoring case, as GitHub does. Create each missing label with `gh label create <name> -R <repo> --color <color> --description "<description>"`. Leave existing labels as they are: no `--force`, no edits, no deletes. Under `--dry-run`, list the labels a real run would create instead.
+## 2. Select targets
+
+Repo targets come from the table above. For `triage`, a repo qualifies when `gh issue list -R <repo> --search 'no:label' --limit 1` or the same query on `label:needs-triage` or `label:needs-info` returns an issue.
+
+Issue targets for `issue-to-pr`, per repo:
+
+    gh issue list -R <repo> --label ready-for-agent --search 'no:assignee -label:agent:claimed' --limit 200 --json number,title,createdAt,closedByPullRequestsReferences
+
+Drop an issue whose `closedByPullRequestsReferences` names an open pull request: work is already in flight. An assignee means a person has claimed it.
+
+**Stop rule.** Count the repo's open issues labelled `agent:claimed`. At 3 or more, select nothing from that repo this run. A claimed issue with no open pull request that names it is a stale claim from a run that died: remove its `agent:claimed` label and report it. It is selectable again on the next run.
+
+Order repo targets by `pushedAt`, most recent first, and issue targets by `createdAt`, oldest first. Then apply `--max`.
+
+**Done when** every selected target is listed with its repo, and every skipped repo has a reason.
+
+## 3. Prepare each target
+
+### Labels
+
+Only a repo with a selected target gets labels, so a scope of many quiet repos costs no writes. Make sure each such repo has the label set below. Read its labels with `gh label list -R <repo> --limit 200 --json name`, and compare names ignoring case, as GitHub does. Create each missing label with `gh label create <name> -R <repo> --color <color> --description "<description>"`. Leave existing labels as they are: no `--force`, no edits, no deletes. Under `--dry-run`, read the labels and list the ones a real run would create, without creating them.
 
 | Label | Color | Description |
 |---|---|---|
@@ -61,23 +81,9 @@ Make sure each repo has the label set below. Read its labels with `gh label list
 | `source:architecture` | `C5DEF5` | Filed by the improve-codebase-architecture skill |
 | `agent:claimed` | `5319E7` | An agent is working on it |
 
-A repo where label creation fails is skipped for this run, with the error in the summary.
+A repo where label creation fails is skipped for this run, with the error in the summary. Label every repo before claiming any issue.
 
-## 2. Select targets
-
-Repo targets come from the table above. For `triage`, a repo qualifies when `gh issue list -R <repo> --search 'no:label' --limit 1` or the same query on `label:needs-triage` or `label:needs-info` returns an issue.
-
-Issue targets for `issue-to-pr`, per repo:
-
-    gh issue list -R <repo> --label ready-for-agent --search 'no:assignee -label:agent:claimed' --limit 200 --json number,title,createdAt,closedByPullRequestsReferences
-
-Drop an issue whose `closedByPullRequestsReferences` names an open pull request: work is already in flight. An assignee means a person has claimed it.
-
-**Stop rule.** Count the repo's open issues labelled `agent:claimed`. At 3 or more, select nothing from that repo this run. A claimed issue with no open pull request that names it is a stale claim from a run that died: remove its `agent:claimed` label and report it. It is selectable again on the next run.
-
-**Done when** every selected target is listed with its repo, and every skipped repo has a reason.
-
-## 3. Prepare each target
+### Working copies
 
 Each target gets a clone in the dispatch cache, `~/.cache/dispatch/repos/<owner>/<repo>`. Clone the repo the first time it is needed, then run `git fetch origin` before every run.
 
