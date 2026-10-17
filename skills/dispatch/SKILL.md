@@ -34,7 +34,7 @@ GitHub only. GitLab scopes stop at step 0 with that reason.
 
 Dispatch runs only on owned remotes, as the global instructions define them. Read the owned-remotes file (on Claude Code, `${CLAUDE_CONFIG_DIR:-~/.claude}/rules/owned-remotes.md`). Each repo in scope must match an entry. An entry marked `(private)` needs `gh repo view <owner>/<repo> --json visibility` to say `PRIVATE`.
 
-The owned-remote rules cover every write the four skills make: issues, comments, labels, branches they create, and pull requests. Merging and everything else those rules hold back stays with the user.
+The owned-remote rules cover every write the four skills make: issues, comments, labels, branches they create, and pull requests. Merging and everything else those rules hold back stays with the user. Invoking dispatch, by hand or from a schedule the user set, also grants one write those rules leave out: creating the missing labels of step 1's set.
 
 **Done when** every repo in scope is owned or listed as refused. A scope with no owned repo stops here, and the summary says why.
 
@@ -46,7 +46,22 @@ For a bare owner:
 
 A result of exactly 1000 repos means the list is truncated: stop and say so. Forks are left out, because their issues live upstream.
 
-Check that each repo has the labels its skill uses: `gh label list -R <repo> --limit 200`. The label set is `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`, `bug`, `enhancement`, `source:improve`, `source:architecture` and `agent:claimed`. Creating a label is outside the owned-remote rules. List the missing ones per repo, with the `gh label create` lines for the user to run, and skip that repo for this run.
+Make sure each repo has the label set below. Read its labels with `gh label list -R <repo> --limit 200 --json name`, and compare names ignoring case, as GitHub does. Create each missing label with `gh label create <name> -R <repo> --color <color> --description "<description>"`. Leave existing labels as they are: no `--force`, no edits, no deletes. Under `--dry-run`, list the labels a real run would create instead.
+
+| Label | Color | Description |
+|---|---|---|
+| `needs-triage` | `FBCA04` | Waiting for triage |
+| `needs-info` | `D876E3` | Waiting on the reporter |
+| `ready-for-agent` | `0E8A16` | Fully specified, an agent can take it |
+| `ready-for-human` | `1D76DB` | Needs a person's decision or work |
+| `wontfix` | `FFFFFF` | Will not be worked on |
+| `bug` | `D73A4A` | Something is broken |
+| `enhancement` | `A2EEEF` | New feature or improvement |
+| `source:improve` | `C5DEF5` | Filed by the improve skill |
+| `source:architecture` | `C5DEF5` | Filed by the improve-codebase-architecture skill |
+| `agent:claimed` | `5319E7` | An agent is working on it |
+
+A repo where label creation fails is skipped for this run, with the error in the summary.
 
 ## 2. Select targets
 
@@ -87,7 +102,7 @@ When no source settles it, reply `No answer. Take your skill's dispatched fallba
 
 Write the summary to `~/.cache/dispatch/runs/<run>.md` and print it. List:
 
-- refused repos, skipped repos, and the labels each repo is missing
+- refused repos, skipped repos, and the labels created in each repo
 - each target's status, and the URLs of the issues, comments and pull requests it wrote
 - every proposal a subagent reported: problems found outside its task. These are the user's to file or drop, so list them and file nothing.
 - stale claims cleared, and targets cut by `--max`
