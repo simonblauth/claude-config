@@ -1,5 +1,5 @@
 diff --git a/SKILL.md b/SKILL.md
-index df5b900..83c3492 100644
+index df5b900..34dae12 100644
 --- a/SKILL.md
 +++ b/SKILL.md
 @@ -38,7 +38,7 @@ If the repo has no working verification command (no tests, broken build), record
@@ -20,6 +20,24 @@ index df5b900..83c3492 100644
  - `branch` → audit only the current working branch's changes: scope = files changed since the merge-base with the default branch (`git diff --name-only $(git merge-base origin/<default> HEAD)..HEAD`) plus their direct importers/callers. Light recon, all categories, usually no subagents. **Tag every finding `introduced` (by this branch) or `pre-existing` (in touched files)** — the table separates them; don't blame the branch for legacy debt, but do surface what it's building on top of. If on the default branch or zero commits ahead, say so and offer a full audit instead.
  - `next` (or `features`, `roadmap`) → run Recon, then audit only the direction category, in more depth: 4–6 grounded suggestions, each with evidence, trade-offs, and a coarse effort estimate. Selected ones become design/spike plans, not build-everything plans.
  - `plan <description>` → skip the audit; the user already knows what they want. Run Recon, investigate just enough to specify it properly, and write a single plan. If the description is too ambiguous to specify honestly, first try to resolve each ambiguity from the codebase itself; only what's left becomes questions to the user — asked one at a time, each with a recommended answer.
+@@ -117,6 +117,17 @@ Finish by writing `plans/README.md` with the recommended execution order, depend
+ - `reconcile` → process what happened since last session: verify DONE plans, investigate BLOCKED ones, refresh drifted TODOs, retire dead findings. See [references/closing-the-loop.md](references/closing-the-loop.md).
+ - `--issues` (modifier on any planning invocation) → also publish each written plan as a GitHub issue via `gh`, URL recorded in the plan and index. Only with the explicit flag. **Before creating any issue, check whether the repo is public (`gh repo view --json visibility`). If it is, warn the user that issues are publicly visible and get explicit confirmation before publishing any plan that describes a security vulnerability, credential location, or other sensitive finding.** See [references/closing-the-loop.md](references/closing-the-loop.md).
+ 
++## Dispatched run
++
++When the `dispatch` skill started this run, no user is present and the issue tracker replaces `plans/`, in Hard Rule 1 too. These rules override the workflow above:
++
++- **Scope.** Run the full workflow at the effort level and focus the arguments name. Leave layering violations and abstraction mismatches to `improve-codebase-architecture`, which dispatch runs separately. Audit direction only under `next`.
++- **Selection.** Phase 3 takes the top 5 findings by leverage, with no confirmation step. Direction findings go in the report, never into issues.
++- **Duplicates.** Before writing plans, read every issue labelled `source:improve` or `source:architecture`, open and closed: `gh issue list --label source:improve --state all --limit 500 --json number,title,state,stateReason,body`, and the same for `source:architecture`. Skip a finding that an open issue covers. Skip a finding that a closed issue rejected (`stateReason` is `NOT_PLANNED`). Such issues replace the index's "considered and rejected" section. A finding that a completed issue fixed and that has now come back is a regression: file it, and link the old issue.
++- **Publishing.** Write each plan to a file in the OS temp directory, never into the repository. Publish it with `gh issue create --label source:improve --label needs-triage --body-file <file>`, dependencies first, so that each plan's **Depends on** names real issue numbers. Leave out the **Issue** line and every instruction to update `plans/README.md`: the issue is the plan.
++- **Sensitive findings.** On a public repo, keep security vulnerabilities and credential locations out of issues and put them in the report.
++- **Fallback.** The run never waits. A question you would put to the user becomes a finding with LOW confidence and an "investigate" plan.
++
+ ## Tone of the output
+ 
+ You are advising, not selling. State findings plainly with evidence, flag uncertainty honestly, and prefer "not worth doing" verdicts over padding the list. A short list of high-confidence, high-leverage plans beats a long one.
 diff --git a/references/audit-playbook.md b/references/audit-playbook.md
 index 6c2278c..aceb24a 100644
 --- a/references/audit-playbook.md
