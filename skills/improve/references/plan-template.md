@@ -34,7 +34,8 @@ File naming: `plans/NNN-short-slug.md`, numbered in recommended execution order.
 - **Priority**: P1 | P2 | P3
 - **Effort**: S | M | L
 - **Risk**: LOW | MED | HIGH
-- **Depends on**: plans/NNN-*.md (or "none")
+- **Depends on**: plans/NNN-*.md, or the issues and open pull requests this plan builds on as `#N` (or "none")
+- **Base**: <the branch the change targets — only when it is not the default branch; omit otherwise>
 - **Category**: bug | security | perf | tests | tech-debt | migration | dx | docs | direction
 - **Planned at**: commit `<short SHA>`, <YYYY-MM-DD>
 - **Issue**: <GitHub issue URL — only when published via `--issues`; omit otherwise>
