@@ -4,8 +4,8 @@ description: >
   Dispatch one skill across owned repos: one background subagent per repo or
   per issue, each in its own worktree. Use when the user, or a schedule they
   set, asks to dispatch improve, improve-codebase-architecture, triage or
-  issue-to-pr over an owner or a repo.
-argument-hint: "<owner | owner/repo> <skill> [skill args] [--parallel N] [--max N] [--dry-run]"
+  issue-to-pr over an owner, a repo, or a list of issues.
+argument-hint: "<owner | owner/repo | owner/repo#N ...> <skill> [skill args] [--parallel N] [--max N] [--dry-run]"
 ---
 
 # Dispatch
@@ -20,6 +20,8 @@ Dispatch is a driver. One run takes one **scope**, one **skill** and its argumen
 | `dispatch <scope> issue-to-pr` | issue | open `ready-for-agent` issues, see step 2 | one reviewed, open pull request per issue |
 
 Each run is a single stage, so each stage gets its own schedule. A person steps in by changing a label. Dispatch keeps no state between runs: the labels are the state.
+
+A scope is an owner, a repo, or, for `issue-to-pr` only, a list of issues written `owner/repo#N`. An issue list names its targets itself, so step 2 checks each named issue instead of searching. Its repos are the repos those issues live in.
 
 Arguments:
 
@@ -40,7 +42,7 @@ The owned-remote rules cover every write the four skills make: issues, comments,
 
 ## 1. List the repos
 
-For a bare owner:
+For a repo, or an issue list's repos, read each with `gh repo view <owner>/<repo> --json nameWithOwner,visibility,defaultBranchRef,pushedAt`. For a bare owner:
 
     gh repo list <owner> --no-archived --source --limit 1000 --json nameWithOwner,visibility,defaultBranchRef,pushedAt
 
@@ -56,6 +58,8 @@ Issue targets for `issue-to-pr`, per repo:
 
 Drop an issue whose `closedByPullRequestsReferences` names an open pull request: work is already in flight. An assignee means a person has claimed it.
 
+**Named issues.** For an issue-list scope, read each issue with `gh issue view <N> -R <repo> --json number,title,state,labels,assignees,createdAt,closedByPullRequestsReferences`. It must pass what the search above filters on: open, labelled `ready-for-agent`, no assignee, no `agent:claimed`. Then it takes the in-flight check, the dependency check and the stop rule below like a searched issue. A named issue that fails one is skipped with that reason; the run takes no other issue in its place.
+
 **Dependencies.** An issue's **Depends on** line lists what must land first, as `#N`. Read it from the body. A later triage comment that restates the line replaces it, and the newest such comment wins. Read the **Base** line the same way. Look up each `#N` with `gh api repos/<repo>/issues/<N> --jq '{state, state_reason, merged_at: .pull_request.merged_at}'`, which answers for issues and pull requests alike:
 
 - Every dependency is a closed issue with `state_reason` `completed`, or a pull request with `merged_at` set: the issue is selectable.
@@ -64,9 +68,9 @@ Drop an issue whose `closedByPullRequestsReferences` names an open pull request:
 
 **Stop rule.** Count the repo's open issues labelled `agent:claimed`. At 3 or more, select nothing from that repo this run. A claimed issue with no open pull request that names it is a stale claim from a run that died: remove its `agent:claimed` label and report it. It is selectable again on the next run.
 
-Order repo targets by `pushedAt`, most recent first, and issue targets by `createdAt`, oldest first. Then apply `--max`.
+Order repo targets by `pushedAt`, most recent first, and issue targets by `createdAt`, oldest first. Named issues keep the order the list gives them. Then apply `--max`.
 
-**Done when** every selected target is listed with its repo, and every skipped repo has a reason.
+**Done when** every selected target is listed with its repo, and every skipped repo and skipped named issue has a reason.
 
 ## 3. Prepare each target
 
@@ -121,7 +125,7 @@ When no source settles it, reply `No answer. Take your skill's dispatched fallba
 
 Write the summary to `~/.cache/dispatch/runs/<run>.md` and print it. List:
 
-- refused repos, skipped repos, and the labels created in each repo
+- refused repos, skipped repos, skipped named issues, and the labels created in each repo
 - each target's status, and the URLs of the issues, comments and pull requests it wrote
 - every proposal a subagent reported: problems found outside its task. These are the user's to file or drop, so list them and file nothing.
 - issues waiting on dependencies, each with the `#N` it waits on, and issues handed back because a dependency failed
