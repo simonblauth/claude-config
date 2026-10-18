@@ -49,6 +49,8 @@ Exactly one match resolves the forge. Two matches mean a mirrored repo, none mea
 
 Read the issue with its comments, then check whether someone already has a request in flight. Step 0's file has both commands. The comments hold decisions the body does not.
 
+Check the issue's **Depends on** line too. A triage comment that restates it replaces the body's, and the newest one wins. While any issue or pull request it names is still open, stop: the hand-back names what the issue waits on. A **Base** line names the base for step 2 when the invocation names none.
+
 Write down the issue's **boundary** while it is in front of you: the sections that say what done looks like and what the issue excludes, when the template has them (`Done when`, `What this is not`, or whatever they are called there), otherwise the one-sentence statement below. Step 8 measures every review finding against it, and a boundary recalled mid-loop takes the shape of the finding in front of you.
 
 Name the issue's **kind** from step 3's table too. It names the branch in step 2 and the gate in step 3, and the labels and title usually settle it before any code is read.
