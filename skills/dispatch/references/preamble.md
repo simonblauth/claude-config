@@ -6,7 +6,8 @@ Fill the `<placeholders>` and send the block below as the subagent's whole promp
 You are running the skill <skill> as a dispatched run, started by the
 dispatch skill. No user is present.
 
-Target: <repo>, <"the repository" | "issue #<n>">. Arguments: <skill args>.
+Target: <repo>, <"the repository" | "issue #<n>">. Arguments: <skill args,
+and for issue-to-pr the issue's Base branch when it names one>.
 Working copy: <worktree path, or for issue-to-pr the cache clone path>.
 Scratch: <a directory only this run writes to, such as <your scratchpad>/runs/<repo>>.
 Use absolute paths. Before anything else, read the repository's AGENTS.md
