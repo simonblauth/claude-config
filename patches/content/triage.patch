@@ -1,5 +1,18 @@
+diff --git a/AGENT-BRIEF.md b/AGENT-BRIEF.md
+index 1462fcd..fd56cfb 100644
+--- a/AGENT-BRIEF.md
++++ b/AGENT-BRIEF.md
+@@ -43,6 +43,8 @@ State what is out of scope. This prevents the agent from gold-plating or making
+ 
+ **Category:** bug / enhancement
+ **Summary:** one-line description of what needs to happen
++**Depends on:** the issues and pull requests that must land first, as `#N`, or "none"
++**Base:** the branch the change targets, only when it is not the default branch
+ 
+ **Current behavior:**
+ Describe what happens now. For bugs, this is the broken behavior.
 diff --git a/SKILL.md b/SKILL.md
-index 3fd5617..8426041 100644
+index 3fd5617..57436a6 100644
 --- a/SKILL.md
 +++ b/SKILL.md
 @@ -8,7 +8,9 @@ disable-model-invocation: true
@@ -46,7 +59,7 @@ index 3fd5617..8426041 100644
  
  5. **Apply the outcome:**
 -   - `ready-for-agent`: post an agent brief comment ([AGENT-BRIEF.md](AGENT-BRIEF.md)).
-+   - `ready-for-agent`: post an agent brief comment ([AGENT-BRIEF.md](AGENT-BRIEF.md)). For a `source:improve` issue, the plan in its body is the brief: run the plan's drift check against the default branch instead, and post a comment that corrects only what has drifted. A plan whose premise no longer holds is a `wontfix` (already implemented) or goes back to `needs-triage` with what changed. A `source:architecture` issue gets an agent brief like a person's issue, once its interfaces are settled.
++   - `ready-for-agent`: post an agent brief comment ([AGENT-BRIEF.md](AGENT-BRIEF.md)). For a `source:improve` issue, the plan in its body is the brief: run the plan's drift check against the default branch instead, and post a comment that corrects only what has drifted. A wrong **Depends on** or **Base** line counts as drift: restate the whole corrected line in the comment. A plan whose premise no longer holds is a `wontfix` (already implemented) or goes back to `needs-triage` with what changed. A `source:architecture` issue gets an agent brief like a person's issue, once its interfaces are settled.
     - `ready-for-human`: same structure as an agent brief, but note why it can't be delegated (judgment calls, external access, design decisions, manual testing).
     - `needs-info`: post triage notes (template below).
     - For `wontfix`, close the issue, with the comment depending on *why*:
@@ -59,7 +72,7 @@ index 3fd5617..8426041 100644
 +When the `dispatch` skill started this run, no user is present, and the maintainer's judgment calls are yours to make. Work the three buckets of "Show what needs attention", oldest first, at most 10 issues. Run "Triage a specific issue or PR" on each, with these changes:
 +
 +- **Step 2.** Apply your recommendation without waiting.
-+- **Step 4.** The grill does not run. Choose the state instead. An issue is `ready-for-agent` only when its brief leaves no decision open: acceptance criteria an agent can test, one approach that the codebase's patterns clearly favor, and no change the issue did not ask for to existing callers, a stored or wire format, the public API, the CLI, or the dependency list. An issue that needs a decision only a person can make is `ready-for-human`, and its brief lists each open decision with the options. An issue missing information that only the reporter has is `needs-info`.
++- **Step 4.** The grill does not run. Choose the state instead. An issue is `ready-for-agent` only when its brief leaves no decision open: acceptance criteria an agent can test, one approach that the codebase's patterns clearly favor, and no change the issue did not ask for to existing callers, a stored or wire format, the public API, the CLI, or the dependency list. An issue that needs a decision only a person can make is `ready-for-human`, and its brief lists each open decision with the options. An issue missing information that only the reporter has is `needs-info`. Waiting on an open issue or pull request is not an open decision: name it in **Depends on** and judge the issue as if it had landed. Two issues that only edit the same code do not depend on each other.
 +- **`wontfix`.** Close an issue only as already implemented, with a pointer to where the behavior lives. Any other rejection is `ready-for-human`, with a brief that recommends closing and says why. Writing to `.out-of-scope/` is a commit to the default branch, which stays with the maintainer.
 +- **Conflicting state roles.** Leave the issue as it is and name it in the report.
 +- **Report.** List each issue with its old state, its new state, and one line of reasoning.
