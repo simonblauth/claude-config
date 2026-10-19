@@ -45,7 +45,12 @@ Copilot reviews for up to three rounds. Each round requests a review of the curr
     gh api --method POST repos/{owner}/{repo}/pulls/<n>/requested_reviewers \
       -f 'reviewers[]=copilot-pull-request-reviewer[bot]'
 
-The first needs `gh` 2.88.0 or newer, and in 2.101.0 its help says it re-requests a reviewer who has already reviewed, so it serves every round. Both fail when the organization has not enabled Copilot review. So does a review whose body reads "Copilot was unable to review this pull request", which is how a spent quota arrives. Report either once, then fall back to the `subagent` reviewer. Do not retry in a loop.
+The first needs `gh` 2.88.0 or newer, and in 2.101.0 its help says it re-requests a reviewer who has already reviewed, so it serves every round. A form has landed only when it adds a `review_requested` event for `Copilot` to the PR's timeline. Exit status 0 proves nothing: once the month's AI credits are spent, both forms exit 0 and request nobody. Count the events before and after each form:
+
+    gh api repos/{owner}/{repo}/issues/<n>/timeline --paginate \
+      --jq '.[] | select(.event == "review_requested" and .requested_reviewer.login == "Copilot") | .created_at' | wc -l
+
+Copilot review is unavailable when neither form raises the count, or when a review's body reads "Copilot was unable to review this pull request", the other way a spent quota arrives. Report that once, then fall back to the `subagent` reviewer. Do not retry in a loop.
 
 A review usually lands in under 30 seconds, per [the Copilot docs](https://docs.github.com/en/copilot/how-tos/agents/request-a-code-review/use-code-review), so poll for it rather than arming a watch. The round's review is Copilot's review on the HEAD you pushed:
 
