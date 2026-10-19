@@ -40,9 +40,13 @@ The closing trailer is `Closes #<n>`, and on GitLab it is conditional: the [clos
 
 GitLab has no Copilot review, so the reviewer defaults to `subagent`, and `claude` or `codex` are the alternatives. When the invocation passed `--reviewer copilot`, say so and ask before running the loop, because the user chose a reviewer this forge does not have.
 
-Step 8's CI gate reads the pipeline for the MR's source branch:
+Step 8's CI gate reads the MR's head pipeline (verified against `glab` 1.123.0):
 
-    glab ci status --branch <branch> --compact
+    glab ci get --merge-request <n> -F json --jq '{sha, status}'
+
+The gate holds when `sha` is the HEAD you pushed and `status` is `success`. To wait for it, poll this command until `sha` matches and `status` reaches `success`, `failed`, `canceled`, `skipped` or `manual`.
+
+**Read the pipeline by MR, never by branch.** Once the MR exists, a push can run only as an MR pipeline, whose `ref` is `refs/merge-requests/<n>/head`. A filter on `ref == <branch>`, as in `glab ci list` piped through `jq`, never matches it, and a wait built on one runs until its timeout. `glab ci status --branch` asks GitLab for the branch's latest pipeline first and falls back to the MR's head pipeline only when that lookup fails, so it can return a push pipeline from a commit before the MR.
 
 The summary note that loop writes is the one note this grant covers:
 
