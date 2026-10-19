@@ -161,5 +161,5 @@ The grant ends here. A later review round needs a fresh `/issue-to-pr`, or on an
 | "The request is open, so it is done" | Step 8 has not run. |
 | "`origin/main` is current, I pulled recently" | `git fetch origin`. |
 | "The user authorized one push" | The grant covers the review loop's pushes. It never covers `--force`, another branch, or a merge. |
-| "The trailer says `Closes`, so the issue closes" | On GitLab that holds only against the default branch. Check step 0's file before promising it. |
+| "The trailer says `Closes`, so the issue closes" | On both forges a body trailer holds only against the default branch. Check step 0's file before promising it. |
 | "Both CLIs are installed, so it is GitHub" | Step 0 matches origin's host, not what is on the machine. |

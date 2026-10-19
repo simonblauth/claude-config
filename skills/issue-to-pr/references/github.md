@@ -27,7 +27,11 @@ Then check whether someone is already on it:
 
 `--body-file -` reads the body from standard input. Pass both flags: without them `gh pr create` prompts for the title and body, and the agent's shell has no TTY to answer with.
 
-The closing trailer is `Closes #<n>`.
+The closing trailer is `Closes #<n>`. In the body it works only when `<base>` is the default branch: against any other base GitHub [ignores it](https://docs.github.com/en/issues/tracking-your-work-with-issues/using-issues/linking-a-pull-request-to-an-issue). A closing keyword in a commit message closes the issue once that commit reaches the default branch. So against a non-default base, before the first push, also append the trailer to the last commit:
+
+    git commit --amend -m "$(git log -1 --format=%B)" -m "Closes #<n>"
+
+Say in the step-9 hand-back that the issue closes when `<base>` is merged into the default branch, not on this merge.
 
 ## Step 8. Work the review
 
