@@ -141,3 +141,20 @@ index e39e825..4cfe92e 100644
  - The only scripts are the Tailwind CDN and the Mermaid ESM import. The report is otherwise static: no app code, no interactivity beyond Mermaid's own rendering.
  
  ## Top recommendation section
+diff --git a/SKILL.md b/SKILL.md
+index 44cc7d3..5f92ed4 100644
+--- a/SKILL.md
++++ b/SKILL.md
+@@ -69,3 +69,12 @@ Side effects happen inline as decisions crystallize; call the Skill tool with "d
+ - **Sharpening a fuzzy term during the conversation?** Update `GLOSSARY.md` right there.
+ - **User rejects the candidate with a load-bearing reason?** Offer an ADR, framed as: _"Want me to record this as an ADR so future architecture reviews don't re-suggest it?"_ Only offer when the reason would actually be needed by a future explorer to avoid re-suggesting the same thing; skip ephemeral reasons ("not worth it right now") and self-evident ones.
+ - **Want to explore alternative interfaces for the deepened module?** Call the Skill tool with "codebase-design" and use its design-it-twice parallel sub-agent pattern.
++
++## Dispatched run
++
++When the `dispatch` skill started this run, no user is present. Step 1 runs as written. Step 2 files issues instead of writing the report, and step 3 does not run: the grilling belongs to whoever picks the issue up.
++
++1. Read every issue labelled `source:architecture`, open and closed: `gh issue list --label source:architecture --state all --limit 500 --json number,title,state,stateReason,body`. Drop a candidate that an open issue covers, or that a closed issue rejected (`stateReason` is `NOT_PLANNED`).
++2. Rank the remaining candidates the way the report's **Top recommendation** would. File the `Strong` candidates, at most 3, as issues with `gh issue create --label source:architecture --label needs-triage`.
++3. Each issue body carries the report card as text: **Files**, **Problem**, **Solution**, **Benefits** and **Recommendation strength**, in the domain and design vocabulary above. Add `Planned at: commit <short SHA>, <date>` and a drift check that triage can run: `git diff --stat <SHA>..HEAD -- <files>`. Leave interfaces out, as step 2 does.
++4. Report the candidates you did not file, with their strength.

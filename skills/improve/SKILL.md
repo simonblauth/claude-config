@@ -65,7 +65,7 @@ Every finding needs: evidence (`file:line` references), impact, effort estimate 
 
 ### Phase 3 — Vet, prioritize, confirm
 
-**Vet before presenting — subagents over-report.** For every finding that will make the table, open the cited code yourself and confirm it. Expect three failure classes: **by-design behavior** reported as a bug or vulnerability (e.g. honoring `https_proxy` flagged as SSRF — it's the standard proxy convention; or a tradeoff explicitly recorded in an ADR / decision doc from recon — that's settled, not a finding); **mis-attributed evidence** (real finding, wrong file or line); and duplicates across subagents. Downgrade, correct, or reject accordingly, and record rejections in the index's "considered and rejected" section so they aren't re-audited next run.
+**Vet before presenting — subagents over-report.** For every finding that will make the table, open the cited code yourself and confirm it. Expect four failure classes: **work in flight**, a finding that an open pull request already addresses (read them with `gh pr list --state open --limit 200 --json number,title,body,files`); **by-design behavior** reported as a bug or vulnerability (e.g. honoring `https_proxy` flagged as SSRF — it's the standard proxy convention; or a tradeoff explicitly recorded in an ADR / decision doc from recon — that's settled, not a finding); **mis-attributed evidence** (real finding, wrong file or line); and duplicates across subagents. Downgrade, correct, or reject accordingly. A finding an open PR fixes is rejected as in flight, naming the PR. A finding whose fix builds on an open PR stays, and its plan names the PR in **Depends on** rather than assuming the merge. Record rejections in the index's "considered and rejected" section so they aren't re-audited next run.
 
 Present the vetted findings table to the user, ordered by leverage (impact ÷ effort, weighted by confidence):
 
@@ -89,6 +89,8 @@ plans/
 ```
 
 **Excerpts come from your own reads, never from a subagent's report.** Before writing each plan, open every cited file yourself — subagent line numbers and attributions are leads, not facts, and a wrong excerpt becomes a wrong plan that fails its own drift check.
+
+**Check every line reference before a plan is final.** Paths are complete and relative to the repo root. For each `path:line` or `path:start-end` in the plan, run `git show <planned-at SHA>:<path> | sed -n '<start>,<end>p'` and confirm it prints the code the plan describes. Correct a reference that fails, or cite the enclosing function or class instead. A plan is final when every line reference in it has been printed and matched.
 
 Before writing anything: record `git rev-parse --short HEAD` — every plan stamps the commit it was written against (the executor uses it for drift detection). If `plans/` already exists from a previous run, **reconcile, don't duplicate**: read `plans/README.md`, keep numbering monotonic, skip findings already planned or listed as rejected, and mark superseded plans stale in the index. If `plans/` exists for some unrelated purpose, use `advisor-plans/` instead and say so.
 
@@ -116,6 +118,17 @@ Finish by writing `plans/README.md` with the recommended execution order, depend
 - `execute <plan>` → dispatch a cheaper executor subagent on one plan (isolated worktree), then review its diff like a tech lead — re-run done criteria, check scope, read the code — and render a verdict. Treat the executor's diff as untrusted until reviewed: verify every hunk traces to a plan step and reject any out-of-scope change, however plausible it looks. Requires a host agent that can spawn subagents in an isolated worktree; if yours can't, say so and hand the plan over for manual execution instead. **Read [references/closing-the-loop.md](references/closing-the-loop.md) before the first dispatch.**
 - `reconcile` → process what happened since last session: verify DONE plans, investigate BLOCKED ones, refresh drifted TODOs, retire dead findings. See [references/closing-the-loop.md](references/closing-the-loop.md).
 - `--issues` (modifier on any planning invocation) → also publish each written plan as a GitHub issue via `gh`, URL recorded in the plan and index. Only with the explicit flag. **Before creating any issue, check whether the repo is public (`gh repo view --json visibility`). If it is, warn the user that issues are publicly visible and get explicit confirmation before publishing any plan that describes a security vulnerability, credential location, or other sensitive finding.** See [references/closing-the-loop.md](references/closing-the-loop.md).
+
+## Dispatched run
+
+When the `dispatch` skill started this run, no user is present and the issue tracker replaces `plans/`, in Hard Rule 1 too. These rules override the workflow above:
+
+- **Scope.** Run the full workflow at the effort level and focus the arguments name. Leave layering violations and abstraction mismatches to `improve-codebase-architecture`, which dispatch runs separately. Audit direction only under `next`.
+- **Selection.** Phase 3 takes the top 5 findings by leverage, with no confirmation step. Direction findings go in the report, never into issues.
+- **Duplicates.** Before writing plans, read every issue labelled `source:improve` or `source:architecture`, open and closed: `gh issue list --label source:improve --state all --limit 500 --json number,title,state,stateReason,body`, and the same for `source:architecture`. Skip a finding that an open issue covers. Skip a finding that a closed issue rejected (`stateReason` is `NOT_PLANNED`). Such issues replace the index's "considered and rejected" section. A finding that a completed issue fixed and that has now come back is a regression: file it, and link the old issue.
+- **Publishing.** Write each plan to a file in the OS temp directory, never into the repository. Publish it with `gh issue create --label source:improve --label needs-triage --label area:<category> --body-file <file>`, dependencies first, so that each plan's **Depends on** names real issue numbers. A `bug` plan gets no `area:` label: triage's `bug` already says it. Leave out the **Issue** line and every instruction to update `plans/README.md`: the issue is the plan.
+- **Sensitive findings.** On a public repo, keep security vulnerabilities and credential locations out of issues and put them in the report.
+- **Fallback.** The run never waits. A question you would put to the user becomes a finding with LOW confidence and an "investigate" plan.
 
 ## Tone of the output
 

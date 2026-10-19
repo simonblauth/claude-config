@@ -1,0 +1,134 @@
+---
+name: dispatch
+description: >
+  Dispatch one skill across owned repos: one background subagent per repo or
+  per issue, each in its own worktree. Use when the user, or a schedule they
+  set, asks to dispatch improve, improve-codebase-architecture, triage or
+  issue-to-pr over an owner, a repo, or a list of issues.
+argument-hint: "<owner | owner/repo | owner/repo#N ...> <skill> [skill args] [--parallel N] [--max N] [--dry-run]"
+---
+
+# Dispatch
+
+Dispatch is a driver. One run takes one **scope**, one **skill** and its arguments, and runs that skill once per **target**, unattended. The skills hand work to each other through issue labels, not through dispatch:
+
+| Run | Target | Selected | Leaves behind |
+|---|---|---|---|
+| `dispatch <scope> improve` | repo | every repo in scope | issues labelled `source:improve` and `needs-triage` |
+| `dispatch <scope> improve-codebase-architecture` | repo | every repo in scope | issues labelled `source:architecture` and `needs-triage` |
+| `dispatch <scope> triage` | repo | repos with an open issue that is unlabelled, `needs-triage`, or `needs-info` | each issue moved to `ready-for-agent`, `ready-for-human`, `needs-info` or `wontfix` |
+| `dispatch <scope> issue-to-pr` | issue | open `ready-for-agent` issues, see step 2 | one reviewed, open pull request per issue |
+
+Each run is a single stage, so each stage gets its own schedule. A person steps in by changing a label. Dispatch keeps no state between runs: the labels are the state.
+
+A scope is an owner, a repo, or, for `issue-to-pr` only, a list of issues written `owner/repo#N`. An issue list names its targets itself, so step 2 checks each named issue instead of searching. Its repos are the repos those issues live in.
+
+Arguments:
+
+- `--parallel N`: subagents running at once. Default 3.
+- `--max N`: targets per run. Default 10. A selection larger than `--max` keeps the first N in step 2's order and names the rest in the summary.
+- `--dry-run`: run steps 0 to 2, print the targets and the labels step 3 would create, and stop.
+- Anything else after the skill name passes through to the skill, for example `quick` or `modernize` for `improve`.
+
+GitHub only. GitLab scopes stop at step 0 with that reason.
+
+## 0. Check ownership
+
+Dispatch runs only on owned remotes, as the global instructions define them. Read the owned-remotes file (on Claude Code, `${CLAUDE_CONFIG_DIR:-~/.claude}/rules/owned-remotes.md`). Each repo in scope must match an entry. An entry marked `(private)` needs `gh repo view <owner>/<repo> --json visibility` to say `PRIVATE`.
+
+The owned-remote rules cover every write the four skills make: issues, comments, labels, branches they create, and pull requests. Merging and everything else those rules hold back stays with the user. Invoking dispatch, by hand or from a schedule the user set, also grants one write those rules leave out: creating the missing labels of step 3's label set.
+
+**Done when** every repo in scope is owned or listed as refused. A scope with no owned repo stops here, and the summary says why.
+
+## 1. List the repos
+
+For a repo, or an issue list's repos, read each with `gh repo view <owner>/<repo> --json nameWithOwner,visibility,defaultBranchRef,pushedAt`. For a bare owner:
+
+    gh repo list <owner> --no-archived --source --limit 1000 --json nameWithOwner,visibility,defaultBranchRef,pushedAt
+
+A result of exactly 1000 repos means the list is truncated: stop and say so. Forks are left out, because their issues live upstream.
+
+## 2. Select targets
+
+Repo targets come from the table above. For `triage`, a repo qualifies when `gh issue list -R <repo> --search 'no:label' --limit 1` or the same query on `label:needs-triage` or `label:needs-info` returns an issue.
+
+Issue targets for `issue-to-pr`, per repo:
+
+    gh issue list -R <repo> --label ready-for-agent --search 'no:assignee -label:agent:claimed' --limit 200 --json number,title,createdAt,closedByPullRequestsReferences
+
+Drop an issue whose `closedByPullRequestsReferences` names an open pull request: work is already in flight. An assignee means a person has claimed it.
+
+**Named issues.** For an issue-list scope, read each issue with `gh issue view <N> -R <repo> --json number,title,state,labels,assignees,createdAt,closedByPullRequestsReferences`. It must pass what the search above filters on: open, labelled `ready-for-agent`, no assignee, no `agent:claimed`. Then it takes the in-flight check, the dependency check and the stop rule below like a searched issue. A named issue that fails one is skipped with that reason; the run takes no other issue in its place.
+
+**Dependencies.** An issue's **Depends on** line lists what must land first, as `#N`. Read it from the body. A later triage comment that restates the line replaces it, and the newest such comment wins. Read the **Base** line the same way. Look up each `#N` with `gh api repos/<repo>/issues/<N> --jq '{state, state_reason, merged_at: .pull_request.merged_at}'`, which answers for issues and pull requests alike:
+
+- Every dependency is a closed issue with `state_reason` `completed`, or a pull request with `merged_at` set: the issue is selectable.
+- A dependency is still open: skip the issue as waiting on `#N`. It becomes selectable on the first run after the dependency lands.
+- A dependency was closed without landing, as `not_planned` or as a pull request closed unmerged: swap the issue's `ready-for-agent` for `ready-for-human`, and comment which dependency failed. Start the comment with `> *This was generated by AI during a dispatched run.*`.
+
+**Stop rule.** Count the repo's open issues labelled `agent:claimed`. At 3 or more, select nothing from that repo this run. A claimed issue with no open pull request that names it is a stale claim from a run that died: remove its `agent:claimed` label and report it. It is selectable again on the next run.
+
+Order repo targets by `pushedAt`, most recent first, and issue targets by `createdAt`, oldest first. Named issues keep the order the list gives them. Then apply `--max`.
+
+**Done when** every selected target is listed with its repo, and every skipped repo and skipped named issue has a reason.
+
+## 3. Prepare each target
+
+### Labels
+
+Only a repo with a selected target gets labels, so a scope of many quiet repos costs no writes. Make sure each such repo has the label set below. Read its labels with `gh label list -R <repo> --limit 200 --json name`, and compare names ignoring case, as GitHub does. Create each missing label with `gh label create <name> -R <repo> --color <color> --description "<description>"`. Leave existing labels as they are: no `--force`, no edits, no deletes. Under `--dry-run`, read the labels and list the ones a real run would create, without creating them.
+
+| Label | Color | Description |
+|---|---|---|
+| `needs-triage` | `FBCA04` | Waiting for triage |
+| `needs-info` | `D876E3` | Waiting on the reporter |
+| `ready-for-agent` | `0E8A16` | Fully specified, an agent can take it |
+| `ready-for-human` | `1D76DB` | Needs a person's decision or work |
+| `wontfix` | `FFFFFF` | Will not be worked on |
+| `bug` | `D73A4A` | Something is broken |
+| `enhancement` | `A2EEEF` | New feature or improvement |
+| `source:improve` | `C5DEF5` | Filed by the improve skill |
+| `source:architecture` | `C5DEF5` | Filed by the improve-codebase-architecture skill |
+| `agent:claimed` | `5319E7` | An agent is working on it |
+| `area:security` | `BFD4F2` | Security |
+| `area:perf` | `BFD4F2` | Performance |
+| `area:tests` | `BFD4F2` | Test coverage |
+| `area:tech-debt` | `BFD4F2` | Tech debt |
+| `area:migration` | `BFD4F2` | Dependencies and migrations |
+| `area:dx` | `BFD4F2` | Developer experience and tooling |
+| `area:docs` | `BFD4F2` | Documentation |
+
+A repo where label creation fails is skipped for this run, with the error in the summary. Label every repo before claiming any issue.
+
+### Working copies
+
+Each target gets a clone in the dispatch cache, `~/.cache/dispatch/repos/<owner>/<repo>`. Clone the repo the first time it is needed, then run `git fetch origin` before every run.
+
+- **Repo target:** `git worktree add --detach ~/.cache/dispatch/worktrees/<run>/<repo> origin/<default>`. `<run>` is the run's start time as `YYYYmmdd-HHMMSS`.
+- **Issue target:** first claim it with `gh issue edit <n> -R <repo> --add-label agent:claimed`. Read the labels back with `gh issue view`. If the claim is missing, drop the target. `issue-to-pr` cuts its own worktree from the cache clone.
+
+## 4. Spawn the subagents
+
+Read [references/preamble.md](references/preamble.md), fill it for the target, and start one background `general-purpose` subagent with it. The skill directory it names is the installed one, on Claude Code `${CLAUDE_CONFIG_DIR:-~/.claude}/skills/<skill>`. The four skills are user-invoked, so the subagent reads the file rather than invoking the skill, as `issue-to-pr` does with `review-loop`. Keep `--parallel` running. When one finishes, start the next.
+
+A subagent can't ask the user, so a question comes back as a `QUESTION:` block in its report. Answer it with `SendMessage` to that subagent, but only from a source you can cite:
+
+- the skill's own dispatched-run section or its stated defaults
+- the target repo's `AGENTS.md`, `CLAUDE.md`, ADRs or docs
+- this file
+
+When no source settles it, reply `No answer. Take your skill's dispatched fallback.` A question about design, scope, or what the user wants always gets that reply: those decisions belong to a person, and the fallback routes them to `ready-for-human`. Give each target at most two answered questions. On a third, reply with the fallback.
+
+**Done when** every target has a final report, or has been marked failed with the reason.
+
+## 5. Summarize
+
+Write the summary to `~/.cache/dispatch/runs/<run>.md` and print it. List:
+
+- refused repos, skipped repos, skipped named issues, and the labels created in each repo
+- each target's status, and the URLs of the issues, comments and pull requests it wrote
+- every proposal a subagent reported: problems found outside its task. These are the user's to file or drop, so list them and file nothing.
+- issues waiting on dependencies, each with the `#N` it waits on, and issues handed back because a dependency failed
+- stale claims cleared, and targets cut by `--max`
+
+Then remove the repo-target worktrees with `git worktree remove`. Leave `issue-to-pr` worktrees on disk: its hand-back names them.
