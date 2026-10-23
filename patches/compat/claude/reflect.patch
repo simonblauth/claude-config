@@ -1,17 +1,21 @@
+diff --git a/references/runtime.md b/references/runtime.md
+new file mode 100644
+index 0000000..11c60c9
 --- /dev/null
 +++ b/references/runtime.md
-@@ -0,0 +1,16 @@
+@@ -0,0 +1,17 @@
 +# Claude Code reflection
 +
-+Use the active project's transcript directory supplied by the runtime. Resolve
-+`scripts/find-transcript.mjs` relative to this installed skill directory:
++Resolve `scripts/` relative to this installed skill directory.
++`claude-project-dir.mjs` prints this session's transcripts directory, wherever
++the shell has moved since:
 +
 +```sh
-+node "<skill-dir>/scripts/find-transcript.mjs" "<active-project-transcripts>" "<opening prompt fragment>"
++dir=$(node "<skill-dir>/scripts/claude-project-dir.mjs") && node "<skill-dir>/scripts/find-transcript.mjs" "$dir" "<opening prompt fragment>"
 +```
 +
-+This finder parses Claude Code JSONL only. If the active directory is unknown or
-+the finder returns no match, prepare a digest of this conversation instead.
++The finder parses Claude Code JSONL only. If the line exits 1, prepare a digest
++of this conversation instead.
 +Never glob across other projects.
 +
 +Dispatch reviewers and the synthesizer using `Agent`, `subagent_type:

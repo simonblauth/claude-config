@@ -1,6 +1,8 @@
+diff --git a/SKILL.md b/SKILL.md
+index 1694aa6..53629a0 100644
 --- a/SKILL.md
 +++ b/SKILL.md
-@@ -9,7 +9,7 @@
+@@ -9,7 +9,7 @@ description: Use when creating new skills, editing existing skills, or verifying
  
  **Writing skills IS Test-Driven Development applied to process documentation.**
  
@@ -9,12 +11,12 @@
  
  You write test cases (pressure scenarios with subagents), watch them fail (baseline behavior), write the skill (documentation), watch tests pass (agents comply), and refactor (close loopholes).
  
-@@ -17,7 +17,7 @@
+@@ -17,7 +17,7 @@ You write test cases (pressure scenarios with subagents), watch them fail (basel
  
  **REQUIRED BACKGROUND:** You MUST understand tdd before using this skill. That skill defines the fundamental RED-GREEN-REFACTOR cycle. This skill adapts TDD to documentation.
  
--**Official guidance:** For Anthropic's official skill authoring best practices, see anthropic-best-practices.md. This document provides additional patterns and guidelines that complement the TDD-focused approach in this skill.
-+**Official guidance:** Use the runtime's available skill-authoring guidance. For Claude-specific guidance, see anthropic-best-practices.md. This document provides additional patterns and guidelines that complement the TDD-focused approach in this skill.
+-**Official guidance:** For Anthropic's official skill authoring best practices, see references/anthropic-best-practices.md. This document provides additional patterns and guidelines that complement the TDD-focused approach in this skill.
++**Official guidance:** Use the runtime's available skill-authoring guidance. For Claude-specific guidance, see references/anthropic-best-practices.md. This document provides additional patterns and guidelines that complement the TDD-focused approach in this skill.
  
  ## What is a Skill?
  

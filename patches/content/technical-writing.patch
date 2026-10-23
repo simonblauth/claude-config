@@ -1,5 +1,5 @@
 diff --git a/SKILL.md b/SKILL.md
-index 2102826..b3fe0ee 100644
+index 289eee9..fc08b3e 100644
 --- a/SKILL.md
 +++ b/SKILL.md
 @@ -1,6 +1,6 @@
@@ -19,11 +19,11 @@ index 2102826..b3fe0ee 100644
  
  ## Vary the rhythm
  
-@@ -97,7 +97,6 @@ Source: Kohl, The Global English Style Guide (SAS Press). Guideline text fetched
+@@ -89,7 +89,6 @@ Don't mix modes: no reference tables inside a tutorial, no tutorial hand-holding
  
  ## Voice and repo specifics
  
 -- Apply the **unslop** skill to every doc this skill touches. That skill owns the slop-pattern catalog: AI vocabulary, filler, hedging, formatting tells.
  - PR descriptions and commit messages are writing too. Every layer except Diátaxis applies to them. A PR body is a briefing that a reviewer can read in under a minute. Do not paste swarm logs, SHA lists, or metric tables. Link them.
  - Product UI strings are not documentation. Use your product's copy guidelines for those.
- - Indent code snippets with tabs. Write real paths and real symbols. Make every count or tree claim true at the commit that lands it, and include the command that regenerates it.
+ - Indent code snippets with tabs. Write real paths. Make every count or tree claim true at the commit that lands it, and include the command that regenerates it.
