@@ -114,7 +114,7 @@ Load `verification-before-completion`. Three rows this skill adds:
 | Row | Passes when |
 |-----|-------------|
 | Step-3 command | the step-3 command now succeeds, with its output pasted |
-| Whole suite | the repo's full suite and lint pass, not just the new test |
+| Whole suite | the repo's full suite and lint pass, not just the new test. When the full suite cannot run locally and the repo's CI runs it, a green CI job on the pushed branch is the evidence. Write the request body's verification after CI reports |
 | Diff scope | every hunk in `git diff origin/<base>...HEAD` lands inside step 1's boundary |
 
 ## 7. Push and open the request

@@ -81,9 +81,11 @@ Step 9 names which one it was. Then post the summary comment below: the rounds r
 
 ### Any reviewer
 
-Step 8's CI gate:
+Step 8's CI gate blocks until every check finishes and exits early on the first failure:
 
-    gh pr checks <n>
+    gh pr checks <n> --watch --fail-fast
+
+Without `--watch`, exit code 8 means checks are pending, not failed. `gh pr checks <n> --json name,bucket` gives each check's state. To read a job's test counts, use `gh run view <run> --job <job> --log`.
 
 The one summary comment, whether this section's loop or `review-loop`'s step 6 wrote it:
 
