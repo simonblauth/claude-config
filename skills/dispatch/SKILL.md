@@ -109,7 +109,7 @@ Each target gets a clone in the dispatch cache, `~/.cache/dispatch/repos/<owner>
 
 ## 4. Spawn the subagents
 
-Read [references/preamble.md](references/preamble.md), fill it for the target, and start one background `general-purpose` subagent with it. The skill directory it names is the installed one, on Claude Code `${CLAUDE_CONFIG_DIR:-~/.claude}/skills/<skill>`. The four skills are user-invoked, so the subagent reads the file rather than invoking the skill, as `issue-to-pr` does with `review-loop`. Keep `--parallel` running. When one finishes, start the next.
+Read [references/preamble.md](references/preamble.md), fill it for the target, and start one background `general-purpose` subagent with it. Context you add beyond the preamble states facts, verification limits, the outcome the reporter needs after the fix, and the user's preference between the issue's alternatives, or that there is none. The run's step 4 picks the direction. The skill directory it names is the installed one, on Claude Code `${CLAUDE_CONFIG_DIR:-~/.claude}/skills/<skill>`. The four skills are user-invoked, so the subagent reads the file rather than invoking the skill, as `issue-to-pr` does with `review-loop`. Keep `--parallel` running. When one finishes, start the next.
 
 A subagent can't ask the user, so a question comes back as a `QUESTION:` block in its report. Answer it with `SendMessage` to that subagent, but only from a source you can cite:
 
