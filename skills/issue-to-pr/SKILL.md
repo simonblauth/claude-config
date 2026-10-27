@@ -55,7 +55,7 @@ Write down the issue's **boundary** while it is in front of you: the sections th
 
 Name the issue's **kind** from step 3's table too. It names the branch in step 2 and the gate in step 3, and the labels and title usually settle it before any code is read.
 
-**Done when** you can state the observable wrong behavior and where the reporter saw it, in one sentence, and the boundary and kind are recorded. When neither the body nor the comments say, ask before cutting anything.
+**Done when** you can state the observable wrong behavior and where the reporter saw it, in one sentence, along with the reporter's **goal**: what has to work in that place once the fix lands. The boundary and kind are recorded too. When neither the body nor the comments say, ask before cutting anything.
 
 ## 2. Cut the worktree
 
@@ -88,7 +88,7 @@ When neither red nor a baseline arrives:
 - **A bug's test passes on a current `origin/main`.** Already fixed. Name the commit that fixed it and stop.
 - **It needs something you do not have**, such as the reporter's data, platform or credentials. Ask the user, or state what the reporter has to supply. Fixing by inspection is not allowed here.
 
-**Done when** you have named the row and the command's current output is in the transcript. On a bug, the failure has to be the one the issue describes. A test that fails for some other reason is not red on this issue.
+**Done when** you have named the row and the command's current output is in the transcript. On a bug, the failure has to be the one the issue describes. A test that fails for some other reason is not red on this issue. The command goes green when step 1's goal holds, not when the symptom is gone. A test that asserts one listed alternative's symptoms, such as an error shown or a nonzero exit, decides step 4 before it runs.
 
 ## 4. Pick the direction
 
@@ -97,9 +97,11 @@ Ask the user when either trigger fires. They are independent, so one is enough.
 - **Blast radius.** The fix would change behavior for existing callers, change a stored or wire format, change the public API or the CLI, or add a dependency, and the issue did not ask for that. Repo evidence pointing at that approach does not settle it. Widening the change past what the issue reported is the user's call.
 - **Two live approaches.** Two or more survive the repo's patterns, the issue's comments and the tests, they put the behavior in different modules, and choosing wrong means redoing the work rather than editing it.
 
-Then ask the user about every open fork together, each option stating its cost. Use the available question tool when applicable, otherwise plain text.
+Then ask the user about every open fork together, each option stating its cost. Use the available question tool when applicable, otherwise plain text. An edit repeated across many sites costs the command that makes it plus the check that catches a missed site, such as a `sed` and a guard `grep`. The number of sites is not a cost.
 
-When neither fires, pick the approach that matches the surrounding code, write that choice and its one-line reason into the request body, and keep going. The written reason is what a reviewer needs, and it costs no round trip. Decide these yourself: names, file placement inside the obvious module, which existing helper to reuse, error wording, test names, and whether to add the changelog entry the repo already keeps.
+**When the issue lists alternatives**, measure each against step 1's goal. Alternatives that compose, such as a fix plus a loud failure as its safety net, are one fix: do both. Otherwise take the one under which the goal holds. When the goal singles out none, or more than one, that is a fork: ask.
+
+When neither trigger fires and the issue lists no alternatives, pick the approach that matches the surrounding code. When that code is the defect, pick the approach that removes it. Write the choice and its one-line reason into the request body, and keep going. The written reason is what a reviewer needs, and it costs no round trip. Decide these yourself: names, file placement inside the obvious module, which existing helper to reuse, error wording, test names, and whether to add the changelog entry the repo already keeps.
 
 ## 5. Implement
 
@@ -146,7 +148,7 @@ A claim that **holds** is a bug report against your own diff, and it takes step 
 
 ## 9. Hand back
 
-Report the forge, the request URL, the branch, the step-3 command before and after, each finding with what it got, and every adjacent problem you found and left alone. Say where the worktree is, and leave it on disk.
+Report the forge, the request URL, the branch, the step-3 command before and after, each finding with what it got, and every adjacent problem you found and left alone. Adjacent means outside step 1's boundary. Work the boundary names is unfinished scope: finish it, or ask about it as a step-4 fork. Say where the worktree is, and leave it on disk.
 
 The grant ends here. A later review round needs a fresh `/issue-to-pr`, or on an owned remote just the user's request.
 
@@ -154,11 +156,11 @@ The grant ends here. A later review round needs a fresh `/issue-to-pr`, or on an
 
 When the `dispatch` skill started this run, no user is present. Dispatch has already labelled the issue `agent:claimed`, and the working copy it names is a clone to cut the worktree from.
 
-- **Handing back to a person.** Every point where a step says to ask the user hands the issue back instead. Those points are step 1 with no observable wrong behavior, the second bullet of step 3, step 4 when a trigger fires, and step 0 with no forge match. To hand back, comment on the issue with the question and its options. Start the comment with `> *This was generated by AI during a dispatched run.*`. Then swap `ready-for-agent` for `ready-for-human`, remove `agent:claimed`, and end the run with `STATUS: blocked`. Triage judged the issue free of open decisions, and the comment tells the person where that judgment was wrong.
+- **Handing back to a person.** Every point where a step says to ask the user hands the issue back instead. Those points are step 1 with no observable wrong behavior, the second bullet of step 3, step 4 when a trigger fires, and step 0 with no forge match. To hand back, comment on the issue with the question and its options. Start the comment with `> *This was generated by AI during a dispatched run.*`. Then swap `ready-for-agent` for `ready-for-human`, remove `agent:claimed`, and end the run with `STATUS: blocked`. Step 4's triggers apply whoever labelled the issue `ready-for-agent`, and the comment names the decision the label left open.
 - **Already fixed.** On step 3's first bullet, comment with the commit that fixed the issue and remove `agent:claimed`. Closing the issue stays with a person.
 - **Step 2.** Use `git worktree add` from the clone, not `EnterWorktree`.
 - **Step 7.** Put the branch and the base in the report instead of announcing them.
-- **Step 9.** The hand-back is the report the preamble asks for, and adjacent problems go under `PROPOSALS`. Keep `agent:claimed` on the issue while the request is open: dispatch counts it as work in flight.
+- **Step 9.** The hand-back is the report the preamble asks for, and adjacent problems, those outside step 1's boundary, go under `PROPOSALS`. Keep `agent:claimed` on the issue while the request is open: dispatch counts it as work in flight.
 
 ## Rationalizations
 
@@ -171,7 +173,8 @@ When the `dispatch` skill started this run, no user is present. Dispatch has alr
 | "Amend and force-push, the history is cleaner" | Add commits. Review replies and later rounds cite them by hash. |
 | "The new test passes, so the suite is covered" | Row two of step 6 is the whole suite. |
 | "This one needs a decision" (a name, a file, a helper) | That is step 4's own list. Pick what matches the code and record it in the request body. |
-| "While I am in here" | Out of the diff, into step 9. |
+| "While I am in here" | Outside step 1's boundary: out of the diff, into step 9. Inside it: in the diff. |
+| "N call sites, one could be missed" | A `sed` makes the edit, and a `grep` or a leak counter catches a missed site. |
 | "The request is open, so it is done" | Step 8 has not run. |
 | "`origin/main` is current, I pulled recently" | `git fetch origin`. |
 | "The user authorized one push" | The grant covers the review loop's pushes. It never covers `--force`, another branch, or a merge. |
