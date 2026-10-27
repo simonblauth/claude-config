@@ -1,6 +1,6 @@
 --- /dev/null
 +++ b/references/runtime.md
-@@ -0,0 +1,16 @@
+@@ -0,0 +1,19 @@
 +# Claude Code reflection
 +
 +Use the active project's transcript directory supplied by the runtime. Resolve
@@ -17,3 +17,6 @@
 +Dispatch reviewers and the synthesizer using `Agent`, `subagent_type:
 +"general-purpose"`. The tooling and judgment roles default to `opus`
 +unless the user supplies an override. Preserve MCP access; the prompts prohibit writes.
++When the `SubagentHandback` tool is present, this run is itself a subagent: start
++the three reviewers in one message and the synthesizer after them, all with
++`run_in_background: false`, so a hand-back never stops them.
