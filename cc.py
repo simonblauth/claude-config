@@ -412,6 +412,8 @@ def cmd_vendor(args) -> int:
 
 
 REVIEWERS = ("copilot", "subagent", "claude", "codex")
+# Claude hooks in settings.json that install only where [hooks] turns them on, by name and the event they run on.
+OPT_IN_HOOKS = {"usage_limit_continue": "StopFailure"}
 
 
 def machine_config_path() -> Path:
@@ -429,15 +431,15 @@ def machine_config() -> dict:
     """This machine's settings. They live outside the repo, so the public repo never names a private source."""
     path = machine_config_path()
     if not path.exists():
-        return {"review": {}, "vars": {}, "vault": {}, "sources": []}
+        return {"review": {}, "vars": {}, "vault": {}, "hooks": {}, "sources": []}
     try:
         data = tomllib.loads(path.read_text(encoding="utf-8"))
     except tomllib.TOMLDecodeError as e:
         raise ValueError(f"{path}: {e}") from e
-    unknown = set(data) - {"review", "vars", "vault", "sources"}
+    unknown = set(data) - {"review", "vars", "vault", "hooks", "sources"}
     if unknown:
         raise ValueError(f"{path}: unknown key(s) {', '.join(sorted(unknown))}")
-    for key in ("review", "vars", "vault"):
+    for key in ("review", "vars", "vault", "hooks"):
         if not isinstance(data.get(key, {}), dict):
             raise ValueError(f"{path}: {key} is a table, [{key}]")
     if not isinstance(data.get("sources", []), list) or not all(isinstance(s, dict) for s in data.get("sources", [])):
@@ -453,6 +455,9 @@ def machine_config() -> dict:
     inputs = vault.get("inputs", [])
     if set(vault) - {"inputs"} or not isinstance(inputs, list) or not all(isinstance(i, str) for i in inputs):
         raise ValueError(f"{path}: [vault] takes only inputs, a list of names")
+    hooks = data.get("hooks", {})
+    if set(hooks) - set(OPT_IN_HOOKS) or not all(isinstance(v, bool) for v in hooks.values()):
+        raise ValueError(f"{path}: [hooks] takes only {', '.join(OPT_IN_HOOKS)}, each true or false")
     sources = data.get("sources", [])
     for source in sources:
         if not isinstance(source.get("repo"), str) or set(source) - {"repo", "ref", "rules", "skills"}:
@@ -464,7 +469,7 @@ def machine_config() -> dict:
         source["skills"] = selection(source.get("skills", []), path, "skills")
         if not source["rules"] and not source["skills"]:
             raise ValueError(f"{path}: source {source['repo']} picks nothing; set rules or skills")
-    return {"review": review, "vars": variables, "vault": vault, "sources": sources}
+    return {"review": review, "vars": variables, "vault": vault, "hooks": hooks, "sources": sources}
 
 
 def source_checkouts(fetch: bool = False) -> list[tuple[dict, Path]]:
@@ -710,6 +715,10 @@ def render_settings(cfg: Path) -> bytes:
     if not WINDOWS:
         drop_hook(planned["hooks"], "PreToolUse", "heredoc_guard.py")
     installed = read_json(cfg / "settings.json")
+    enabled = machine_config()["hooks"]
+    for name, event in OPT_IN_HOOKS.items():
+        if not enabled.get(name):
+            drop_hook(planned["hooks"], event, f"{name}.py")
     for key in SETTINGS_LOCAL_KEYS:
         if key in installed:
             planned[key] = installed[key]

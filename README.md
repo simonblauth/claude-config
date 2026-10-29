@@ -26,12 +26,22 @@ existing commands and hooks. `vendor` updates the shared sources for both.
 | Settings | `~/.claude/settings.json` | `~/.codex/config.toml` |
 | Startup drift check | inside settings | `~/.codex/hooks.json` |
 | Backslash guard (`hooks/heredoc_guard.py`) | inside settings, Windows only | — |
+| Usage-limit continue (`hooks/usage_limit_continue.py`) | inside settings, opt-in | — |
 
 On Windows the Bash tool turns every `\\` into `\`, in a heredoc as well as in
 quotes and arguments, which silently corrupts string literals, regexes and
 paths. There the guard refuses a Bash command that has a double backslash and
 points to the Write and Edit tools instead. A shell pre-check starts the guard
 only for a command with `\\`. Other systems do not get the guard.
+
+Claude Code does not continue a task on its own after a usage limit resets in
+the sessions that `claude remote-control` serves. To make those sessions
+continue on a machine, turn the hook on in the [machine config](#machine-config)
+and install, then set `CONTINUE_AT_USAGE_LIMIT=1` in the server's environment.
+The hook waits until the reset and wakes the session. It skips a reset more than 24 hours away, such as a weekly limit.
+Leave the variable unset in a terminal session, where Claude Code's own wait
+already does this.
+[Wait for a usage limit to reset](https://code.claude.com/docs/en/interactive-mode.md#wait-for-a-usage-limit-to-reset)
 
 `CLAUDE_CONFIG_DIR` and `CODEX_HOME` override the respective configuration roots.
 `CODEX_SKILLS_DIR` overrides this installer's Codex skill destination for testing
@@ -68,6 +78,9 @@ share_scratch = "/data/claude"  # fills {{share_scratch}} in rule files
 [vault]
 inputs = ["calendar", "github"]  # outside inputs the vault brief and wrap read
 
+[hooks]
+usage_limit_continue = true     # opt-in Claude hooks, off by default
+
 [[sources]]
 repo = "git@github.com:<owner>/<my-rules>.git"
 rules = "all"
@@ -89,6 +102,9 @@ skills = ["some-skill", "another-skill"]
   install as they are, without this repo's patches.
 - `[vault] inputs` lists the outside inputs the vault `brief` and `wrap` read on
   this machine. The vault template's `vault-rules.md` names the inputs they know.
+- `[hooks]` turns on Claude hooks that most machines don't need. Each
+  installs into `settings.json` only when set to `true`. The one hook so far is
+  `usage_limit_continue`, described under [Install and check](#install-and-check).
 - `{{name}}` in a Markdown rule becomes the `[vars]` value of that name, or `none`
   when it is not set.
 - Claude Code gets the rules in `~/.claude/rules/`. Codex has no path-scoped rules,

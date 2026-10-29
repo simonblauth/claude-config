@@ -136,6 +136,19 @@
         ]
       }
     ],
+    "StopFailure": [
+      {
+        "matcher": "rate_limit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"{{UV}}\" run --script \"{{REPO}}/hooks/usage_limit_continue.py\"",
+            "asyncRewake": true,
+            "timeout": 90000
+          }
+        ]
+      }
+    ],
     "PreToolUse": [
       {
         "matcher": "Bash",
