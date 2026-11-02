@@ -78,7 +78,7 @@ The gate is one recorded command whose result this work will change. The kind st
 | A bug, or behavior nobody expected | `fix` | a test reproducing the wrong behavior, failing now | `systematic-debugging`, then `tdd` |
 | A feature request | `feat` | a test stating the wanted behavior, failing now. The request is the spec, so build it rather than argue it | `tdd` |
 | A performance claim | `perf` | a measurement of the current cost, against a target written as a number | `systematic-debugging`, then `tdd` |
-| A refactor or a mechanical migration | `refactor` | the suite covering the behavior you are about to move, passing now and still passing after | `tdd` |
+| A refactor or a mechanical migration | `refactor` | the suite covering the behavior you are about to move, passing now and still passing after. When the issue requires a stored or wire format to stay unchanged, the command is an old-versus-new equality check over real existing data, under every runtime version the repo supports | `tdd` |
 | Docs or config only | `docs` or `chore` | the command that proves the claim on the page stale | `technical-writing` |
 
 The first three rows go **red**, and that failing command is `tdd`'s RED test. There is one, not two. The last two rows have no red to reach, so record the passing baseline instead and let step 6 compare against it.
@@ -92,20 +92,21 @@ When neither red nor a baseline arrives:
 
 ## 4. Pick the direction
 
-Ask the user when either trigger fires. They are independent, so one is enough.
+Ask the user when any trigger fires. They are independent, so one is enough.
 
 - **Blast radius.** The fix would change behavior for existing callers, change a stored or wire format, change the public API or the CLI, or add a dependency, and the issue did not ask for that. Repo evidence pointing at that approach does not settle it. Widening the change past what the issue reported is the user's call.
+- **Someone else's logic.** The fix copies logic, constants or formulas that another package or repo owns. A copy drifts from its owner's next change, so the owner has to provide it.
 - **Two live approaches.** Two or more survive the repo's patterns, the issue's comments and the tests, they put the behavior in different modules, and choosing wrong means redoing the work rather than editing it.
 
 Then ask the user about every open fork together, each option stating its cost. Use the available question tool when applicable, otherwise plain text. An edit repeated across many sites costs the command that makes it plus the check that catches a missed site, such as a `sed` and a guard `grep`. The number of sites is not a cost.
 
 **When the issue lists alternatives**, measure each against step 1's goal. Alternatives that compose, such as a fix plus a loud failure as its safety net, are one fix: do both. Otherwise take the one under which the goal holds. When the goal singles out none, or more than one, that is a fork: ask.
 
-When neither trigger fires and the issue lists no alternatives, pick the approach that matches the surrounding code. When that code is the defect, pick the approach that removes it. Write the choice and its one-line reason into the request body, and keep going. The written reason is what a reviewer needs, and it costs no round trip. Decide these yourself: names, file placement inside the obvious module, which existing helper to reuse, error wording, test names, and whether to add the changelog entry the repo already keeps.
+When no trigger fires and the issue lists no alternatives, pick the approach that matches the surrounding code. When that code is the defect, pick the approach that removes it. Write the choice and its one-line reason into the request body, and keep going. The written reason is what a reviewer needs, and it costs no round trip. Decide these yourself: names, file placement inside the obvious module, which existing helper to reuse, error wording, test names, and whether to add the changelog entry the repo already keeps.
 
 ## 5. Implement
 
-Load `tdd`. Go green from the step-3 red test, or hold the step-3 baseline green through the change. Commit rules come from the target repo's the applicable project instructions (`CLAUDE.md` or `AGENTS.md`).
+Load `tdd`. Go green from the step-3 red test, or hold the step-3 baseline green through the change. Commit rules come from every instruction file that applies: the global instructions, the path-scoped rules for the files you touch, and the target repo's project instructions (`CLAUDE.md` or `AGENTS.md`).
 
 ## 6. Verify
 
@@ -124,6 +125,8 @@ Say the branch and the base before the first push, so the user can stop it. Then
     git push -u origin <branch>
 
 Open the request with step 0's file's command. Load `technical-writing` for the body. It carries the wrong behavior in one line, the root cause step 3 established, what changed, the step-3 command before and after, the direction chosen and why when step 4 forked, and the closing trailer step 0's file names.
+
+A failed push or a signing error stops the run with the error. Switching to another transport, remote or credential to get past it is the user's call.
 
 **Done when** the request is open against the intended base and its body carries all six.
 
@@ -148,7 +151,7 @@ A claim that **holds** is a bug report against your own diff, and it takes step 
 
 ## 9. Hand back
 
-Report the forge, the request URL, the branch, the step-3 command before and after, each finding with what it got, and every adjacent problem you found and left alone. Adjacent means outside step 1's boundary. Work the boundary names is unfinished scope: finish it, or ask about it as a step-4 fork. Say where the worktree is, and leave it on disk.
+Report the forge, the request URL, the branch, the step-3 command before and after, each finding with what it got, and every adjacent problem you found and left alone. Adjacent means outside step 1's boundary. Work the boundary names is unfinished scope: finish it, or ask about it as a step-4 fork. Say where the worktree is, and leave it on disk. Hand back only after every background job the run started has finished or been stopped: the hand-back is final.
 
 The grant ends here. A later review round needs a fresh `/issue-to-pr`, or on an owned remote just the user's request.
 
@@ -159,7 +162,7 @@ When the `dispatch` skill started this run, no user is present. Dispatch has alr
 - **Handing back to a person.** Every point where a step says to ask the user hands the issue back instead. Those points are step 1 with no observable wrong behavior, the second bullet of step 3, step 4 when a trigger fires, and step 0 with no forge match. To hand back, comment on the issue with the question and its options. Start the comment with `> *This was generated by AI during a dispatched run.*`. Then swap `ready-for-agent` for `ready-for-human`, remove `agent:claimed`, and end the run with `STATUS: blocked`. Step 4's triggers apply whoever labelled the issue `ready-for-agent`, and the comment names the decision the label left open.
 - **Already fixed.** On step 3's first bullet, comment with the commit that fixed the issue and remove `agent:claimed`. Closing the issue stays with a person.
 - **Step 2.** Use `git worktree add` from the clone, not `EnterWorktree`.
-- **Step 7.** Put the branch and the base in the report instead of announcing them.
+- **Step 7.** Put the branch and the base in the report instead of announcing them. A failed push or signing error ends the run with `STATUS: blocked`.
 - **Step 9.** The hand-back is the report the preamble asks for, and adjacent problems, those outside step 1's boundary, go under `PROPOSALS`. Keep `agent:claimed` on the issue while the request is open: dispatch counts it as work in flight.
 
 ## Rationalizations
