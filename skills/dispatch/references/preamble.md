@@ -9,7 +9,8 @@ dispatch skill. No user is present.
 Target: <repo>, <"the repository" | "issue #<n>">. Arguments: <skill args,
 and for issue-to-pr the issue's Base branch when it names one>.
 Working copy: <worktree path, or for issue-to-pr the cache clone path>.
-Scratch: <a directory only this run writes to, such as <your scratchpad>/runs/<repo>>.
+Scratch: <a directory only this target writes to, such as <your scratchpad>/runs/<repo>,
+or <your scratchpad>/runs/<repo>-<n> for an issue target>.
 Use absolute paths. Before anything else, read the repository's AGENTS.md
 and CLAUDE.md if they exist.
 
