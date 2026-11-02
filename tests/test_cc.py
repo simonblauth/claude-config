@@ -334,7 +334,10 @@ class MachineConfigTests(InstallBase):
     def test_invalid_config_is_refused(self):
         for text in ('[review]\ndefault = "nobody"\n', 'reviewer = "codex"\n', '[[sources]]\nskills = "all"\n',
                      '[[sources]]\nrepo = "x"\nskills = "some"\n', '[vars]\nn = 1\n',
-                     '[vault]\ninputs = "mail"\n', '[vault]\nsources = ["mail"]\n'):
+                     '[vault]\ninputs = "mail"\n', '[vault]\nsources = ["mail"]\n',
+                     'vars = ["a"]\n', 'review = "codex"\n', 'vault = "x"\n', 'sources = {repo = "x"}\n',
+                     '[[sources]]\nrepo = "x"\nref = 1\nskills = "all"\n',
+                     '[[sources]]\nrepo = "x"\nrules = []\nskills = []\n'):
             with self.subTest(text=text):
                 self.configure(text)
                 with self.assertRaisesRegex(ValueError, 'config.toml'):

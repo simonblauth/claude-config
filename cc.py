@@ -437,6 +437,11 @@ def machine_config() -> dict:
     unknown = set(data) - {"review", "vars", "vault", "sources"}
     if unknown:
         raise ValueError(f"{path}: unknown key(s) {', '.join(sorted(unknown))}")
+    for key in ("review", "vars", "vault"):
+        if not isinstance(data.get(key, {}), dict):
+            raise ValueError(f"{path}: {key} is a table, [{key}]")
+    if not isinstance(data.get("sources", []), list) or not all(isinstance(s, dict) for s in data.get("sources", [])):
+        raise ValueError(f"{path}: sources is a list of tables, [[sources]]")
     review = data.get("review", {})
     if set(review) - {"default"} or review.get("default", "subagent") not in REVIEWERS:
         raise ValueError(f"{path}: [review] takes only default, one of {', '.join(REVIEWERS)}")
@@ -452,11 +457,13 @@ def machine_config() -> dict:
     for source in sources:
         if not isinstance(source.get("repo"), str) or set(source) - {"repo", "ref", "rules", "skills"}:
             raise ValueError(f"{path}: each [[sources]] needs repo, and may set ref, rules and skills")
-        if "rules" not in source and "skills" not in source:
-            raise ValueError(f"{path}: source {source['repo']} picks nothing; set rules or skills")
         source.setdefault("ref", "HEAD")
+        if not isinstance(source["ref"], str):
+            raise ValueError(f"{path}: ref of source {source['repo']} is a string")
         source["rules"] = selection(source.get("rules", []), path, "rules")
         source["skills"] = selection(source.get("skills", []), path, "skills")
+        if not source["rules"] and not source["skills"]:
+            raise ValueError(f"{path}: source {source['repo']} picks nothing; set rules or skills")
     return {"review": review, "vars": variables, "vault": vault, "sources": sources}
 
 
