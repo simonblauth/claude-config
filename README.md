@@ -84,7 +84,7 @@ skills = ["some-skill", "another-skill"]
 - A source is a repo with `rules/` and `skills/<name>/SKILL.md` folders. It
   installs only what `rules` and `skills` pick, each `"all"` or a list of names; a
   rule's name is its path under `rules/` without `.md`. A source that picks nothing
-  is an error, and so is a name the source lacks or a file or skill that two places
+  or has neither folder is an error, and so is a name the source lacks or a file or skill that two places
   provide. `install` clones or fetches each source into `.cache/`. Source skills
   install as they are, without this repo's patches.
 - `[vault] inputs` lists the outside inputs the vault `brief` and `wrap` read on

@@ -476,6 +476,8 @@ def source_checkouts(fetch: bool = False) -> list[tuple[dict, Path]]:
             clone(source["repo"], source["ref"], dest)
         if not dest.exists():
             raise RuntimeError(f"source {source['repo']} is not cloned yet, run install")
+        if not (dest / "rules").is_dir() and not (dest / "skills").is_dir():
+            raise RuntimeError(f"source {source['repo']} has neither rules/ nor skills/")
         out.append((source, dest))
     return out
 

@@ -273,6 +273,14 @@ class MachineConfigTests(InstallBase):
         with self.assertRaisesRegex(ValueError, 'config.toml'):
             cc.machine_config()
 
+    def test_a_source_without_rules_or_skills_folders_stops_the_install(self):
+        self.git('mv', 'rules', 'rule')
+        self.git('mv', 'skills', 'skill')
+        self.commit()
+        self.with_source()
+        with self.assertRaisesRegex(RuntimeError, 'neither rules/ nor skills/'):
+            self.install()
+
     def test_a_missing_name_stops_the_install(self):
         self.with_source('skills = ["nope"]\n')
         with self.assertRaisesRegex(RuntimeError, 'nope'):
