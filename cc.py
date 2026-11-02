@@ -520,18 +520,30 @@ def rule_files(checkouts: list[tuple[dict, Path]]) -> dict[str, bytes]:
 
 
 def split_frontmatter(text: str) -> tuple[list[str], str]:
-    """The `paths:` globs of a rule file, and its body without the frontmatter."""
+    """The `paths:` globs of a rule file, and its body without the frontmatter. `paths:` may be a block
+    list, an inline `[...]` list or one string, the YAML forms a rule file uses."""
     if not text.startswith("---\n"):
         return [], text
     end = text.find("\n---\n", 3)
+    if end < 0 and text.endswith("\n---"):
+        end = len(text) - 4
     if end < 0:
         return [], text
+    unquote = lambda s: s.strip().strip("'\"")
     paths, in_paths = [], False
     for line in text[4:end].splitlines():
-        if line.rstrip() == "paths:":
-            in_paths = True
+        key, _, rest = line.partition(":")
+        if key == "paths":
+            rest = rest.strip()
+            in_paths = not rest
+            if rest.startswith("[") and rest.endswith("]"):
+                quoted = re.findall(r"\"([^\"]*)\"|'([^']*)'", rest[1:-1])
+                paths += ([a or b for a, b in quoted] if quoted
+                          else [unquote(p) for p in rest[1:-1].split(",") if unquote(p)])
+            elif rest:
+                paths.append(unquote(rest))
         elif in_paths and line.lstrip().startswith("- "):
-            paths.append(line.lstrip()[2:].strip().strip("'\""))
+            paths.append(unquote(line.lstrip()[2:]))
         else:
             in_paths = False
     return paths, text[end + 5:]

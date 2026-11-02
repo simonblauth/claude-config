@@ -299,6 +299,21 @@ class MachineConfigTests(InstallBase):
         self.assertIn('Theirs.', (cc.config_dir() / 'skills/theirs/SKILL.md').read_text())
         self.assertEqual(cc.check_sources(), [])
 
+    def test_every_paths_form_keeps_its_scope_in_codex(self):
+        for front in ('paths: ["**/*.jl", "**/Project.toml"]', "paths: ['**/*.jl', '**/Project.toml']",
+                      'paths:\n  - "**/*.jl"\n  - **/Project.toml'):
+            with self.subTest(front=front):
+                self.assertEqual(cc.split_frontmatter(f'---\n{front}\n---\n# X\n'),
+                                 (['**/*.jl', '**/Project.toml'], '# X\n'))
+        self.assertEqual(cc.split_frontmatter('---\npaths: "**/*.py"\n---\n# X\n'), (['**/*.py'], '# X\n'))
+        self.assertEqual(cc.split_frontmatter('---\npaths: ["src/**/*.{ts,tsx}"]\n---\n'), (['src/**/*.{ts,tsx}'], ''))
+        self.assertEqual(cc.split_frontmatter('---\npaths:\n  - "*.py"\n---'), (['*.py'], ''))
+
+    def test_a_rule_without_paths_applies_everywhere_in_codex(self):
+        self.with_source()
+        self.install()
+        self.assertIn('_From rules/compute.md, applies everywhere._', (cc.config_dir('codex') / 'AGENTS.md').read_text())
+
     def test_source_changes_show_upstream_then_install(self):
         self.with_source()
         self.install()
