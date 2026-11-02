@@ -43,7 +43,7 @@ State what is out of scope. This prevents the agent from gold-plating or making 
 
 **Category:** bug / enhancement
 **Summary:** one-line description of what needs to happen
-**Depends on:** the issues and pull requests that must land first, as `#N`, or "none"
+**Depends on:** the issues and pull requests that must land first, as `#N` in this repo or `owner/repo#N` in another, or "none"
 **Base:** the branch the change targets, only when it is not the default branch
 
 **Current behavior:**
