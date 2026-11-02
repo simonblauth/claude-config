@@ -156,8 +156,8 @@ def clone(repo: str, ref: str) -> Path:
         run(["git", "-C", str(dest), "checkout", "--quiet", "--force", "FETCH_HEAD"])
     else:
         config = [arg for c in CLONE_CONFIG for arg in ("--config", c)]
-        run(["git", "clone", *config, "--depth", "1", "--branch", ref, "--quiet",
-             repo, str(dest)])
+        branch = [] if ref == "HEAD" else ["--branch", ref]
+        run(["git", "clone", *config, "--depth", "1", *branch, "--quiet", repo, str(dest)])
     return dest
 
 
@@ -415,49 +415,89 @@ def machine_config_path() -> Path:
     return (Path(base).expanduser() if base else Path.home() / ".config") / "claude-config" / "config.toml"
 
 
+def selection(value, path: Path, key: str) -> list[str] | str:
+    if value == "all" or (isinstance(value, list) and all(isinstance(v, str) for v in value)):
+        return value
+    raise ValueError(f"{path}: {key} is \"all\" or a list of names")
+
+
 def machine_config() -> dict:
-    """This machine's settings. They live outside the repo, so the public repo never names a private rule source."""
+    """This machine's settings. They live outside the repo, so the public repo never names a private source."""
     path = machine_config_path()
     if not path.exists():
-        return {"review": {}, "rules": []}
+        return {"review": {}, "vars": {}, "sources": []}
     try:
         data = tomllib.loads(path.read_text(encoding="utf-8"))
     except tomllib.TOMLDecodeError as e:
         raise ValueError(f"{path}: {e}") from e
-    unknown = set(data) - {"review", "rules"}
+    unknown = set(data) - {"review", "vars", "sources"}
     if unknown:
         raise ValueError(f"{path}: unknown key(s) {', '.join(sorted(unknown))}")
     review = data.get("review", {})
     if set(review) - {"default"} or review.get("default", "subagent") not in REVIEWERS:
         raise ValueError(f"{path}: [review] takes only default, one of {', '.join(REVIEWERS)}")
-    rules = data.get("rules", [])
-    for source in rules:
-        if not isinstance(source.get("repo"), str) or set(source) - {"repo", "ref"}:
-            raise ValueError(f"{path}: each [[rules]] needs repo and may set ref")
-        source.setdefault("ref", "main")
-    return {"review": review, "rules": rules}
+    variables = data.get("vars", {})
+    if not all(isinstance(v, str) for v in variables.values()):
+        raise ValueError(f"{path}: every [vars] value is a string")
+    sources = data.get("sources", [])
+    for source in sources:
+        if not isinstance(source.get("repo"), str) or set(source) - {"repo", "ref", "rules", "skills"}:
+            raise ValueError(f"{path}: each [[sources]] needs repo, and may set ref, rules and skills")
+        if "rules" not in source and "skills" not in source:
+            raise ValueError(f"{path}: source {source['repo']} picks nothing; set rules or skills")
+        source.setdefault("ref", "HEAD")
+        source["rules"] = selection(source.get("rules", []), path, "rules")
+        source["skills"] = selection(source.get("skills", []), path, "skills")
+    return {"review": review, "vars": variables, "sources": sources}
 
 
-def rule_files(fetch: bool = False) -> dict[str, bytes]:
-    """Every rule file to install, keyed by its path under rules/: this repo's, then each configured source's.
-    Without fetch, a source is read from its cached clone, so a drift check stays offline."""
+def source_checkouts(fetch: bool = False) -> list[tuple[dict, Path]]:
+    """Each configured source with its cached clone. Without fetch, nothing touches the network."""
+    out = []
+    for source in machine_config()["sources"]:
+        dest = clone(source["repo"], source["ref"]) if fetch else cache_path(source["repo"])
+        if not dest.exists():
+            raise RuntimeError(f"source {source['repo']} is not cloned yet, run install")
+        out.append((source, dest))
+    return out
+
+
+def pick(available: dict, wanted: list[str] | str, what: str, repo: str) -> dict:
+    if wanted == "all":
+        return available
+    missing = [name for name in wanted if name not in available]
+    if missing:
+        raise RuntimeError(f"{repo} has no {what} {', '.join(missing)}")
+    return {name: available[name] for name in wanted}
+
+
+VAR = re.compile(r"\{\{([A-Za-z_][A-Za-z0-9_]*)\}\}")
+
+
+def rule_files(checkouts: list[tuple[dict, Path]]) -> dict[str, bytes]:
+    """Every rule file to install, keyed by its path under rules/: this repo's, then each source's picks.
+    `{{name}}` in a Markdown rule becomes the config's [vars] value, or `none` when it is not set."""
     out: dict[str, bytes] = {}
     origin: dict[str, str] = {}
 
-    def add(root: Path, name: str) -> None:
-        for f in sorted(root.rglob("*")):
-            if f.is_file() and f.name != ".gitkeep":
-                rel = f.relative_to(root).as_posix()
-                if rel in out:
-                    raise RuntimeError(f"rules/{rel} comes from both {origin[rel]} and {name}")
-                out[rel], origin[rel] = f.read_bytes(), name
+    def files(root: Path) -> dict[str, Path]:
+        return {f.relative_to(root).as_posix(): f for f in sorted(root.rglob("*"))
+                if f.is_file() and f.name != ".gitkeep"} if root.is_dir() else {}
 
-    add(RULES, "this repo")
-    for source in machine_config()["rules"]:
-        dest = clone(source["repo"], source["ref"]) if fetch else cache_path(source["repo"])
-        if not dest.exists():
-            raise RuntimeError(f"rules source {source['repo']} is not cloned yet, run install")
-        add(dest / "rules", source["repo"])
+    def add(found: dict[str, Path], name: str) -> None:
+        for rel, f in found.items():
+            if rel in out:
+                raise RuntimeError(f"rules/{rel} comes from both {origin[rel]} and {name}")
+            out[rel], origin[rel] = f.read_bytes(), name
+
+    add(files(RULES), "this repo")
+    for source, dest in checkouts:
+        by_name = {rel.removesuffix(".md"): (rel, f) for rel, f in files(dest / "rules").items()}
+        add(dict(pick(by_name, source["rules"], "rule", source["repo"]).values()), source["repo"])
+    variables = machine_config()["vars"]
+    for rel, data in out.items():
+        if rel.endswith(".md"):
+            out[rel] = VAR.sub(lambda m: variables.get(m.group(1), "none"), data.decode("utf-8")).encode()
     return out
 
 
@@ -503,11 +543,14 @@ def render_instructions(target: str, rules: dict[str, bytes] | None = None) -> b
     return ("\n\n".join(parts) + "\n").encode()
 
 
-def skill_dirs() -> list[Path]:
+def skill_dirs(root: Path | None = None) -> list[Path]:
     """Every skill under skills/. A folder without a SKILL.md groups skills in
     this repo only; installation places each skill in it at the top level."""
+    root = SKILLS if root is None else root
+    if not root.is_dir():
+        return []
     found: dict[str, Path] = {}
-    for entry in sorted(SKILLS.iterdir()):
+    for entry in sorted(root.iterdir()):
         if not entry.is_dir():
             continue
         members = [entry] if (entry / "SKILL.md").exists() else sorted(
@@ -519,7 +562,8 @@ def skill_dirs() -> list[Path]:
     return sorted(found.values(), key=lambda d: d.name)
 
 
-def skill_files(target: str) -> dict[str, bytes]:
+def skill_files(target: str, checkouts: list[tuple[dict, Path]] = ()) -> dict[str, bytes]:
+    """This repo's skills with their compat patches, then each source's picks as they are."""
     out = {}
     with tempfile.TemporaryDirectory() as tmp:
         for source in skill_dirs():
@@ -529,12 +573,25 @@ def skill_files(target: str) -> dict[str, bytes]:
             for f in sorted(stage.rglob("*")):
                 if f.is_file():
                     out[f"{source.name}/{f.relative_to(stage).as_posix()}"] = f.read_bytes()
+    origin = {name: "this repo" for name in {rel.split("/")[0] for rel in out}}
+    for source, dest in checkouts:
+        available = {d.name: d for d in skill_dirs(dest / "skills")}
+        for name, skill in pick(available, source["skills"], "skill", source["repo"]).items():
+            if name in origin:
+                raise RuntimeError(f"skill {name} comes from both {origin[name]} and {source['repo']}")
+            origin[name] = source["repo"]
+            for f in sorted(skill.rglob("*")):
+                if f.is_file():
+                    out[f"{name}/{f.relative_to(skill).as_posix()}"] = f.read_bytes()
     return out
 
 
-def planned_files(cfg: Path, target: str = "claude", fetch: bool = False) -> dict[str, dict[str, bytes]]:
-    skills = skill_files(target)
-    rules = rule_files(fetch)
+def planned_files(cfg: Path, target: str = "claude",
+                  checkouts: list[tuple[dict, Path]] | None = None) -> dict[str, dict[str, bytes]]:
+    if checkouts is None:
+        checkouts = source_checkouts()
+    skills = skill_files(target, checkouts)
+    rules = rule_files(checkouts)
     if target == "codex":
         return {"skills": skills, "config": {
             "AGENTS.md": render_instructions(target, rules),
@@ -741,7 +798,8 @@ def targets(args) -> tuple[str, ...]:
 def cmd_install(args) -> int:
     # Render every target first, so patch/config failures cannot leave a partial
     # installation across the two runtimes.
-    plans = {t: planned_files(config_dir(t), t, fetch=True) for t in targets(args)}
+    checkouts = source_checkouts(fetch=True)
+    plans = {t: planned_files(config_dir(t), t, checkouts) for t in targets(args)}
     for target, planned in plans.items():
         install_target(target, planned)
     if "codex" in plans:
@@ -924,21 +982,21 @@ def check_upstream() -> list[str]:
                 out.append(f"{s.name} vanished upstream at {s.path}")
             elif tree_hash(src) != s.content:
                 out.append(f"{s.name} changed upstream, vendor {s.name.split('/')[0]} to review")
-    return out + check_rule_sources()
+    return out + check_sources()
 
 
-def check_rule_sources() -> list[str]:
+def check_sources() -> list[str]:
     out = []
-    for source in machine_config()["rules"]:
+    for source in machine_config()["sources"]:
         repo, dest = source["repo"], cache_path(source["repo"])
         try:
             head = remote_sha(repo, source["ref"])
         except RuntimeError as e:
-            out.append(f"rules source {repo} unreachable ({e.args[0].splitlines()[-1]})")
+            out.append(f"source {repo} unreachable ({e.args[0].splitlines()[-1]})")
             continue
         have = run(["git", "-C", str(dest), "rev-parse", "HEAD"]) if dest.exists() else ""
         if head and head != have:
-            out.append(f"rules source {repo} has new commits, run install")
+            out.append(f"source {repo} has new commits, run install")
     return out
 
 

@@ -201,7 +201,7 @@ multi_agent = false
 
 
 class MachineConfigTests(InstallBase):
-    """The per-machine config file adds rule sources and a default reviewer."""
+    """The per-machine config file adds sources of rules and skills, variables and a default reviewer."""
 
     def setUp(self):
         super().setUp()
@@ -212,29 +212,34 @@ class MachineConfigTests(InstallBase):
         p = patch.object(cc, 'machine_config_path', lambda: self.config)
         p.start()
         self.addCleanup(p.stop)
-        self.source = self.base / 'rules-src'
+        self.source = self.base / 'src'
         (self.source / 'rules').mkdir(parents=True)
-        self.git('init', '-q', '-b', 'main')
-        self.write_rule('julia.md', '---\npaths:\n  - "**/*.jl"\n  - "**/Project.toml"\n---\n\n# Julia\n\n- Use the project env.\n')
-        self.write_rule('compute.md', '# Compute\n\n- Use the fleet.\n')
+        self.git('init', '-q', '-b', 'master')
+        self.write('rules/julia.md', '---\npaths:\n  - "**/*.jl"\n  - "**/Project.toml"\n---\n\n# Julia\n\n- Use the project env.\n')
+        self.write('rules/compute.md', '# Compute\n\n- Stage data in {{share_scratch}}.\n')
+        self.write('skills/mine/SKILL.md', '---\nname: mine\ndescription: d\n---\n\nMine.\n')
+        self.write('skills/mine/references/r.md', 'ref\n')
+        self.write('skills/theirs/SKILL.md', '---\nname: theirs\ndescription: d\n---\n\nTheirs.\n')
         self.commit()
 
     def git(self, *args):
         subprocess.run(['git', '-C', str(self.source), '-c', 'commit.gpgsign=false', '-c', 'user.name=t',
                         '-c', 'user.email=t@t', *args], check=True, capture_output=True)
 
-    def write_rule(self, name, text):
-        (self.source / 'rules' / name).write_text(text)
+    def write(self, rel, text):
+        path = self.source / rel
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text)
 
     def commit(self):
         self.git('add', '-A')
-        self.git('commit', '-q', '-m', 'rules')
+        self.git('commit', '-q', '-m', 'change')
 
     def configure(self, text):
         self.config.write_text(text)
 
-    def with_source(self, extra=''):
-        self.configure(extra + f'[[rules]]\nrepo = "{self.source.as_uri()}"\n')
+    def with_source(self, select='rules = "all"\nskills = "all"\n', extra=''):
+        self.configure(extra + f'[[sources]]\nrepo = "{self.source.as_uri()}"\n' + select)
 
     def test_rules_reach_both_targets(self):
         self.with_source()
@@ -245,23 +250,55 @@ class MachineConfigTests(InstallBase):
         self.assertIn('`**/*.jl`, `**/Project.toml`', agents)
         self.assertIn('- Use the project env.', agents)
         self.assertNotIn('- "**/*.jl"', agents)
-        self.assertIn('- Use the fleet.', agents)
         for target in self.roots:
             self.assertEqual(cc.check_local(cc.config_dir(target), target), [])
+
+    def test_skills_reach_both_targets(self):
+        self.with_source()
+        self.install()
+        self.assertIn('Mine.', (cc.config_dir() / 'skills/mine/SKILL.md').read_text())
+        self.assertEqual((self.roots['codex']['skills'] / 'mine/references/r.md').read_text(), 'ref\n')
+
+    def test_only_the_named_skills_and_rules_install(self):
+        self.with_source('skills = ["theirs"]\nrules = ["julia"]\n')
+        self.install()
+        claude = cc.config_dir()
+        self.assertTrue((claude / 'skills/theirs/SKILL.md').exists())
+        self.assertFalse((claude / 'skills/mine').exists())
+        self.assertTrue((claude / 'rules/julia.md').exists())
+        self.assertFalse((claude / 'rules/compute.md').exists())
+
+    def test_a_source_picks_nothing_by_default(self):
+        self.with_source(select='')
+        with self.assertRaisesRegex(ValueError, 'config.toml'):
+            cc.machine_config()
+
+    def test_a_missing_name_stops_the_install(self):
+        self.with_source('skills = ["nope"]\n')
+        with self.assertRaisesRegex(RuntimeError, 'nope'):
+            self.install()
+
+    def test_vars_fill_rules_and_default_to_none(self):
+        self.with_source(extra='[vars]\nshare_scratch = "/data/claude"\n\n')
+        self.install()
+        self.assertIn('Stage data in /data/claude.', (cc.config_dir() / 'rules/compute.md').read_text())
+        self.assertIn('Stage data in /data/claude.', (cc.config_dir('codex') / 'AGENTS.md').read_text())
+        self.with_source()
+        self.install()
+        self.assertIn('Stage data in none.', (cc.config_dir() / 'rules/compute.md').read_text())
 
     def test_source_changes_show_upstream_then_install(self):
         self.with_source()
         self.install()
-        self.assertEqual(cc.check_rule_sources(), [])
+        self.assertEqual(cc.check_sources(), [])
         (self.source / 'rules' / 'compute.md').unlink()
-        self.write_rule('julia.md', '# Julia\n\n- Changed.\n')
+        self.write('rules/julia.md', '# Julia\n\n- Changed.\n')
         self.commit()
-        self.assertEqual(len(cc.check_rule_sources()), 1)
+        self.assertEqual(len(cc.check_sources()), 1)
         self.install()
         claude = cc.config_dir()
         self.assertIn('Changed.', (claude / 'rules/julia.md').read_text())
         self.assertFalse((claude / 'rules/compute.md').exists())
-        self.assertNotIn('Use the fleet.', (cc.config_dir('codex') / 'AGENTS.md').read_text())
 
     def test_missing_clone_is_drift_not_a_crash(self):
         self.with_source()
@@ -279,7 +316,8 @@ class MachineConfigTests(InstallBase):
         self.assertNotIn('Default reviewer', (cc.config_dir() / 'CLAUDE.md').read_text())
 
     def test_invalid_config_is_refused(self):
-        for text in ('[review]\ndefault = "nobody"\n', 'reviewer = "codex"\n', '[[rules]]\nref = "main"\n'):
+        for text in ('[review]\ndefault = "nobody"\n', 'reviewer = "codex"\n', '[[sources]]\nskills = "all"\n',
+                     '[[sources]]\nrepo = "x"\nskills = "some"\n', '[vars]\nn = 1\n'):
             with self.subTest(text=text):
                 self.configure(text)
                 with self.assertRaisesRegex(ValueError, 'config.toml'):
@@ -288,6 +326,13 @@ class MachineConfigTests(InstallBase):
     def test_a_rule_from_two_places_fails(self):
         self.with_source()
         with patch.object(cc, 'RULES', self.source / 'rules'), self.assertRaisesRegex(RuntimeError, 'comes from both'):
+            self.install()
+
+    def test_a_skill_this_repo_has_fails(self):
+        self.write('skills/tdd/SKILL.md', '---\nname: tdd\ndescription: d\n---\n')
+        self.commit()
+        self.with_source('skills = ["tdd"]\n')
+        with self.assertRaisesRegex(RuntimeError, 'tdd'):
             self.install()
 
 
