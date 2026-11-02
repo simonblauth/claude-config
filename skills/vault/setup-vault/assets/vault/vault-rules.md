@@ -100,20 +100,20 @@ The end-of-week wrap rolls the daily notes into `journal/YYYY-Www.md` (ISO week)
 
 `inbox.md` holds captures with no clear home. The wrap files or drops each one.
 
-## Sources
+## Inputs
 
-The brief and the wrap read the outside sources this machine lists in `~/.config/claude-config/config.toml` (`$XDG_CONFIG_HOME/claude-config/config.toml` when that is set), and only those. Each vault clone lists its own, so the file stays outside the vault:
+The brief and the wrap read the outside inputs this machine lists in `~/.config/claude-config/config.toml` (`$XDG_CONFIG_HOME/claude-config/config.toml` when that is set), and only those. Each vault clone lists its own, so the file stays outside the vault:
 
 ```toml
 [vault]
-sources = ["calendar", "mail", "teams", "github"]
+inputs = ["calendar", "mail", "teams", "github"]
 ```
 
 - `calendar`: today's meetings.
 - `mail` and `teams`: threads that wait on the user, and the user's own replies.
 - `github`: the user's open PRs and review requests, and today's merged PRs and pushed commits, through `gh`.
 
-With no file or no list, read no outside source and say so in one line. Name each listed source that is unavailable in one line.
+With no file or no list, read no outside input and say so in one line. Name each listed input that is unavailable in one line.
 
 A thread waits on the user when a person wrote it, it asks the user something or touches one of their projects, and neither Sent Items nor the user's own Teams messages hold a later reply to it.
 

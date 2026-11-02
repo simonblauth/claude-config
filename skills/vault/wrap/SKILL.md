@@ -18,7 +18,7 @@ The vault lives at `$VAULT_DIR` (default `~/vault`). Its `CLAUDE.md` and `schema
 2. Gather:
    - today's daily note
    - what the user reports in their message
-   - the sources that the vault's `CLAUDE.md` lists under `## Sources`. The user's sent mail and own Teams messages from today settle the plan items they answered.
+   - the inputs that the vault's `CLAUDE.md` lists under `## Inputs`. The user's sent mail and own Teams messages from today settle the plan items they answered.
    - `inbox.md` and today's Captures
 3. Record what the user reported or confirmed, as normal commits:
    - Done tasks leave Next and become Log lines, as `CLAUDE.md` describes. Recurring tasks get their next occurrence.

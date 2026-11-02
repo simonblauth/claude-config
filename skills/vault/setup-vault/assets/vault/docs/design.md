@@ -44,9 +44,9 @@ Claude can edit everything, so access is never the limit. The limit is initiativ
 
 Nearly all of the work runs through Claude sessions and still needs the user, so marking each plan line `agent` or `user` sorted nothing. The plan lists the day's threads, and the `threads` skill shows which sessions are running. A plan line gets a tick when its thread is done, so the dashboard shows progress during the day.
 
-## Why each machine lists its sources
+## Why each machine lists its inputs
 
-The vault's clones run on machines with different connectors, and a tool the user dropped long ago can still send notification mails. A list of excluded sources would name tools that most machines never see. So each machine lists the sources it wants in its own config file, outside the vault, and the brief and the wrap read only those. Notification mails ask nothing of the user, so only a thread that a person wrote can wait on the user.
+The vault's clones run on machines with different connectors, and a tool the user dropped long ago can still send notification mails. A list of excluded inputs would name tools that most machines never see. So each machine lists the inputs it wants in its own config file, outside the vault, and the brief and the wrap read only those. Notification mails ask nothing of the user, so only a thread that a person wrote can wait on the user.
 
 ## Why the dashboard is a snapshot
 

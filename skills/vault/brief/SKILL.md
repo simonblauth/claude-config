@@ -25,7 +25,7 @@ A brief has run on a day when that day's daily note has content under `## Brief`
    - every project with status `active` or `waiting`: `focus`, State, open Next tasks, due dates, and recurring tasks due today
    - `inbox.md`
    - the running Claude sessions, through the `threads` skill
-   - the sources that the vault's `CLAUDE.md` lists under `## Sources`
+   - the inputs that the vault's `CLAUDE.md` lists under `## Inputs`
 3. Answer in this shape, with sections that have content:
    1. **Claude did**: the entries from step 2, or "Nothing since the last brief."
    2. **Threads**: the list from the `threads` skill.
