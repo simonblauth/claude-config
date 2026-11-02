@@ -37,10 +37,11 @@ only for a command with `\\`. Other systems do not get the guard.
 Claude Code does not continue a task on its own after a usage limit resets in
 the sessions that `claude remote-control` serves. To make those sessions
 continue on a machine, turn the hook on in the [machine config](#machine-config)
-and install, then set `CONTINUE_AT_USAGE_LIMIT=1` in the server's environment.
-The hook waits until the reset and wakes the session. It skips a reset more than 24 hours away, such as a weekly limit.
-Leave the variable unset in a terminal session, where Claude Code's own wait
-already does this.
+and install. The hook waits until the reset and wakes the session. It skips a
+reset more than 24 hours away, such as a weekly limit. It runs in every session
+on that machine, and stays quiet when the session has moved on by the time it
+wakes. So a terminal session that you stopped with Esc during Claude Code's own
+wait still continues 2 minutes after the reset.
 [Wait for a usage limit to reset](https://code.claude.com/docs/en/interactive-mode.md#wait-for-a-usage-limit-to-reset)
 
 `CLAUDE_CONFIG_DIR` and `CODEX_HOME` override the respective configuration roots.

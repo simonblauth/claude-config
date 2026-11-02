@@ -10,20 +10,18 @@ Claude Code's own wait-and-continue at a usage limit does not start in Remote Co
 sleeps until the reset in the background, then exits 2, which wakes the idle session with the message on stderr
 (measured 2026-10-29 on 2.1.289: an asyncRewake Stop hook woke an idle served session after 45 s).
 
-It acts only where the environment sets CONTINUE_AT_USAGE_LIMIT=1, so it does not double the built-in wait in an
-interactive terminal. The reset comes from the transcript's `quotaLimits.resetsAt`, which 2.1.289 writes on the
+The reset comes from the transcript's `quotaLimits.resetsAt`, which 2.1.289 writes on the
 rate-limit record. After each sleep the hook reads the transcript again rather than trusting the record it started
 on, which can be an earlier limit hit: it stands down when the session has moved past the limit, sleeps again when a
-later hit moved the reset, and otherwise wakes the session once per limit record.
+later hit moved the reset, and otherwise wakes the session once per limit record. When Claude Code's own wait in a
+terminal session has continued the task before the hook wakes, the hook finds the session moved on and stays quiet.
 """
 import json
-import os
 import sys
 import tempfile
 import time
 from pathlib import Path
 
-OPT_IN = "CONTINUE_AT_USAGE_LIMIT"
 # Wake a little after the reset, so the first request does not race it.
 MARGIN = 120
 # Matches the built-in wait, which does not start for a reset more than 24 hours away.
@@ -82,9 +80,9 @@ def read_reply(path):
 
 
 def main():
-    if os.environ.get(OPT_IN) != "1":
+    path = json.load(sys.stdin).get("transcript_path")
+    if not path:
         sys.exit(0)
-    path = json.load(sys.stdin).get("transcript_path") or ""
     # An older limit record, whose reset has passed, can still be the last reply until the new one lands.
     for _ in range(RECORD_POLLS):
         record = read_reply(path)

@@ -1,6 +1,7 @@
 import importlib.util
 import io
 import json
+import os
 from pathlib import Path
 import subprocess
 import sys
@@ -77,9 +78,9 @@ class MainTests(unittest.TestCase):
         p.start()
         self.addCleanup(p.stop)
 
-    def run_main(self, transcript_before, transcript_after, env=None):
-        """Run the hook in-process. The transcript changes to `transcript_after` while it sleeps, and the clock
-        advances by each sleep."""
+    def run_main(self, transcript_before, transcript_after):
+        """Run the hook in-process with an empty environment. The transcript changes to `transcript_after` while it
+        sleeps, and the clock advances by each sleep."""
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "t.jsonl"
             path.write_text("\n".join(transcript_before) + "\n")
@@ -92,7 +93,7 @@ class MainTests(unittest.TestCase):
             payload = json.dumps({"hook_event_name": "StopFailure", "error": "rate_limit",
                                   "transcript_path": str(path)})
             stderr = io.StringIO()
-            with mock.patch.dict(hook.os.environ, env if env is not None else {hook.OPT_IN: "1"}, clear=True), \
+            with mock.patch.dict(os.environ, {}, clear=True), \
                     mock.patch.object(hook.time, "time", side_effect=lambda: NOW + sum(slept)), \
                     mock.patch.object(hook.time, "sleep", side_effect=sleep), \
                     mock.patch.object(sys, "stdin", io.StringIO(payload)), \
@@ -136,11 +137,6 @@ class MainTests(unittest.TestCase):
         before = lines(limit("b", NOW + 600))
         code, _, message = self.run_main(before, before + lines(reply("c")))
         self.assertEqual((code, message), (0, ""))
-
-    def test_does_nothing_without_the_opt_in(self):
-        transcript = lines(limit("b", NOW + 600))
-        code, slept, message = self.run_main(transcript, transcript, env={})
-        self.assertEqual((code, slept, message), (0, [], ""))
 
     def test_does_nothing_for_a_weekly_reset(self):
         transcript = lines(limit("b", NOW + 3 * 24 * 3600))
