@@ -12,13 +12,16 @@ sleeps until the reset in the background, then exits 2, which wakes the idle ses
 
 It acts only where the environment sets CONTINUE_AT_USAGE_LIMIT=1, so it does not double the built-in wait in an
 interactive terminal. The reset comes from the transcript's `quotaLimits.resetsAt`, which 2.1.289 writes on the
-rate-limit record. Before waking, the hook checks that the session is still stopped at that record: a prompt sent in
-the meantime, or a later limit hit with its own wait, makes this wait obsolete.
+rate-limit record. After each sleep the hook reads the transcript again rather than trusting the record it started
+on, which can be an earlier limit hit: it stands down when the session has moved past the limit, sleeps again when a
+later hit moved the reset, and otherwise wakes the session once per limit record.
 """
 import json
 import os
 import sys
+import tempfile
 import time
+from pathlib import Path
 
 OPT_IN = "CONTINUE_AT_USAGE_LIMIT"
 # Wake a little after the reset, so the first request does not race it.
@@ -27,6 +30,9 @@ MARGIN = 120
 MAX_WAIT = 24 * 3600
 # The hook can start before Claude Code has appended the rate-limit record.
 RECORD_POLLS = 10
+
+# One file per limit record that a hook has woken the session for, so a second hook waiting on it stays quiet.
+CLAIMS = Path(tempfile.gettempdir()) / "claude-usage-limit-continue"
 
 MESSAGE = "The usage limit has reset. Continue the task you were working on where it stopped."
 
@@ -57,6 +63,16 @@ def wait_seconds(resets_at, now):
     return resets_at - now + MARGIN
 
 
+def claim(key):
+    """True for the first hook to claim this limit record, False for every later one."""
+    CLAIMS.mkdir(parents=True, exist_ok=True)
+    try:
+        (CLAIMS / key).open("x").close()
+    except FileExistsError:
+        return False
+    return True
+
+
 def read_reply(path):
     try:
         with open(path, encoding="utf-8") as f:
@@ -78,9 +94,18 @@ def main():
         time.sleep(1)
     else:
         sys.exit(0)
-    time.sleep(wait)
-    latest = read_reply(path)
-    if not latest or latest.get("uuid") != record.get("uuid"):
+    while True:
+        time.sleep(wait)
+        record = read_reply(path)
+        resets_at = record and reset_time(record)
+        if not resets_at:
+            sys.exit(0)
+        if resets_at <= time.time():
+            break
+        wait = wait_seconds(resets_at, time.time())
+        if wait is None:
+            sys.exit(0)
+    if not claim(record.get("uuid") or str(resets_at)):
         sys.exit(0)
     print(MESSAGE, file=sys.stderr)
     sys.exit(2)

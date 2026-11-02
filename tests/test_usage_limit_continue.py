@@ -70,8 +70,16 @@ class WaitSecondsTests(unittest.TestCase):
 
 
 class MainTests(unittest.TestCase):
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        p = mock.patch.object(hook, "CLAIMS", Path(tmp.name) / "claims")
+        p.start()
+        self.addCleanup(p.stop)
+
     def run_main(self, transcript_before, transcript_after, env=None):
-        """Run the hook in-process. The transcript changes to `transcript_after` while it sleeps."""
+        """Run the hook in-process. The transcript changes to `transcript_after` while it sleeps, and the clock
+        advances by each sleep."""
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "t.jsonl"
             path.write_text("\n".join(transcript_before) + "\n")
@@ -85,7 +93,7 @@ class MainTests(unittest.TestCase):
                                   "transcript_path": str(path)})
             stderr = io.StringIO()
             with mock.patch.dict(hook.os.environ, env if env is not None else {hook.OPT_IN: "1"}, clear=True), \
-                    mock.patch.object(hook.time, "time", return_value=NOW), \
+                    mock.patch.object(hook.time, "time", side_effect=lambda: NOW + sum(slept)), \
                     mock.patch.object(hook.time, "sleep", side_effect=sleep), \
                     mock.patch.object(sys, "stdin", io.StringIO(payload)), \
                     mock.patch.object(sys, "stderr", stderr), \
@@ -104,7 +112,24 @@ class MainTests(unittest.TestCase):
         # The hook can start before the new rate-limit record lands; until then the last reply is an older limit hit.
         before = lines(limit("old", NOW - 100), {"type": "user", "uuid": "u"})
         code, slept, _ = self.run_main(before, before + lines(limit("new", NOW + 600)))
-        self.assertEqual((code, slept), (2, [1, 600 + hook.MARGIN]))
+        self.assertEqual((code, slept), (2, [1, 599 + hook.MARGIN]))
+
+    def test_wakes_when_it_started_on_a_stale_limit_with_a_future_reset(self):
+        # A prompt sent during the limit hits it again. Its hook can read the earlier limit record before the new
+        # one lands, and must still wake the session after the reset.
+        before = lines(limit("old", NOW + 600), {"type": "user", "uuid": "u"})
+        code, slept, _ = self.run_main(before, before + lines(limit("new", NOW + 600)))
+        self.assertEqual((code, slept), (2, [600 + hook.MARGIN]))
+
+    def test_waits_again_for_a_later_reset(self):
+        before = lines(limit("old", NOW + 600))
+        code, slept, _ = self.run_main(before, before + lines(limit("new", NOW + 3600)))
+        self.assertEqual((code, slept), (2, [600 + hook.MARGIN, 3600 - 600]))
+
+    def test_only_one_hook_wakes_the_session_per_limit_hit(self):
+        transcript = lines(limit("b", NOW + 600))
+        self.assertEqual(self.run_main(transcript, transcript)[0], 2)
+        self.assertEqual(self.run_main(transcript, transcript)[:3:2], (0, ""))
 
     def test_stays_quiet_when_the_session_moved_on(self):
         # The user prompted after the reset, or a later limit hit started its own wait.
