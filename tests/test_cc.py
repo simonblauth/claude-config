@@ -354,6 +354,16 @@ class MachineConfigTests(InstallBase):
     def test_no_config_adds_nothing(self):
         self.install()
         self.assertNotIn('Default reviewer', (cc.config_dir() / 'CLAUDE.md').read_text())
+        self.assertNotIn('StopFailure', json.loads((cc.config_dir() / 'settings.json').read_text())['hooks'])
+
+    def test_usage_limit_continue_hook_installs_when_configured(self):
+        self.configure('[hooks]\nusage_limit_continue = true\n')
+        self.install()
+        [group] = json.loads((cc.config_dir() / 'settings.json').read_text())['hooks']['StopFailure']
+        self.assertIn('hooks/usage_limit_continue.py', group['hooks'][0]['command'])
+        self.configure('[hooks]\nusage_limit_continue = false\n')
+        self.install()
+        self.assertNotIn('StopFailure', json.loads((cc.config_dir() / 'settings.json').read_text())['hooks'])
 
     def test_invalid_config_is_refused(self):
         for text in ('[review]\ndefault = "nobody"\n', 'reviewer = "codex"\n', '[[sources]]\nskills = "all"\n',
@@ -361,7 +371,8 @@ class MachineConfigTests(InstallBase):
                      '[vault]\ninputs = "mail"\n', '[vault]\nsources = ["mail"]\n',
                      'vars = ["a"]\n', 'review = "codex"\n', 'vault = "x"\n', 'sources = {repo = "x"}\n',
                      '[[sources]]\nrepo = "x"\nref = 1\nskills = "all"\n',
-                     '[[sources]]\nrepo = "x"\nrules = []\nskills = []\n'):
+                     '[[sources]]\nrepo = "x"\nrules = []\nskills = []\n',
+                     'hooks = true\n', '[hooks]\nusage_limit_continue = "yes"\n', '[hooks]\nother = true\n'):
             with self.subTest(text=text):
                 self.configure(text)
                 with self.assertRaisesRegex(ValueError, 'config.toml'):
