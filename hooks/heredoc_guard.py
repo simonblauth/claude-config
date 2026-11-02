@@ -33,8 +33,6 @@ UNQUOTED_REASON = (
 
 # `<<` or `<<-`, not the here-string `<<<`, then the whole delimiter word.
 OPERATOR = re.compile(r"(?<!<)<<(-?)[ \t]*([^\s;&|<>()]+)")
-# What runs in an unquoted body: an unescaped backtick, or an unescaped $( that is not arithmetic $((.
-RUNS = re.compile(r"(?<!\\)`|(?<!\\)\$\((?!\()")
 
 
 def heredocs(command: str) -> list[tuple[bool, list[str]]]:
@@ -56,9 +54,24 @@ def heredocs(command: str) -> list[tuple[bool, list[str]]]:
     return found
 
 
+def runs(line: str) -> bool:
+    """True when an unquoted heredoc body line holds a backtick or a $( that is not arithmetic $((. Each
+    backslash escapes the one character after it, so \\\\$( still runs."""
+    i = 0
+    while i < len(line):
+        c = line[i]
+        if c == "\\":
+            i += 2
+            continue
+        if c == "`" or (line.startswith("$(", i) and not line.startswith("$((", i)):
+            return True
+        i += 1
+    return False
+
+
 def runs_its_body(command: str) -> bool:
     """True when an unquoted heredoc body holds a span the shell would run."""
-    return any(not quoted and any(RUNS.search(line) for line in body) for quoted, body in heredocs(command))
+    return any(not quoted and any(runs(line) for line in body) for quoted, body in heredocs(command))
 
 
 def verdict(command: str, windows: bool = sys.platform == "win32"):

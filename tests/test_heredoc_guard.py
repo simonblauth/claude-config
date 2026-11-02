@@ -76,6 +76,12 @@ class UnquotedHeredocTests(unittest.TestCase):
             with self.subTest(cmd=cmd):
                 self.assertIsNone(guard.verdict(cmd, windows=False))
 
+    def test_an_escaped_backslash_leaves_the_span_live(self):
+        # Bash collapses \\ to \ in an unquoted body, so the $( and the backticks after it run.
+        for body in ("C:" + BS + BS + "$(echo RAN)", BS + BS + "`date" + BS + BS + "`", "$(( $(id -u) + 1 ))"):
+            with self.subTest(body=body):
+                self.assertIsNotNone(guard.verdict("cat <<EOF\n" + body + "\nEOF", windows=False))
+
     def test_second_unquoted_heredoc_on_a_line_is_read(self):
         self.assertIsNotNone(guard.verdict("cat <<'A' > a; cat <<B > b\nplain\nA\n`date`\nB", windows=False))
 
