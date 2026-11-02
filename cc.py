@@ -139,14 +139,18 @@ def verbatim(dest: Path) -> bool:
     return all(c in have for c in CLONE_CONFIG)
 
 
-def cache_path(repo: str) -> Path:
-    return CACHE / hashlib.sha256(repo.encode()).hexdigest()[:12]
+def cache_path(repo: str, ref: str | None = None) -> Path:
+    """Vendoring keys its clone by repo. A source keys its own by repo and ref, so two refs of one repo,
+    or a source on a vendored repo, never move each other's checkout."""
+    if ref is None:
+        return CACHE / hashlib.sha256(repo.encode()).hexdigest()[:12]
+    return CACHE / "sources" / hashlib.sha256(f"{repo}\n{ref}".encode()).hexdigest()[:12]
 
 
-def clone(repo: str, ref: str) -> Path:
+def clone(repo: str, ref: str, dest: Path | None = None) -> Path:
     """Shallow clone into the cache, or update an existing one."""
-    CACHE.mkdir(exist_ok=True)
-    dest = cache_path(repo)
+    dest = cache_path(repo) if dest is None else dest
+    dest.parent.mkdir(parents=True, exist_ok=True)
     # Setting the config leaves a checkout made before it untouched, endings
     # and all, so such a cache has to go.
     if dest.exists() and not verbatim(dest):
@@ -460,7 +464,9 @@ def source_checkouts(fetch: bool = False) -> list[tuple[dict, Path]]:
     """Each configured source with its cached clone. Without fetch, nothing touches the network."""
     out = []
     for source in machine_config()["sources"]:
-        dest = clone(source["repo"], source["ref"]) if fetch else cache_path(source["repo"])
+        dest = cache_path(source["repo"], source["ref"])
+        if fetch:
+            clone(source["repo"], source["ref"], dest)
         if not dest.exists():
             raise RuntimeError(f"source {source['repo']} is not cloned yet, run install")
         out.append((source, dest))
@@ -993,7 +999,7 @@ def check_upstream() -> list[str]:
 def check_sources() -> list[str]:
     out = []
     for source in machine_config()["sources"]:
-        repo, dest = source["repo"], cache_path(source["repo"])
+        repo, dest = source["repo"], cache_path(source["repo"], source["ref"])
         try:
             head = remote_sha(repo, source["ref"])
         except RuntimeError as e:

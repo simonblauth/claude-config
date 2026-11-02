@@ -287,6 +287,18 @@ class MachineConfigTests(InstallBase):
         self.install()
         self.assertIn('Stage data in none.', (cc.config_dir() / 'rules/compute.md').read_text())
 
+    def test_two_refs_of_one_repo_keep_their_own_checkouts(self):
+        self.git('checkout', '-q', '-b', 'dev')
+        self.write('skills/theirs/SKILL.md', '---\nname: theirs\ndescription: d\n---\n\nTheirs on dev.\n')
+        self.commit()
+        self.git('checkout', '-q', 'master')
+        uri = self.source.as_uri()
+        self.configure(f'[[sources]]\nrepo = "{uri}"\nref = "master"\nskills = ["theirs"]\n\n'
+                       f'[[sources]]\nrepo = "{uri}"\nref = "dev"\nskills = ["mine"]\n')
+        self.install()
+        self.assertIn('Theirs.', (cc.config_dir() / 'skills/theirs/SKILL.md').read_text())
+        self.assertEqual(cc.check_sources(), [])
+
     def test_source_changes_show_upstream_then_install(self):
         self.with_source()
         self.install()
