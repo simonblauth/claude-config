@@ -16,20 +16,49 @@ BS = chr(92)
 class VerdictTests(unittest.TestCase):
     def test_heredoc_with_double_backslash_is_refused(self):
         cmd = "python - <<'PY'\ns = \"" + BS + BS + "b\"\nPY"
-        self.assertIsNotNone(guard.verdict(cmd))
+        self.assertIsNotNone(guard.verdict(cmd, windows=True))
+
+    # Only the Windows Bash tool loses a backslash, so elsewhere a double one is plain text.
+    def test_double_backslash_passes_off_windows(self):
+        self.assertIsNone(guard.verdict("printf '%s' 'a" + BS + BS + "b'", windows=False))
 
     def test_heredoc_without_double_backslash_passes(self):
         cmd = "cat <<'EOF'\nplain text with one " + BS + "n\nEOF"
-        self.assertIsNone(guard.verdict(cmd))
+        self.assertIsNone(guard.verdict(cmd, windows=True))
 
     # Measured 2026-10-15: outside a heredoc too, printf '%s' 'a\\b' printed a\b, and a\\\\b arrived as a\\b.
     def test_double_backslash_without_heredoc_is_refused(self):
-        self.assertIsNotNone(guard.verdict("printf '%s' 'C:" + BS + BS + "Windows'"))
-        self.assertIsNotNone(guard.verdict("node -e 'x(\"" + BS + BS + "d\")'"))
-        self.assertIsNotNone(guard.verdict("grep x <<< 'a" + BS + BS + "b'"))
+        self.assertIsNotNone(guard.verdict("printf '%s' 'C:" + BS + BS + "Windows'", windows=True))
+        self.assertIsNotNone(guard.verdict("node -e 'x(\"" + BS + BS + "d\")'", windows=True))
+        self.assertIsNotNone(guard.verdict("grep x <<< 'a" + BS + BS + "b'", windows=True))
 
     def test_single_backslashes_pass(self):
-        self.assertIsNone(guard.verdict("printf 'a" + BS + "nb' && echo $((1 << 2))"))
+        self.assertIsNone(guard.verdict("printf 'a" + BS + "nb' && echo $((1 << 2))", windows=True))
+
+
+class UnquotedHeredocTests(unittest.TestCase):
+    """An unquoted heredoc delimiter lets the shell run backtick spans and $(...) in the body."""
+
+    def test_backtick_in_unquoted_heredoc_is_refused(self):
+        cmd = "gh pr create --body-file - <<EOF\nRun `julia` first.\nEOF"
+        self.assertIsNotNone(guard.verdict(cmd))
+
+    def test_command_substitution_in_unquoted_heredoc_is_refused(self):
+        self.assertIsNotNone(guard.verdict("cat <<-END\n\tnow $(date)\n\tEND"))
+
+    def test_quoted_delimiters_pass(self):
+        for op in ("<<'EOF'", '<<"EOF"', "<<" + BS + "EOF", "<< 'EOF'"):
+            with self.subTest(op=op):
+                self.assertIsNone(guard.verdict("cat " + op + "\nRun `julia` and $(date).\nEOF"))
+
+    def test_variable_expansion_passes(self):
+        self.assertIsNone(guard.verdict("cat <<EOF\nhome is $HOME and ${USER}\nEOF"))
+
+    def test_text_after_the_terminator_is_not_body(self):
+        self.assertIsNone(guard.verdict("cat <<EOF > f\nplain\nEOF\necho `date`"))
+
+    def test_here_string_is_not_a_heredoc(self):
+        self.assertIsNone(guard.verdict("grep x <<< \"`date`\""))
 
 
 class HookOutputTests(unittest.TestCase):
@@ -38,12 +67,12 @@ class HookOutputTests(unittest.TestCase):
         return subprocess.run([sys.executable, str(HOOK)], input=payload, capture_output=True, text=True)
 
     def test_refusal_is_a_pretooluse_deny_with_the_way_out(self):
-        res = self.run_hook("cat <<'EOF'\n" + BS + BS + "\nEOF")
+        res = self.run_hook("cat <<EOF\n`date`\nEOF")
         self.assertEqual(res.returncode, 0)
         out = json.loads(res.stdout)["hookSpecificOutput"]
         self.assertEqual(out["hookEventName"], "PreToolUse")
         self.assertEqual(out["permissionDecision"], "deny")
-        self.assertIn("Write", out["permissionDecisionReason"])
+        self.assertIn("<<'EOF'", out["permissionDecisionReason"])
 
     def test_allowed_command_prints_nothing(self):
         res = self.run_hook("ls -la")
@@ -71,7 +100,11 @@ class SettingsPrecheckTests(unittest.TestCase):
                               input=payload, capture_output=True, text=True)
 
     def test_double_backslash_outside_a_heredoc_reaches_the_hook(self):
-        res = self.run_precheck("printf '%s' 'a" + BS + BS + "b'",
+        res = self.run_precheck("printf '%s' 'a" + BS + BS + "b'", "echo started")
+        self.assertEqual(res.stdout.strip(), "started")
+
+    def test_unquoted_heredoc_reaches_the_hook(self):
+        res = self.run_precheck("cat <<EOF\n`date`\nEOF",
                                 '"' + Path(sys.executable).as_posix() + '" "' + HOOK.as_posix() + '"')
         self.assertEqual(json.loads(res.stdout)["hookSpecificOutput"]["permissionDecision"], "deny")
 

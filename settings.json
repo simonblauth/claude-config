@@ -142,7 +142,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "input=$(cat); b=$(printf '\\134'); case \"$input\" in *\"$b$b$b$b\"*) printf '%s' \"$input\" | \"{{UV}}\" run --script \"{{REPO}}/hooks/heredoc_guard.py\" ;; esac",
+            "command": "input=$(cat); b=$(printf '\\134'); case \"$input\" in *\"$b$b$b$b\"*|*\"<<\"*) printf '%s' \"$input\" | \"{{UV}}\" run --script \"{{REPO}}/hooks/heredoc_guard.py\" ;; esac",
             "timeout": 30
           }
         ]

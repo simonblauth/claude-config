@@ -541,8 +541,6 @@ def render_settings(cfg: Path) -> bytes:
     text = text.replace("{{UV}}", json_escape(uv_executable()))
     text = text.replace("{{REPO}}", json_escape(str(REPO)))
     planned = json.loads(text)
-    if not WINDOWS:
-        drop_hook(planned["hooks"], "PreToolUse", "heredoc_guard.py")
     installed = read_json(cfg / "settings.json")
     for key in SETTINGS_LOCAL_KEYS:
         if key in installed:
