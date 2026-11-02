@@ -22,7 +22,7 @@
   },
   "days": {
     "title": "Daily notes this week",
-    "description": "One row per item in this week's daily notes: brief items (agent or user), week outcomes, meetings, decisions, captures, Claude did, and the wrap's done and moves. Exported from daily/*.md.",
+    "description": "One row per item in this week's daily notes: brief items (ticked when done), week outcomes, meetings, decisions, captures, Claude did, and the wrap's done and moves. Exported from daily/*.md.",
     "name": "vault-days.json",
     "staleAfterHours": 24,
     "schedule": "Re-exported from the vault after each brief and wrap"

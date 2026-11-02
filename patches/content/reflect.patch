@@ -1,18 +1,20 @@
+diff --git a/SKILL.md b/SKILL.md
+index 12ebcb5..01c37b2 100644
 --- a/SKILL.md
 +++ b/SKILL.md
-@@ -47,13 +47,13 @@ One `Agent` call, `subagent_type: "general-purpose"`, with `model` from the `ref
+@@ -47,13 +47,13 @@ One `Agent` call, `subagent_type: "general-purpose"`, `model` from the `reflect
  
- ### 4. Structural enforcement check
+ ## 4. Structural enforcement check
  
--Sanity-check the synthesizer's Accepted list. For any item that would be enforced more reliably by a lint rule, script, metadata flag, or runtime check, move it from Accepted to Backlog. See the **encode-lessons-in-structure** principle skill.
-+Sanity-check the synthesizer's Accepted list. For any item that would be enforced more reliably by a lint rule, script, metadata flag, or runtime check, move it from Accepted to Backlog. Prefer an executable check to another prose rule when it can enforce the same lesson.
+-Move any Accepted item that a lint rule, script, metadata flag, or runtime check would enforce more reliably to Backlog. See the **encode-lessons-in-structure** principle skill.
++Move any Accepted item that a lint rule, script, metadata flag, or runtime check would enforce more reliably to Backlog. Prefer an executable check to another prose rule when it can enforce the same lesson.
  
- ### 5. Apply
+ ## 5. Apply
  
- Before applying any Accepted edit, present the synthesizer's full Accepted/Rejected/Backlog output to the user and wait for explicit approval. The user picks which subset to apply and may redirect routings. Skill changes affect every future agent in the org. Do not auto-apply.
+ Present the synthesizer's full Accepted / Rejected / Backlog output and wait for explicit approval before applying any Accepted edit. The user picks the subset and may redirect routings. Skill changes affect every future agent in the org. Do not auto-apply.
  
--Backlog items file to whatever devex / backlog tracker your team uses automatically. Only the Accepted list waits for approval.
+-File each Backlog item to your team's devex or backlog tracker without waiting. Only the Accepted list waits for approval.
 +Present Backlog items as proposals. File them only when the user authorizes that remote write.
  
- For each approved Accepted item, follow the Routing field exactly:
+ Follow each approved row's Routing exactly:
  

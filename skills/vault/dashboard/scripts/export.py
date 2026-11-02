@@ -26,7 +26,7 @@ TASK = re.compile(r"^- \[ \] (.*)$")
 LOG = re.compile(r"^- (\d{4}-\d{2}(?:-\d{2})?) (.*)$")
 TAG = re.compile(r"\s(?:@(\S+)|due:(\S+)|every:(\S+)|waiting:(\S+))")
 NUMBERED = re.compile(r"^\d+\. (.*)$")
-WHO = re.compile(r"^(agent|user) · \[\[([^\]|#]+)[^\]]*\]\]: (.*)$")
+PLAN = re.compile(r"^(\[x\] )?\[\[([^\]|#]+)[^\]]*\]\]: (.*)$")
 
 
 PART = re.compile(r"(?:^|[.!?]\s+)([^.!?]+):$")
@@ -178,12 +178,12 @@ def export_day(vault, path):
     date, rows = path.stem, []
     sec = sections(path.read_text(encoding="utf-8"))
 
-    def add(section, text, who="", shown=None):
+    def add(section, text, done=False, shown=None):
         rows.append({
             "id": f"{date}-{len(rows) + 1}",
             "date": date,
             "section": section,
-            "who": who,
+            "done": done,
             "project": vault.linked_project(text),
             "text": vault.plain(text if shown is None else shown),
         })
@@ -201,9 +201,9 @@ def export_day(vault, path):
             for decision in re.split(r"(?<=\.)\s+", line.removeprefix("Decisions:").strip()):
                 add("decision", decision)
         elif m := NUMBERED.match(line):
-            who = WHO.match(m.group(1)) if part == "brief" else None
-            if who:
-                add("brief", f"[[{who.group(2)}]]", who.group(1), shown=who.group(3))
+            plan = PLAN.match(m.group(1)) if part == "brief" else None
+            if plan:
+                add("brief", f"[[{plan.group(2)}]]", bool(plan.group(1)), shown=plan.group(3))
             else:
                 add(part, m.group(1))
 

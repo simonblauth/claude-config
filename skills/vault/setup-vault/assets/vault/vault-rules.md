@@ -65,8 +65,8 @@ Week plan confirmed. Outcomes for the week:
 
 Today:
 
-1. agent · [[parser-rewrite]]: profile the large input, as [[ada|Ada]] asked.
-2. user · [[parser-rewrite]]: mail the [[lab]] about the test data.
+1. [x] [[parser-rewrite]]: profile the large input, as [[ada|Ada]] asked.
+2. [[parser-rewrite]]: mail the [[lab]] about the test data.
 
 Meetings: Weekly sync 11:00, Review 14:00.
 
@@ -93,12 +93,29 @@ Moves to tomorrow:
 
 - `Outcomes for the week:`, `Today:`, `Done:`, and `Moves to tomorrow:` each end their line. A lead-in sentence may come before the label on the same line. The items follow as a list.
 - `Outcomes for the week:` appears only in the week's first brief, before `Today:`.
-- Each plan line under `Today:` is `agent` or `user`, then ` · `, the project link, `: `, and the thread.
+- Each plan line under `Today:` is the project link, `: `, and the thread. When a capture or the wrap records that the thread is done, put `[x] ` before the link.
 - `Meetings:` and `Decisions:` start their line and carry their items on it: meetings separated by commas, decisions as sentences. Leave the line out when it has no items.
 
 The end-of-week wrap rolls the daily notes into `journal/YYYY-Www.md` (ISO week) and deletes them. Each journal note has `## Done`, `## Decisions`, `## Claude did`, and `## Next week`. Status reports are built from the journal.
 
 `inbox.md` holds captures with no clear home. The wrap files or drops each one.
+
+## Inputs
+
+The brief and the wrap read the outside inputs this machine lists in `~/.config/claude-config/config.toml` (`$XDG_CONFIG_HOME/claude-config/config.toml` when that is set), and only those. Each vault clone lists its own, so the file stays outside the vault:
+
+```toml
+[vault]
+inputs = ["calendar", "mail", "teams", "github"]
+```
+
+- `calendar`: today's meetings.
+- `mail` and `teams`: threads that wait on the user, and the user's own replies.
+- `github`: the user's open PRs and review requests, and today's merged PRs and pushed commits, through `gh`.
+
+With no file or no list, read no outside input and say so in one line. Name each listed input that is unavailable in one line.
+
+A thread waits on the user when a person wrote it, it asks the user something or touches one of their projects, and neither Sent Items nor the user's own Teams messages hold a later reply to it.
 
 ## Act on your own only on clear evidence
 

@@ -35,7 +35,7 @@ Say in the step-9 hand-back that the issue closes when `<base>` is merged into t
 
 ## Step 8. Work the review
 
-The reviewer defaults to `copilot` on this forge. With `--reviewer subagent`, `claude` or `codex`, step 8 runs `review-loop` and this section contributes only its last part, [Any reviewer](#any-reviewer).
+Without `--reviewer`, the reviewer is the default the global instructions name for this machine, and `copilot` when they name none. With `--reviewer subagent`, `claude` or `codex`, step 8 runs `review-loop` and this section contributes only its last part, [Any reviewer](#any-reviewer).
 
 ### Copilot rounds
 

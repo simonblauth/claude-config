@@ -22,9 +22,11 @@ existing commands and hooks. `vendor` updates the shared sources for both.
 | --- | --- | --- |
 | Global instructions | `~/.claude/CLAUDE.md` | `~/.codex/AGENTS.md` |
 | Skills | `~/.claude/skills/` | `~/.agents/skills/` |
+| Rules (`rules/` and sources) | `~/.claude/rules/` | appended to `~/.codex/AGENTS.md` |
 | Settings | `~/.claude/settings.json` | `~/.codex/config.toml` |
 | Startup drift check | inside settings | `~/.codex/hooks.json` |
 | Bash guard (`hooks/heredoc_guard.py`) | inside settings | — |
+| Usage-limit continue (`hooks/usage_limit_continue.py`) | inside settings, opt-in | — |
 
 The guard refuses two kinds of Bash command:
 
@@ -37,6 +39,16 @@ The guard refuses two kinds of Bash command:
   Write and Edit tools instead.
 
 A shell pre-check starts the guard only for a command with `<<` or `\\`.
+
+Claude Code does not continue a task on its own after a usage limit resets in
+the sessions that `claude remote-control` serves. To make those sessions
+continue on a machine, turn the hook on in the [machine config](#machine-config)
+and install. The hook waits until the reset and wakes the session. It skips a
+reset more than 24 hours away, such as a weekly limit. It runs in every session
+on that machine, and stays quiet when the session has moved on by the time it
+wakes. So a terminal session that you stopped with Esc during Claude Code's own
+wait still continues 2 minutes after the reset.
+[Wait for a usage limit to reset](https://code.claude.com/docs/en/interactive-mode.md#wait-for-a-usage-limit-to-reset)
 
 `CLAUDE_CONFIG_DIR` and `CODEX_HOME` override the respective configuration roots.
 `CODEX_SKILLS_DIR` overrides this installer's Codex skill destination for testing
@@ -55,6 +67,58 @@ calendar day, and `--local-only` skips network checks. Startup hooks run the
 check with the appropriate target. **After installing Codex, review and trust
 its hook with `/hooks`**; Codex requires review again when the hook changes.
 [Codex hook documentation](https://learn.chatgpt.com/docs/hooks)
+
+### Machine config
+
+Settings that differ between machines live in `~/.config/claude-config/config.toml`
+(`$XDG_CONFIG_HOME/claude-config/config.toml` when that is set), outside the repo.
+A source can be a private repo, and naming it here would publish it. With no file,
+nothing changes.
+
+```toml
+[review]
+default = "subagent"            # copilot, subagent, claude or codex
+
+[vars]
+share_scratch = "/data/claude"  # fills {{share_scratch}} in rule files
+
+[vault]
+inputs = ["calendar", "github"]  # outside inputs the vault brief and wrap read
+
+[hooks]
+usage_limit_continue = true     # opt-in Claude hooks, off by default
+
+[[sources]]
+repo = "git@github.com:<owner>/<my-rules>.git"
+rules = "all"
+skills = "all"
+
+[[sources]]
+repo = "git@github.com:<owner>/<colleague-config>.git"
+ref = "main"                    # optional, defaults to the remote's default branch
+skills = ["some-skill", "another-skill"]
+```
+
+- `review.default` adds a line to both runtimes' global instructions. `issue-to-pr`
+  and `review-loop` take it as their reviewer when no `--reviewer` is given.
+- A source is a repo with `rules/` and `skills/<name>/SKILL.md` folders. It
+  installs only what `rules` and `skills` pick, each `"all"` or a list of names; a
+  rule's name is its path under `rules/` without `.md`. A source that picks nothing
+  or has neither folder is an error, and so is a name the source lacks or a file or skill that two places
+  provide. `install` clones or fetches each source into `.cache/`. Source skills
+  install as they are, without this repo's patches.
+- `[vault] inputs` lists the outside inputs the vault `brief` and `wrap` read on
+  this machine. The vault template's `vault-rules.md` names the inputs they know.
+- `[hooks]` turns on Claude hooks that most machines don't need. Each
+  installs into `settings.json` only when set to `true`. The one hook so far is
+  `usage_limit_continue`, described under [Install and check](#install-and-check).
+- `{{name}}` in a Markdown rule becomes the `[vars]` value of that name, or `none`
+  when it is not set.
+- Claude Code gets the rules in `~/.claude/rules/`. Codex has no path-scoped rules,
+  so each rule is appended to `AGENTS.md` with its frontmatter shown as written,
+  and a line saying it applies only to files matching the `paths` globs there.
+- `check` reads the cached clones, so `--local-only` stays offline. Without it,
+  `check` also reports a source with commits the cache lacks.
 
 ## Vault
 

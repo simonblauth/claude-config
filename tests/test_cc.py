@@ -13,8 +13,11 @@ from unittest.mock import patch
 
 import cc
 
+# Tests never read this machine's own config file.
+os.environ['XDG_CONFIG_HOME'] = tempfile.mkdtemp()
 
-class InstallTests(unittest.TestCase):
+
+class InstallBase(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
@@ -34,6 +37,8 @@ class InstallTests(unittest.TestCase):
             cc.cmd_install(argparse.Namespace(target=target))
         return output.getvalue()
 
+
+class InstallTests(InstallBase):
     def test_both_targets_and_repeat_install(self):
         self.install()
         for target in self.roots:
@@ -193,6 +198,197 @@ multi_agent = false
         with patch.object(cc, 'PATCHES', patches), self.assertRaisesRegex(RuntimeError, 'PATCH FAILED'):
             self.install()
         self.assertFalse(cc.config_dir().exists())
+
+
+class MachineConfigTests(InstallBase):
+    """The per-machine config file adds sources of rules and skills, variables and a default reviewer."""
+
+    def setUp(self):
+        super().setUp()
+        p = patch.object(cc, 'CACHE', self.base / 'cache')
+        p.start()
+        self.addCleanup(p.stop)
+        self.config = self.base / 'config.toml'
+        p = patch.object(cc, 'machine_config_path', lambda: self.config)
+        p.start()
+        self.addCleanup(p.stop)
+        self.source = self.base / 'src'
+        (self.source / 'rules').mkdir(parents=True)
+        self.git('init', '-q', '-b', 'master')
+        self.write('rules/julia.md', '---\npaths:\n  - "**/*.jl"\n  - "**/Project.toml"\n---\n\n# Julia\n\n- Use the project env.\n')
+        self.write('rules/compute.md', '# Compute\n\n- Stage data in {{share_scratch}}.\n')
+        self.write('skills/mine/SKILL.md', '---\nname: mine\ndescription: d\n---\n\nMine.\n')
+        self.write('skills/mine/references/r.md', 'ref\n')
+        self.write('skills/theirs/SKILL.md', '---\nname: theirs\ndescription: d\n---\n\nTheirs.\n')
+        self.commit()
+
+    def git(self, *args):
+        subprocess.run(['git', '-C', str(self.source), '-c', 'commit.gpgsign=false', '-c', 'user.name=t',
+                        '-c', 'user.email=t@t', *args], check=True, capture_output=True)
+
+    def write(self, rel, text):
+        path = self.source / rel
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text)
+
+    def commit(self):
+        self.git('add', '-A')
+        self.git('commit', '-q', '-m', 'change')
+
+    def configure(self, text):
+        self.config.write_text(text)
+
+    def with_source(self, select='rules = "all"\nskills = "all"\n', extra=''):
+        self.configure(extra + f'[[sources]]\nrepo = "{self.source.as_uri()}"\n' + select)
+
+    def test_rules_reach_both_targets(self):
+        self.with_source()
+        self.install()
+        claude = cc.config_dir()
+        self.assertIn('# Julia', (claude / 'rules/julia.md').read_text())
+        agents = (cc.config_dir('codex') / 'AGENTS.md').read_text()
+        self.assertIn('_From rules/julia.md, scoped by its frontmatter:_\n\n```yaml\npaths:\n  - "**/*.jl"', agents)
+        self.assertIn('- Use the project env.', agents)
+        self.assertEqual(agents.count('---\npaths:'), 0)
+        for target in self.roots:
+            self.assertEqual(cc.check_local(cc.config_dir(target), target), [])
+
+    def test_skills_reach_both_targets(self):
+        self.with_source()
+        self.install()
+        self.assertIn('Mine.', (cc.config_dir() / 'skills/mine/SKILL.md').read_text())
+        self.assertEqual((self.roots['codex']['skills'] / 'mine/references/r.md').read_text(), 'ref\n')
+
+    def test_only_the_named_skills_and_rules_install(self):
+        self.with_source('skills = ["theirs"]\nrules = ["julia"]\n')
+        self.install()
+        claude = cc.config_dir()
+        self.assertTrue((claude / 'skills/theirs/SKILL.md').exists())
+        self.assertFalse((claude / 'skills/mine').exists())
+        self.assertTrue((claude / 'rules/julia.md').exists())
+        self.assertFalse((claude / 'rules/compute.md').exists())
+
+    def test_a_source_picks_nothing_by_default(self):
+        self.with_source(select='')
+        with self.assertRaisesRegex(ValueError, 'config.toml'):
+            cc.machine_config()
+
+    def test_a_source_without_rules_or_skills_folders_stops_the_install(self):
+        self.git('mv', 'rules', 'rule')
+        self.git('mv', 'skills', 'skill')
+        self.commit()
+        self.with_source()
+        with self.assertRaisesRegex(RuntimeError, 'neither rules/ nor skills/'):
+            self.install()
+
+    def test_a_missing_name_stops_the_install(self):
+        self.with_source('skills = ["nope"]\n')
+        with self.assertRaisesRegex(RuntimeError, 'nope'):
+            self.install()
+
+    def test_vars_fill_rules_and_default_to_none(self):
+        self.with_source(extra='[vars]\nshare_scratch = "/data/claude"\n\n')
+        self.install()
+        self.assertIn('Stage data in /data/claude.', (cc.config_dir() / 'rules/compute.md').read_text())
+        self.assertIn('Stage data in /data/claude.', (cc.config_dir('codex') / 'AGENTS.md').read_text())
+        self.with_source()
+        self.install()
+        self.assertIn('Stage data in none.', (cc.config_dir() / 'rules/compute.md').read_text())
+
+    def test_two_refs_of_one_repo_keep_their_own_checkouts(self):
+        self.git('checkout', '-q', '-b', 'dev')
+        self.write('skills/theirs/SKILL.md', '---\nname: theirs\ndescription: d\n---\n\nTheirs on dev.\n')
+        self.commit()
+        self.git('checkout', '-q', 'master')
+        uri = self.source.as_uri()
+        self.configure(f'[[sources]]\nrepo = "{uri}"\nref = "master"\nskills = ["theirs"]\n\n'
+                       f'[[sources]]\nrepo = "{uri}"\nref = "dev"\nskills = ["mine"]\n')
+        self.install()
+        self.assertIn('Theirs.', (cc.config_dir() / 'skills/theirs/SKILL.md').read_text())
+        self.assertEqual(cc.check_sources(), [])
+
+    def test_frontmatter_passes_through_as_written(self):
+        for text, front, body in (
+            ('---\npaths: [\n  "a",  # why\n  "b"\n]\n---\n# X\n', 'paths: [\n  "a",  # why\n  "b"\n]', '# X\n'),
+            ('---\r\npaths:\r\n  - "a"\r\n---\r\nbody\r\n', 'paths:\r\n  - "a"', 'body\r\n'),
+            ('---\npaths: "a"\n---', 'paths: "a"', ''),
+            ('# No frontmatter\n', '', '# No frontmatter\n'),
+            ('---\nunclosed\n', '', '---\nunclosed\n'),
+        ):
+            with self.subTest(text=text):
+                self.assertEqual(cc.split_frontmatter(text), (front, body))
+
+    def test_a_rule_without_paths_applies_everywhere_in_codex(self):
+        self.with_source()
+        self.install()
+        self.assertIn('_From rules/compute.md, applies everywhere._', (cc.config_dir('codex') / 'AGENTS.md').read_text())
+
+    def test_source_changes_show_upstream_then_install(self):
+        self.with_source()
+        self.install()
+        self.assertEqual(cc.check_sources(), [])
+        (self.source / 'rules' / 'compute.md').unlink()
+        self.write('rules/julia.md', '# Julia\n\n- Changed.\n')
+        self.commit()
+        self.assertEqual(len(cc.check_sources()), 1)
+        self.install()
+        claude = cc.config_dir()
+        self.assertIn('Changed.', (claude / 'rules/julia.md').read_text())
+        self.assertFalse((claude / 'rules/compute.md').exists())
+
+    def test_missing_clone_is_drift_not_a_crash(self):
+        self.with_source()
+        self.assertTrue(any('run install' in line for line in cc.check_local(cc.config_dir(), 'claude')))
+
+    def test_default_reviewer_reaches_the_instructions(self):
+        self.configure('[review]\ndefault = "codex"\n')
+        self.install()
+        for target, name in (('claude', 'CLAUDE.md'), ('codex', 'AGENTS.md')):
+            self.assertIn('Default reviewer for `issue-to-pr` and `review-loop`: `codex`',
+                          (cc.config_dir(target) / name).read_text())
+
+    def test_vault_inputs_are_accepted(self):
+        self.configure('[vault]\ninputs = ["calendar", "github"]\n')
+        self.assertEqual(cc.machine_config()['vault'], {'inputs': ['calendar', 'github']})
+
+    def test_no_config_adds_nothing(self):
+        self.install()
+        self.assertNotIn('Default reviewer', (cc.config_dir() / 'CLAUDE.md').read_text())
+        self.assertNotIn('StopFailure', json.loads((cc.config_dir() / 'settings.json').read_text())['hooks'])
+
+    def test_usage_limit_continue_hook_installs_when_configured(self):
+        self.configure('[hooks]\nusage_limit_continue = true\n')
+        self.install()
+        [group] = json.loads((cc.config_dir() / 'settings.json').read_text())['hooks']['StopFailure']
+        self.assertIn('hooks/usage_limit_continue.py', group['hooks'][0]['command'])
+        self.configure('[hooks]\nusage_limit_continue = false\n')
+        self.install()
+        self.assertNotIn('StopFailure', json.loads((cc.config_dir() / 'settings.json').read_text())['hooks'])
+
+    def test_invalid_config_is_refused(self):
+        for text in ('[review]\ndefault = "nobody"\n', 'reviewer = "codex"\n', '[[sources]]\nskills = "all"\n',
+                     '[[sources]]\nrepo = "x"\nskills = "some"\n', '[vars]\nn = 1\n',
+                     '[vault]\ninputs = "mail"\n', '[vault]\nsources = ["mail"]\n',
+                     'vars = ["a"]\n', 'review = "codex"\n', 'vault = "x"\n', 'sources = {repo = "x"}\n',
+                     '[[sources]]\nrepo = "x"\nref = 1\nskills = "all"\n',
+                     '[[sources]]\nrepo = "x"\nrules = []\nskills = []\n',
+                     'hooks = true\n', '[hooks]\nusage_limit_continue = "yes"\n', '[hooks]\nother = true\n'):
+            with self.subTest(text=text):
+                self.configure(text)
+                with self.assertRaisesRegex(ValueError, 'config.toml'):
+                    cc.machine_config()
+
+    def test_a_rule_from_two_places_fails(self):
+        self.with_source()
+        with patch.object(cc, 'RULES', self.source / 'rules'), self.assertRaisesRegex(RuntimeError, 'comes from both'):
+            self.install()
+
+    def test_a_skill_this_repo_has_fails(self):
+        self.write('skills/tdd/SKILL.md', '---\nname: tdd\ndescription: d\n---\n')
+        self.commit()
+        self.with_source('skills = ["tdd"]\n')
+        with self.assertRaisesRegex(RuntimeError, 'tdd'):
+            self.install()
 
 
 class SettingsTests(unittest.TestCase):

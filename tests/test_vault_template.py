@@ -58,7 +58,7 @@ class TemplateTests(unittest.TestCase):
         days = json.loads((out / 'vault-days.json').read_text())
         sections = {r['section'] for r in days}
         self.assertEqual(sections, {'outcome', 'brief', 'meeting', 'decision', 'capture', 'claude_did', 'done', 'moves'})
-        self.assertEqual([r['who'] for r in days if r['section'] == 'brief'], ['agent', 'user'])
+        self.assertEqual([r['done'] for r in days if r['section'] == 'brief'], [True, False])
 
 
 if __name__ == '__main__':
