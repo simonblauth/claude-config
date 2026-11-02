@@ -27,7 +27,7 @@ Arguments:
 
 - `--parallel N`: subagents running at once. Default 3.
 - `--max N`: targets per run. Default 10. A selection larger than `--max` keeps the first N in step 2's order and names the rest in the summary.
-- `--dry-run`: run steps 0 to 2, print the targets and the labels step 3 would create, and stop.
+- `--dry-run`: run steps 0 to 2 and stop, writing nothing. It prints the targets, and every write a real run would make in steps 2 and 3: stale claims cleared, issues handed back for a failed dependency, labels created.
 - Anything else after the skill name passes through to the skill, for example `quick` or `modernize` for `improve`.
 
 GitHub only. GitLab scopes stop at step 0 with that reason.
@@ -76,7 +76,7 @@ Order repo targets by `pushedAt`, most recent first, and issue targets by `creat
 
 ### Labels
 
-Only a repo with a selected target gets labels, so a scope of many quiet repos costs no writes. Make sure each such repo has the label set below. Read its labels with `gh label list -R <repo> --limit 200 --json name`, and compare names ignoring case, as GitHub does. Create each missing label with `gh label create <name> -R <repo> --color <color> --description "<description>"`. Leave existing labels as they are: no `--force`, no edits, no deletes. Under `--dry-run`, read the labels and list the ones a real run would create, without creating them.
+Only a repo with a selected target gets labels, so a scope of many quiet repos costs no writes. Make sure each such repo has the label set below. Read its labels with `gh label list -R <repo> --limit 200 --json name`, and compare names ignoring case, as GitHub does. Create each missing label with `gh label create <name> -R <repo> --color <color> --description "<description>"`. Leave existing labels as they are: no `--force`, no edits, no deletes.
 
 | Label | Color | Description |
 |---|---|---|
