@@ -311,13 +311,18 @@ class MachineConfigTests(InstallBase):
             self.assertIn('Default reviewer for `issue-to-pr` and `review-loop`: `codex`',
                           (cc.config_dir(target) / name).read_text())
 
+    def test_vault_inputs_are_accepted(self):
+        self.configure('[vault]\ninputs = ["calendar", "github"]\n')
+        self.assertEqual(cc.machine_config()['vault'], {'inputs': ['calendar', 'github']})
+
     def test_no_config_adds_nothing(self):
         self.install()
         self.assertNotIn('Default reviewer', (cc.config_dir() / 'CLAUDE.md').read_text())
 
     def test_invalid_config_is_refused(self):
         for text in ('[review]\ndefault = "nobody"\n', 'reviewer = "codex"\n', '[[sources]]\nskills = "all"\n',
-                     '[[sources]]\nrepo = "x"\nskills = "some"\n', '[vars]\nn = 1\n'):
+                     '[[sources]]\nrepo = "x"\nskills = "some"\n', '[vars]\nn = 1\n',
+                     '[vault]\ninputs = "mail"\n', '[vault]\nsources = ["mail"]\n'):
             with self.subTest(text=text):
                 self.configure(text)
                 with self.assertRaisesRegex(ValueError, 'config.toml'):

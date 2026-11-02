@@ -425,12 +425,12 @@ def machine_config() -> dict:
     """This machine's settings. They live outside the repo, so the public repo never names a private source."""
     path = machine_config_path()
     if not path.exists():
-        return {"review": {}, "vars": {}, "sources": []}
+        return {"review": {}, "vars": {}, "vault": {}, "sources": []}
     try:
         data = tomllib.loads(path.read_text(encoding="utf-8"))
     except tomllib.TOMLDecodeError as e:
         raise ValueError(f"{path}: {e}") from e
-    unknown = set(data) - {"review", "vars", "sources"}
+    unknown = set(data) - {"review", "vars", "vault", "sources"}
     if unknown:
         raise ValueError(f"{path}: unknown key(s) {', '.join(sorted(unknown))}")
     review = data.get("review", {})
@@ -439,6 +439,11 @@ def machine_config() -> dict:
     variables = data.get("vars", {})
     if not all(isinstance(v, str) for v in variables.values()):
         raise ValueError(f"{path}: every [vars] value is a string")
+    # The vault skills read [vault]; vault-rules.md names the inputs they know.
+    vault = data.get("vault", {})
+    inputs = vault.get("inputs", [])
+    if set(vault) - {"inputs"} or not isinstance(inputs, list) or not all(isinstance(i, str) for i in inputs):
+        raise ValueError(f"{path}: [vault] takes only inputs, a list of names")
     sources = data.get("sources", [])
     for source in sources:
         if not isinstance(source.get("repo"), str) or set(source) - {"repo", "ref", "rules", "skills"}:
@@ -448,7 +453,7 @@ def machine_config() -> dict:
         source.setdefault("ref", "HEAD")
         source["rules"] = selection(source.get("rules", []), path, "rules")
         source["skills"] = selection(source.get("skills", []), path, "skills")
-    return {"review": review, "vars": variables, "sources": sources}
+    return {"review": review, "vars": variables, "vault": vault, "sources": sources}
 
 
 def source_checkouts(fetch: bool = False) -> list[tuple[dict, Path]]:

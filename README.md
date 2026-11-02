@@ -65,6 +65,9 @@ default = "subagent"            # copilot, subagent, claude or codex
 [vars]
 share_scratch = "/data/claude"  # fills {{share_scratch}} in rule files
 
+[vault]
+inputs = ["calendar", "github"]  # outside inputs the vault brief and wrap read
+
 [[sources]]
 repo = "git@github.com:<owner>/<my-rules>.git"
 rules = "all"
@@ -84,6 +87,8 @@ skills = ["some-skill", "another-skill"]
   is an error, and so is a name the source lacks or a file or skill that two places
   provide. `install` clones or fetches each source into `.cache/`. Source skills
   install as they are, without this repo's patches.
+- `[vault] inputs` lists the outside inputs the vault `brief` and `wrap` read on
+  this machine. The vault template's `vault-rules.md` names the inputs they know.
 - `{{name}}` in a Markdown rule becomes the `[vars]` value of that name, or `none`
   when it is not set.
 - Claude Code gets the rules in `~/.claude/rules/`. Codex has no path-scoped rules,
