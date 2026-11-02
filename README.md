@@ -24,13 +24,19 @@ existing commands and hooks. `vendor` updates the shared sources for both.
 | Skills | `~/.claude/skills/` | `~/.agents/skills/` |
 | Settings | `~/.claude/settings.json` | `~/.codex/config.toml` |
 | Startup drift check | inside settings | `~/.codex/hooks.json` |
-| Backslash guard (`hooks/heredoc_guard.py`) | inside settings, Windows only | — |
+| Bash guard (`hooks/heredoc_guard.py`) | inside settings | — |
 
-On Windows the Bash tool turns every `\\` into `\`, in a heredoc as well as in
-quotes and arguments, which silently corrupts string literals, regexes and
-paths. There the guard refuses a Bash command that has a double backslash and
-points to the Write and Edit tools instead. A shell pre-check starts the guard
-only for a command with `\\`. Other systems do not get the guard.
+The guard refuses two kinds of Bash command:
+
+- A heredoc whose delimiter is unquoted and whose body holds a backtick or `$(`.
+  The shell runs those spans, so Markdown fed to `gh` that way runs the commands
+  its code spans name. The refusal says to quote the delimiter (`<<'EOF'`).
+- On Windows only, a command with a double backslash. There the Bash tool turns
+  every `\\` into `\`, in a heredoc as well as in quotes and arguments, which
+  silently corrupts string literals, regexes and paths. The refusal points to the
+  Write and Edit tools instead.
+
+A shell pre-check starts the guard only for a command with `<<` or `\\`.
 
 `CLAUDE_CONFIG_DIR` and `CODEX_HOME` override the respective configuration roots.
 `CODEX_SKILLS_DIR` overrides this installer's Codex skill destination for testing
