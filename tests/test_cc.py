@@ -247,9 +247,9 @@ class MachineConfigTests(InstallBase):
         claude = cc.config_dir()
         self.assertIn('# Julia', (claude / 'rules/julia.md').read_text())
         agents = (cc.config_dir('codex') / 'AGENTS.md').read_text()
-        self.assertIn('`**/*.jl`, `**/Project.toml`', agents)
+        self.assertIn('_From rules/julia.md, scoped by its frontmatter:_\n\n```yaml\npaths:\n  - "**/*.jl"', agents)
         self.assertIn('- Use the project env.', agents)
-        self.assertNotIn('- "**/*.jl"', agents)
+        self.assertEqual(agents.count('---\npaths:'), 0)
         for target in self.roots:
             self.assertEqual(cc.check_local(cc.config_dir(target), target), [])
 
@@ -299,15 +299,16 @@ class MachineConfigTests(InstallBase):
         self.assertIn('Theirs.', (cc.config_dir() / 'skills/theirs/SKILL.md').read_text())
         self.assertEqual(cc.check_sources(), [])
 
-    def test_every_paths_form_keeps_its_scope_in_codex(self):
-        for front in ('paths: ["**/*.jl", "**/Project.toml"]', "paths: ['**/*.jl', '**/Project.toml']",
-                      'paths:\n  - "**/*.jl"\n  - **/Project.toml'):
-            with self.subTest(front=front):
-                self.assertEqual(cc.split_frontmatter(f'---\n{front}\n---\n# X\n'),
-                                 (['**/*.jl', '**/Project.toml'], '# X\n'))
-        self.assertEqual(cc.split_frontmatter('---\npaths: "**/*.py"\n---\n# X\n'), (['**/*.py'], '# X\n'))
-        self.assertEqual(cc.split_frontmatter('---\npaths: ["src/**/*.{ts,tsx}"]\n---\n'), (['src/**/*.{ts,tsx}'], ''))
-        self.assertEqual(cc.split_frontmatter('---\npaths:\n  - "*.py"\n---'), (['*.py'], ''))
+    def test_frontmatter_passes_through_as_written(self):
+        for text, front, body in (
+            ('---\npaths: [\n  "a",  # why\n  "b"\n]\n---\n# X\n', 'paths: [\n  "a",  # why\n  "b"\n]', '# X\n'),
+            ('---\r\npaths:\r\n  - "a"\r\n---\r\nbody\r\n', 'paths:\r\n  - "a"', 'body\r\n'),
+            ('---\npaths: "a"\n---', 'paths: "a"', ''),
+            ('# No frontmatter\n', '', '# No frontmatter\n'),
+            ('---\nunclosed\n', '', '---\nunclosed\n'),
+        ):
+            with self.subTest(text=text):
+                self.assertEqual(cc.split_frontmatter(text), (front, body))
 
     def test_a_rule_without_paths_applies_everywhere_in_codex(self):
         self.with_source()

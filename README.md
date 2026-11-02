@@ -92,7 +92,8 @@ skills = ["some-skill", "another-skill"]
 - `{{name}}` in a Markdown rule becomes the `[vars]` value of that name, or `none`
   when it is not set.
 - Claude Code gets the rules in `~/.claude/rules/`. Codex has no path-scoped rules,
-  so each rule is appended to `AGENTS.md` with its `paths:` written out.
+  so each rule is appended to `AGENTS.md` with its frontmatter shown as written,
+  and a line saying it applies only to files matching the `paths` globs there.
 - `check` reads the cached clones, so `--local-only` stays offline. Without it,
   `check` also reports a source with commits the cache lacks.
 

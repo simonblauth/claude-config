@@ -519,45 +519,29 @@ def rule_files(checkouts: list[tuple[dict, Path]]) -> dict[str, bytes]:
     return out
 
 
-def split_frontmatter(text: str) -> tuple[list[str], str]:
-    """The `paths:` globs of a rule file, and its body without the frontmatter. `paths:` may be a block
-    list, an inline `[...]` list or one string, the YAML forms a rule file uses."""
-    if not text.startswith("---\n"):
-        return [], text
-    end = text.find("\n---\n", 3)
-    if end < 0 and text.endswith("\n---"):
-        end = len(text) - 4
-    if end < 0:
-        return [], text
-    unquote = lambda s: s.strip().strip("'\"")
-    paths, in_paths = [], False
-    for line in text[4:end].splitlines():
-        key, _, rest = line.partition(":")
-        if key == "paths":
-            rest = rest.strip()
-            in_paths = not rest
-            if rest.startswith("[") and rest.endswith("]"):
-                quoted = re.findall(r"\"([^\"]*)\"|'([^']*)'", rest[1:-1])
-                paths += ([a or b for a, b in quoted] if quoted
-                          else [unquote(p) for p in rest[1:-1].split(",") if unquote(p)])
-            elif rest:
-                paths.append(unquote(rest))
-        elif in_paths and line.lstrip().startswith("- "):
-            paths.append(unquote(line.lstrip()[2:]))
-        else:
-            in_paths = False
-    return paths, text[end + 5:]
+FRONTMATTER = re.compile(r"---\r?\n(.*?)\r?\n---[ \t]*(?:\r?\n|$)", re.DOTALL)
+
+
+def split_frontmatter(text: str) -> tuple[str, str]:
+    """A rule file's frontmatter as written, and its body. Only the delimiters are read: the YAML passes to
+    Codex unparsed, because every hand-parsed subset of it misread some valid form."""
+    m = FRONTMATTER.match(text)
+    return (m.group(1), text[m.end():]) if m else ("", text)
 
 
 def codex_rules(rules: dict[str, bytes]) -> list[str]:
-    """Codex has no path-scoped rules, so each file joins AGENTS.md with its scope written out."""
+    """Codex has no path-scoped rules, so each file joins AGENTS.md with its frontmatter shown as the scope."""
     parts = []
     for rel, data in sorted(rules.items()):
         if not rel.endswith(".md"):
             continue
-        paths, body = split_frontmatter(data.decode("utf-8"))
-        scope = ("for files matching " + ", ".join(f"`{p}`" for p in paths)) if paths else "everywhere"
-        parts.append(f"_From rules/{rel}, applies {scope}._\n\n{body.strip()}")
+        front, body = split_frontmatter(data.decode("utf-8"))
+        if front:
+            scope = (f"_From rules/{rel}, scoped by its frontmatter:_\n\n```yaml\n{front}\n```\n\n"
+                     "_It applies only to files matching the `paths` globs there, and everywhere when there are none._")
+        else:
+            scope = f"_From rules/{rel}, applies everywhere._"
+        parts.append(f"{scope}\n\n{body.strip()}")
     return parts
 
 
