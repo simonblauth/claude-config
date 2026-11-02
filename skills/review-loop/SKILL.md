@@ -41,7 +41,7 @@ With a number, resolve the forge the way step 0 of the installed `issue-to-pr` s
 
 ## 2. Round loop, budget 3
 
-`--reviewer` picks who reviews. The default, `subagent`, follows [runtime guidance](references/runtime.md). `claude` or `codex` puts another model family on the review and follows [cross-model dispatch](references/cross-model.md); naming the runtime you are running in means `subagent`.
+`--reviewer` picks who reviews. Without it, the reviewer is the default the global instructions name for this machine, and `subagent` when they name none or name `copilot`, which this loop does not run. `subagent` follows [runtime guidance](references/runtime.md). `claude` or `codex` puts another model family on the review and follows [cross-model dispatch](references/cross-model.md); naming the runtime you are running in means `subagent`.
 
 Each round starts **one fresh** reviewer, passing [reviewer.md](reviewer.md) verbatim with its placeholders filled. Resolve that file to an absolute path from this skill's installed directory, not the target repository.
 
