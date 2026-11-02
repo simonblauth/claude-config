@@ -37,7 +37,9 @@ OPERATOR = re.compile(r"(?<!<)<<(-?)[ \t]*([^\s;&|<>()]+)")
 
 def heredocs(command: str) -> list[tuple[bool, list[str]]]:
     """Each heredoc bash would read, as (quoted, body lines). Bodies follow the line that opens them, in
-    order. A `<<` with no terminator line is arithmetic, a comment or text, not a heredoc to judge."""
+    order. A `<<` with no terminator line is skipped, because arithmetic, comments and text hold `<<` too.
+    That leaves a known gap: bash reads an unterminated heredoc to the end of the command and runs its body,
+    and a terminator line with trailing whitespace or a CR does not end one."""
     lines = command.split("\n")
     found, i = [], 0
     while i < len(lines):
