@@ -22,6 +22,8 @@ A capture is a quick save. Interrupt the user's current work as little as possib
    | Anything with no clear project | `inbox.md`, as a dated line |
 
    Keep the user's wording. Add `due:` or `@owner` only when the user gave them.
+
+   When an item reports that a thread of today's Brief is done, also tick that plan line, as `CLAUDE.md` says.
 3. Add one line per item under `## Captures` in today's daily note, linking to where the item went. If the note does not exist, create it with the sections from `CLAUDE.md`, all empty except Captures.
 4. Commit all items from one message as one commit, `Capture: <short summary>`, and push.
 5. Reply with one line per item, naming where it went. Then return to the work at hand.
