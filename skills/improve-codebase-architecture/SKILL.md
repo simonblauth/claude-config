@@ -74,7 +74,7 @@ Side effects happen inline as decisions crystallize; load and follow the skill "
 
 When the `dispatch` skill started this run, no user is present. Step 1 runs as written. Step 2 files issues instead of writing the report, and step 3 does not run: the grilling belongs to whoever picks the issue up.
 
-1. Read every issue labelled `source:architecture`, open and closed: `gh issue list --label source:architecture --state all --limit 500 --json number,title,state,stateReason,body`. Drop a candidate that an open issue covers, or that a closed issue rejected (`stateReason` is `NOT_PLANNED`).
+1. Read every issue labelled `source:architecture`, open and closed: `gh issue list --label source:architecture --state all --limit 500 --json number,title,state,stateReason,body`. Drop a candidate that an open issue covers, or that a closed issue rejected (`stateReason` is `NOT_PLANNED`). Read the open pull requests too, with `gh pr list --state open --limit 200 --json number,title,body,files`, and drop a candidate that one already carries out, naming the pull request in the report.
 2. Rank the remaining candidates the way the report's **Top recommendation** would. File the `Strong` candidates, at most 3, as issues with `gh issue create --label source:architecture --label needs-triage`.
 3. Each issue body carries the report card as text: **Files**, **Problem**, **Solution**, **Benefits** and **Recommendation strength**, in the domain and design vocabulary above. Add `Planned at: commit <short SHA>, <date>` and a drift check that triage can run: `git diff --stat <SHA>..HEAD -- <files>`. Leave interfaces out, as step 2 does.
 4. Report the candidates you did not file, with their strength.
