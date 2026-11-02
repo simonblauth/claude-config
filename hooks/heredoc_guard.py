@@ -31,24 +31,34 @@ UNQUOTED_REASON = (
     "Quote the delimiter (<<'EOF') to keep the body literal."
 )
 
-# `<<` or `<<-`, not the here-string `<<<`, then the delimiter word with its quoting.
-HEREDOC = re.compile(r"(?<!<)<<(-?)[ \t]*(['\"]?)(\\?)([A-Za-z_][A-Za-z0-9_]*)\2")
+# `<<` or `<<-`, not the here-string `<<<`, then the whole delimiter word.
+OPERATOR = re.compile(r"(?<!<)<<(-?)[ \t]*([^\s;&|<>()]+)")
+# What runs in an unquoted body: an unescaped backtick, or an unescaped $( that is not arithmetic $((.
+RUNS = re.compile(r"(?<!\\)`|(?<!\\)\$\((?!\()")
+
+
+def heredocs(command: str) -> list[tuple[bool, list[str]]]:
+    """Each heredoc bash would read, as (quoted, body lines). Bodies follow the line that opens them, in
+    order. A `<<` with no terminator line is arithmetic, a comment or text, not a heredoc to judge."""
+    lines = command.split("\n")
+    found, i = [], 0
+    while i < len(lines):
+        opened = [(m.group(1) == "-", m.group(2)) for m in OPERATOR.finditer(lines[i])]
+        i += 1
+        for strip_tabs, word in opened:
+            # Any quote or backslash in the word makes bash read the whole body literally.
+            terminator = re.sub(r"[\'\"\\]", "", word)
+            for j in range(i, len(lines)):
+                if (lines[j].lstrip("\t") if strip_tabs else lines[j]) == terminator:
+                    found.append((terminator != word, lines[i:j]))
+                    i = j + 1
+                    break
+    return found
 
 
 def runs_its_body(command: str) -> bool:
-    """True when an unquoted heredoc body holds a backtick or $(...)."""
-    lines = command.split("\n")
-    for i, line in enumerate(lines):
-        for m in HEREDOC.finditer(line):
-            strip_tabs, quote, escape, word = m.groups()
-            if quote or escape:
-                continue
-            for body_line in lines[i + 1:]:
-                if (body_line.lstrip("\t") if strip_tabs else body_line) == word:
-                    break
-                if "`" in body_line or "$(" in body_line:
-                    return True
-    return False
+    """True when an unquoted heredoc body holds a span the shell would run."""
+    return any(not quoted and any(RUNS.search(line) for line in body) for quoted, body in heredocs(command))
 
 
 def verdict(command: str, windows: bool = sys.platform == "win32"):

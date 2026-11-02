@@ -57,6 +57,28 @@ class UnquotedHeredocTests(unittest.TestCase):
     def test_text_after_the_terminator_is_not_body(self):
         self.assertIsNone(guard.verdict("cat <<EOF > f\nplain\nEOF\necho `date`"))
 
+    def test_commands_without_an_unquoted_heredoc_pass(self):
+        """None of these feeds an unquoted heredoc body to the shell, so none may be refused."""
+        for cmd in (
+            "mask=$((1 << bits))\nsha=$(git rev-parse HEAD)",
+            "python3 - <<'PY'\nx = 1 <<n\nPY\nsha=$(git rev-parse HEAD)",
+            "# send via <<EOF\nsha=$(git rev-parse HEAD)",
+            "cat <<'A' > a; cat <<B > b\n`date`\nA\nplain $HOME\nB",
+            "cat <<E'OF'\n`date`\nEOF",
+            "cat <<END-1\nx\nEND-1\necho `date`",
+        ):
+            with self.subTest(cmd=cmd):
+                self.assertIsNone(guard.verdict(cmd, windows=False))
+
+    def test_escaped_spans_and_arithmetic_in_a_body_pass(self):
+        for cmd in ("cat <<EOF\nliteral " + BS + "`x" + BS + "` and $HOME\nEOF",
+                    "cat <<EOF\nnext: $((n+1)) and " + BS + "$(not run)\nEOF"):
+            with self.subTest(cmd=cmd):
+                self.assertIsNone(guard.verdict(cmd, windows=False))
+
+    def test_second_unquoted_heredoc_on_a_line_is_read(self):
+        self.assertIsNotNone(guard.verdict("cat <<'A' > a; cat <<B > b\nplain\nA\n`date`\nB", windows=False))
+
     def test_here_string_is_not_a_heredoc(self):
         self.assertIsNone(guard.verdict("grep x <<< \"`date`\""))
 
