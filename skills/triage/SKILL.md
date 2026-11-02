@@ -45,7 +45,7 @@ One **source** role, on issues an agent skill filed:
 - `source:improve`: filed by the `improve` skill
 - `source:architecture`: filed by the `improve-codebase-architecture` skill
 
-An issue with a source role already carries an implementation plan as its body, stamped with the commit it was written against. An issue without one was filed by a person.
+An issue with a source role carries that skill's write-up as its body, stamped with the commit it was written against and a drift check. From `improve` the write-up is an implementation plan. From `improve-codebase-architecture` it is a proposed direction with the interfaces still open. An issue without a source role was filed by a person.
 
 Every triaged issue should carry exactly one category role and one state role, plus its source role if it has one. If state roles conflict, flag it and ask the maintainer before doing anything else.
 
@@ -83,7 +83,7 @@ Show counts and a one-line summary per item. Let the maintainer pick.
 4. **Grill (if needed).** If the request needs fleshing out, load and follow the skills "grilling" and "domain-modeling", and grill it into shape a round of questions at a time, sharpening domain terms and updating `GLOSSARY.md`/ADRs inline as decisions land.
 
 5. **Apply the outcome:**
-   - `ready-for-agent`: post an agent brief comment ([AGENT-BRIEF.md](AGENT-BRIEF.md)). For an issue with a source role, the plan in its body is the brief: run the plan's drift check against the default branch instead, and post a comment that corrects only what has drifted. A plan whose premise no longer holds is a `wontfix` (already implemented) or goes back to `needs-triage` with what changed.
+   - `ready-for-agent`: post an agent brief comment ([AGENT-BRIEF.md](AGENT-BRIEF.md)). For a `source:improve` issue, the plan in its body is the brief: run the plan's drift check against the default branch instead, and post a comment that corrects only what has drifted. A wrong **Depends on** or **Base** line counts as drift: restate the whole corrected line in the comment. A plan whose premise no longer holds is a `wontfix` (already implemented) or goes back to `needs-triage` with what changed. A `source:architecture` issue gets an agent brief like a person's issue, once its interfaces are settled.
    - `ready-for-human`: same structure as an agent brief, but note why it can't be delegated (judgment calls, external access, design decisions, manual testing).
    - `needs-info`: post triage notes (template below).
    - For `wontfix`, close the issue, with the comment depending on *why*:
@@ -113,6 +113,16 @@ If the maintainer says "move #42 to ready-for-agent", trust them and apply the r
 ```
 
 Capture everything resolved during grilling under "established so far" so the work isn't lost. Questions must be specific and actionable, not "please provide more info".
+
+## Dispatched run
+
+When the `dispatch` skill started this run, no user is present, and the maintainer's judgment calls are yours to make. Work the three buckets of "Show what needs attention", oldest first, at most 10 issues. Run "Triage a specific issue or PR" on each, with these changes:
+
+- **Step 2.** Apply your recommendation without waiting.
+- **Step 4.** The grill does not run. Choose the state instead. An issue is `ready-for-agent` only when its brief leaves no decision open: acceptance criteria an agent can test, one approach that the codebase's patterns clearly favor, and no change the issue did not ask for to existing callers, a stored or wire format, the public API, the CLI, or the dependency list. An issue that needs a decision only a person can make is `ready-for-human`, and its brief lists each open decision with the options. An issue missing information that only the reporter has is `needs-info`. Waiting on an open issue or pull request is not an open decision: name it in **Depends on** and judge the issue as if it had landed. Two issues that only edit the same code do not depend on each other.
+- **`wontfix`.** Close an issue only as already implemented, with a pointer to where the behavior lives. Any other rejection is `ready-for-human`, with a brief that recommends closing and says why. Writing to `.out-of-scope/` is a commit to the default branch, which stays with the maintainer.
+- **Conflicting state roles.** Leave the issue as it is and name it in the report.
+- **Report.** List each issue with its old state, its new state, and one line of reasoning.
 
 ## Resuming a previous session
 

@@ -392,13 +392,12 @@ class MachineConfigTests(InstallBase):
 
 
 class SettingsTests(unittest.TestCase):
-    def test_backslash_guard_is_installed_on_windows_only(self):
+    def test_heredoc_guard_is_installed_on_every_platform(self):
         for windows in (True, False):
             with self.subTest(windows=windows), patch.object(cc, 'WINDOWS', windows), \
                     tempfile.TemporaryDirectory() as tmp:
                 settings = cc.render_settings(Path(tmp)).decode()
-                self.assertEqual('heredoc_guard.py' in settings, windows)
-                self.assertEqual('PreToolUse' in settings, windows)
+                self.assertIn('heredoc_guard.py', settings)
 
     def repo_auto_mode(self):
         return json.loads((cc.REPO / 'settings.json').read_text()).get('autoMode')

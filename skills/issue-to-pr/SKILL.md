@@ -23,6 +23,8 @@ The whole-run span is the one relaxation of the single-turn rule, because step 8
 
 Behind a fresh ask, as always: any other branch, the default branch, merging or closing the request, opening or closing any issue, labels, assignees, other repositories. On an **owned remote**, as the global instructions define it, labels leave this list; the rest stays.
 
+A run that the `dispatch` skill started is always on an owned remote. The owned-remote rules carry its writes in place of this grant, and "Dispatched run" below replaces every point where the run would ask.
+
 ## 0. Resolve the forge
 
 Origin's host decides which reference file drives the rest of the run. Match it against each CLI's authenticated hosts; both print the bare host on a line of its own:
@@ -47,11 +49,13 @@ Exactly one match resolves the forge. Two matches mean a mirrored repo, none mea
 
 Read the issue with its comments, then check whether someone already has a request in flight. Step 0's file has both commands. The comments hold decisions the body does not.
 
+Check the issue's **Depends on** line too. A triage comment that restates it replaces the body's, and the newest one wins. While any issue or pull request it names is still open, stop: the hand-back names what the issue waits on. A **Base** line names the base for step 2 when the invocation names none.
+
 Write down the issue's **boundary** while it is in front of you: the sections that say what done looks like and what the issue excludes, when the template has them (`Done when`, `What this is not`, or whatever they are called there), otherwise the one-sentence statement below. Step 8 measures every review finding against it, and a boundary recalled mid-loop takes the shape of the finding in front of you.
 
 Name the issue's **kind** from step 3's table too. It names the branch in step 2 and the gate in step 3, and the labels and title usually settle it before any code is read.
 
-**Done when** you can state the observable wrong behavior and where the reporter saw it, in one sentence, and the boundary and kind are recorded. When neither the body nor the comments say, ask before cutting anything.
+**Done when** you can state the observable wrong behavior and where the reporter saw it, in one sentence, along with the reporter's **goal**: what has to work in that place once the fix lands. The boundary and kind are recorded too. When neither the body nor the comments say, ask before cutting anything.
 
 ## 2. Cut the worktree
 
@@ -74,7 +78,7 @@ The gate is one recorded command whose result this work will change. The kind st
 | A bug, or behavior nobody expected | `fix` | a test reproducing the wrong behavior, failing now | `systematic-debugging`, then `tdd` |
 | A feature request | `feat` | a test stating the wanted behavior, failing now. The request is the spec, so build it rather than argue it | `tdd` |
 | A performance claim | `perf` | a measurement of the current cost, against a target written as a number | `systematic-debugging`, then `tdd` |
-| A refactor or a mechanical migration | `refactor` | the suite covering the behavior you are about to move, passing now and still passing after | `tdd` |
+| A refactor or a mechanical migration | `refactor` | the suite covering the behavior you are about to move, passing now and still passing after. When the issue requires a stored or wire format to stay unchanged, the command is an old-versus-new equality check over real existing data, under every runtime version the repo supports | `tdd` |
 | Docs or config only | `docs` or `chore` | the command that proves the claim on the page stale | `technical-writing` |
 
 The first three rows go **red**, and that failing command is `tdd`'s RED test. There is one, not two. The last two rows have no red to reach, so record the passing baseline instead and let step 6 compare against it.
@@ -84,22 +88,25 @@ When neither red nor a baseline arrives:
 - **A bug's test passes on a current `origin/main`.** Already fixed. Name the commit that fixed it and stop.
 - **It needs something you do not have**, such as the reporter's data, platform or credentials. Ask the user, or state what the reporter has to supply. Fixing by inspection is not allowed here.
 
-**Done when** you have named the row and the command's current output is in the transcript. On a bug, the failure has to be the one the issue describes. A test that fails for some other reason is not red on this issue.
+**Done when** you have named the row and the command's current output is in the transcript. On a bug, the failure has to be the one the issue describes. A test that fails for some other reason is not red on this issue. The command goes green when step 1's goal holds, not when the symptom is gone. A test that asserts one listed alternative's symptoms, such as an error shown or a nonzero exit, decides step 4 before it runs.
 
 ## 4. Pick the direction
 
-Ask the user when either trigger fires. They are independent, so one is enough.
+Ask the user when any trigger fires. They are independent, so one is enough.
 
 - **Blast radius.** The fix would change behavior for existing callers, change a stored or wire format, change the public API or the CLI, or add a dependency, and the issue did not ask for that. Repo evidence pointing at that approach does not settle it. Widening the change past what the issue reported is the user's call.
+- **Someone else's logic.** The fix copies logic, constants or formulas that another package or repo owns. A copy drifts from its owner's next change, so the owner has to provide it.
 - **Two live approaches.** Two or more survive the repo's patterns, the issue's comments and the tests, they put the behavior in different modules, and choosing wrong means redoing the work rather than editing it.
 
-Then ask the user about every open fork together, each option stating its cost. Use the available question tool when applicable, otherwise plain text.
+Then ask the user about every open fork together, each option stating its cost. Use the available question tool when applicable, otherwise plain text. An edit repeated across many sites costs the command that makes it plus the check that catches a missed site, such as a `sed` and a guard `grep`. The number of sites is not a cost.
 
-When neither fires, pick the approach that matches the surrounding code, write that choice and its one-line reason into the request body, and keep going. The written reason is what a reviewer needs, and it costs no round trip. Decide these yourself: names, file placement inside the obvious module, which existing helper to reuse, error wording, test names, and whether to add the changelog entry the repo already keeps.
+**When the issue lists alternatives**, measure each against step 1's goal. Alternatives that compose, such as a fix plus a loud failure as its safety net, are one fix: do both. Otherwise take the one under which the goal holds. When the goal singles out none, or more than one, that is a fork: ask.
+
+When no trigger fires and the issue lists no alternatives, pick the approach that matches the surrounding code. When that code is the defect, pick the approach that removes it. Write the choice and its one-line reason into the request body, and keep going. The written reason is what a reviewer needs, and it costs no round trip. Decide these yourself: names, file placement inside the obvious module, which existing helper to reuse, error wording, test names, and whether to add the changelog entry the repo already keeps.
 
 ## 5. Implement
 
-Load `tdd`. Go green from the step-3 red test, or hold the step-3 baseline green through the change. Commit rules come from the target repo's the applicable project instructions (`CLAUDE.md` or `AGENTS.md`).
+Load `tdd`. Go green from the step-3 red test, or hold the step-3 baseline green through the change. Commit rules come from every instruction file that applies: the global instructions, the path-scoped rules for the files you touch, and the target repo's project instructions (`CLAUDE.md` or `AGENTS.md`).
 
 ## 6. Verify
 
@@ -108,7 +115,7 @@ Load `verification-before-completion`. Three rows this skill adds:
 | Row | Passes when |
 |-----|-------------|
 | Step-3 command | the step-3 command now succeeds, with its output pasted |
-| Whole suite | the repo's full suite and lint pass, not just the new test |
+| Whole suite | the repo's full suite and lint pass, not just the new test. When the full suite cannot run locally and the repo's CI runs it, a green CI job on the pushed branch is the evidence. Write the request body's verification after CI reports |
 | Diff scope | every hunk in `git diff origin/<base>...HEAD` lands inside step 1's boundary |
 
 ## 7. Push and open the request
@@ -118,6 +125,8 @@ Say the branch and the base before the first push, so the user can stop it. Then
     git push -u origin <branch>
 
 Open the request with step 0's file's command. Load `technical-writing` for the body. It carries the wrong behavior in one line, the root cause step 3 established, what changed, the step-3 command before and after, the direction chosen and why when step 4 forked, and the closing trailer step 0's file names.
+
+A failed push or a signing error stops the run with the error. Switching to another transport, remote or credential to get past it is the user's call.
 
 **Done when** the request is open against the intended base and its body carries all six.
 
@@ -142,9 +151,20 @@ A claim that **holds** is a bug report against your own diff, and it takes step 
 
 ## 9. Hand back
 
-Report the forge, the request URL, the branch, the step-3 command before and after, each finding with what it got, and every adjacent problem you found and left alone. Say where the worktree is, and leave it on disk.
+Report the forge, the request URL, the branch, the step-3 command before and after, each finding with what it got, and every adjacent problem you found and left alone. Adjacent means outside step 1's boundary. Work the boundary names is unfinished scope: finish it, or ask about it as a step-4 fork. Say where the worktree is, and leave it on disk. Hand back only after every background job the run started has finished or been stopped: the hand-back is final.
 
 The grant ends here. A later review round needs a fresh `/issue-to-pr`, or on an owned remote just the user's request.
+
+## Dispatched run
+
+When the `dispatch` skill started this run, no user is present. Dispatch has already labelled the issue `agent:claimed`, and the working copy it names is a clone to cut the worktree from.
+
+- **Handing back to a person.** Every point where a step says to ask the user hands the issue back instead. Those points are step 1 with no observable wrong behavior, the second bullet of step 3, step 4 when a trigger fires, step 7's failed push or signing error, and step 0 with no forge match. To hand back, comment on the issue with the question and its options. Start the comment with `> *This was generated by AI during a dispatched run.*`. Then swap `ready-for-agent` for `ready-for-human`, remove `agent:claimed`, and end the run with `STATUS: blocked`. Step 4's triggers apply whoever labelled the issue `ready-for-agent`, and the comment names the decision the label left open.
+- **Already fixed.** On step 3's first bullet, comment with the commit that fixed the issue, swap `ready-for-agent` for `ready-for-human`, and remove `agent:claimed`, so no later run selects it again. Closing the issue stays with a person.
+- **Step 2.** Use `git worktree add` from the clone, not `EnterWorktree`.
+- **Step 1's open dependency.** Remove `agent:claimed` and end the run with `STATUS: blocked`, naming what the issue waits on. The issue keeps `ready-for-agent`: dispatch selects it once the dependency lands.
+- **Step 7.** Put the branch and the base in the report instead of announcing them. A failed push or signing error is a hand-back, and its comment quotes the error.
+- **Step 9.** The hand-back is the report the preamble asks for, and adjacent problems, those outside step 1's boundary, go under `PROPOSALS`. Keep `agent:claimed` on the issue while the request is open: dispatch counts it as work in flight.
 
 ## Rationalizations
 
@@ -157,7 +177,8 @@ The grant ends here. A later review round needs a fresh `/issue-to-pr`, or on an
 | "Amend and force-push, the history is cleaner" | Add commits. Review replies and later rounds cite them by hash. |
 | "The new test passes, so the suite is covered" | Row two of step 6 is the whole suite. |
 | "This one needs a decision" (a name, a file, a helper) | That is step 4's own list. Pick what matches the code and record it in the request body. |
-| "While I am in here" | Out of the diff, into step 9. |
+| "While I am in here" | Outside step 1's boundary: out of the diff, into step 9. Inside it: in the diff. |
+| "N call sites, one could be missed" | A `sed` makes the edit, and a `grep` or a leak counter catches a missed site. |
 | "The request is open, so it is done" | Step 8 has not run. |
 | "`origin/main` is current, I pulled recently" | `git fetch origin`. |
 | "The user authorized one push" | The grant covers the review loop's pushes. It never covers `--force`, another branch, or a merge. |

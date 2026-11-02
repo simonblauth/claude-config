@@ -1,5 +1,5 @@
 diff --git a/SKILL.md b/SKILL.md
-index a37608d..866cc59 100644
+index a37608d..abe6e00 100644
 --- a/SKILL.md
 +++ b/SKILL.md
 @@ -1,6 +1,6 @@
@@ -17,6 +17,15 @@ index a37608d..866cc59 100644
 +- **Point, never paraphrase.** A restatement good enough to act on gets acted on: the agent satisfies the summary, the target never loads, and every rule past the restatement is silently lost. An `AGENTS.md` that routes to a skill names it and its trigger, nothing more.
  
  ## The two loads
+ 
+@@ -36,7 +37,7 @@ A document is built from two content types: **steps** (the ordered actions the a
+ 
+ Push too little down and the top bloats; push too much and you hide material the agent actually needs. That tension is the whole decision.
+ 
+-**Progressive disclosure** is the move down the ladder (out of the main file and behind a pointer) so the top stays legible. Not primarily a token optimisation: it is how the hierarchy is protected. Branching is the cleanest disclosure test: inline what every branch needs, and push behind a pointer what only some branches reach. When a document has steps, in-file reference that should be disclosed buries them and turns attending to them into a coin-flip: a variance lever, not just a legibility one.
++**Progressive disclosure** is the move down the ladder (out of the main file and behind a pointer) so the top stays legible. Not primarily a token optimisation: it is how the hierarchy is protected. Branching is the cleanest disclosure test: inline what every branch needs, and push behind a pointer what only some branches reach. A language or toolchain is a branch too: material true for only one goes in that toolchain's path-scoped rules file, never in a skill or prompt that serves every language. When a document has steps, in-file reference that should be disclosed buries them and turns attending to them into a coin-flip: a variance lever, not just a legibility one.
+ 
+ **Co-location** is the within-file companion: where the ladder decides _how far down_ a piece sits, co-location decides _what sits beside it_ once there. Keep a concept's definition, rules, and caveats under one heading rather than scattered, so reading one part brings its neighbours with it. The test: the document should read like documentation written for the agent. Grouped material reads that way; scattered material does not. (Distinct from duplication: that repeats one meaning in two places; scattering fragments one meaning across many.)
  
 @@ -76,6 +77,6 @@ You win twice: fewer tokens, and a sharper hook for the agent to hang its thinki
  ## Pruning
