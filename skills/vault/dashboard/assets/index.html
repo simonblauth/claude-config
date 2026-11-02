@@ -27,6 +27,8 @@
 .vd-item { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding-block: var(--cds-pad-sm); border-top: 1px solid var(--color-border-line); min-width: 0; overflow-wrap: anywhere; }
 .vd-item:first-child { border-top: 0; padding-top: 0; }
 .vd-item.is-small { font-size: var(--cds-font-size-caption); padding-block: var(--cds-pad-xs); }
+.vd-item.is-done > span { color: var(--color-fg-muted); text-decoration: line-through; }
+.vd-check { color: var(--color-ok); font-size: var(--cds-font-size-caption); }
 .vd-empty { color: var(--color-fg-muted); font-size: var(--cds-font-size-caption); }
 .vd-chip { appearance: none; font: inherit; font-size: var(--cds-font-size-caption); line-height: 1.6; border: 1px solid var(--color-border-line); border-radius: 999px; padding: 0 var(--cds-pad-sm); background: transparent; color: var(--color-fg-muted); cursor: pointer; white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
 .vd-chip:hover { color: var(--color-fg); border-color: var(--color-fg-muted); }
@@ -94,8 +96,8 @@
   </header>
 
   <section class="vd-tiles" id="glance" aria-label="At a glance">
-    <div class="vd-tile"><span class="vd-tile-label">Agent threads today</span><span class="vd-tile-num dash-skeleton" data-source="headline" data-field="agent_items" data-row="0">—</span></div>
-    <div class="vd-tile"><span class="vd-tile-label">Items for you today</span><span class="vd-tile-num dash-skeleton" data-source="headline" data-field="user_items" data-row="0">—</span></div>
+    <div class="vd-tile"><span class="vd-tile-label">Threads today</span><span class="vd-tile-num dash-skeleton" data-source="headline" data-field="threads" data-row="0">—</span></div>
+    <div class="vd-tile"><span class="vd-tile-label">Threads done</span><span class="vd-tile-num dash-skeleton" data-source="headline" data-field="threads_done" data-row="0">—</span></div>
     <div class="vd-tile"><span class="vd-tile-label">Meetings today</span><span class="vd-tile-num dash-skeleton" data-source="headline" data-field="meetings" data-row="0">—</span></div>
     <div class="vd-tile"><span class="vd-tile-label">Tasks waiting on others</span><span class="vd-tile-num dash-skeleton" data-source="headline" data-field="waiting_tasks" data-row="0">—</span></div>
     <div class="vd-tile"><span class="vd-tile-label">Due within 7 days</span><span class="vd-tile-num dash-skeleton" id="tile-due" data-source="headline" data-field="due_soon" data-row="0">—</span></div>
@@ -188,8 +190,8 @@ dash.calc('headline', {
     const weekOut = day ? new Date(Date.parse(day) + 7 * 864e5).toISOString().slice(0, 10) : '';
     return [{
       day,
-      agent_items: brief.filter((r) => r.who === 'agent').length,
-      user_items: brief.filter((r) => r.who === 'user').length,
+      threads: brief.length,
+      threads_done: brief.filter((r) => r.done).length,
       meetings: today.filter((r) => r.section === 'meeting').length,
       waiting_tasks: tasks.filter((t) => t.waiting_on).length,
       due_soon: tasks.filter((t) => t.due && t.due <= weekOut).length,
@@ -258,11 +260,51 @@ function statusPill(p) {
 }
 
 function dayItem(row, projects, small) {
-  const li = el('li', 'vd-item' + (small ? ' is-small' : ''));
+  const li = el('li', 'vd-item' + (small ? ' is-small' : '') + (row.done ? ' is-done' : ''));
   const chip = row.project ? projectChip(row.project, projects) : null;
-  if (chip) li.append(chip);
+  if (chip || row.done) {
+    const meta = el('div', 'vd-meta');
+    if (row.done) meta.append(el('span', 'vd-check', '✓ done'));
+    if (chip) meta.append(chip);
+    li.append(meta);
+  }
   li.append(mark(el('span', null, row.text), 'days', 'text', whereId(row.id)));
   return li;
+}
+
+function taskItem(t, projects, refDay) {
+  const li = el('li', 'vd-item');
+  const meta = el('div', 'vd-meta');
+  if (t.due) {
+    const pill = mark(el('span', 'vd-pill', prettyDay(t.due)), 'tasks', 'due', whereId(t.id));
+    if (t.due < refDay) pill.dataset.tone = 'late';
+    else if (t.due <= isoDay(d3.utcDay.offset(parseDay(refDay), 7))) pill.dataset.tone = 'waiting';
+    meta.append(pill);
+  }
+  const chip = projectChip(t.project, projects);
+  if (chip) meta.append(chip);
+  if (t.every) meta.append(mark(el('span', null, t.every), 'tasks', 'every', whereId(t.id)));
+  if (t.waiting_on) {
+    const wait = el('span', null, 'waiting on ');
+    wait.append(mark(el('span', null, t.waiting_on), 'tasks', 'waiting_on', whereId(t.id)));
+    meta.append(wait);
+  }
+  li.append(meta, mark(el('span', null, t.text), 'tasks', 'text', whereId(t.id)));
+  return li;
+}
+
+function taskCard(title, note, tasks, projects, refDay, emptyText) {
+  const card = el('div', 'vd-card');
+  card.append(el('h2', null, title));
+  if (note) card.append(el('p', 'vd-note', note));
+  if (tasks.length) {
+    const ul = el('ul', 'vd-list');
+    tasks.forEach((t) => ul.append(taskItem(t, projects, refDay)));
+    card.append(ul);
+  } else {
+    card.append(el('p', 'vd-empty', emptyText));
+  }
+  return card;
 }
 
 function sectionCard(title, rows, projects, emptyText, id) {
@@ -328,9 +370,7 @@ function drawToday(D) {
   const picker = document.getElementById('day-picker');
   if (!dates.length) {
     picker.replaceChildren();
-    const card = el('div', 'vd-card');
-    card.append(el('h2', null, 'No daily notes this week yet'), el('p', 'vd-note', 'The next brief starts one.'));
-    document.getElementById('today-body').replaceChildren(card);
+    drawNoBrief(D);
     return;
   }
   picker.replaceChildren(...dates.map((d) => {
@@ -352,18 +392,9 @@ function drawToday(D) {
   if (!brief.length) {
     main.append(el('p', 'vd-empty', 'No brief in this daily note yet.'));
   } else {
-    const cols = el('div', 'vd-cols');
-    [['agent', 'Agent threads', 'Work handed to Claude sessions.'], ['user', 'For you', 'What only you can do today.']].forEach(([who, title, note]) => {
-      const group = el('div', 'vd-side');
-      const head = el('div');
-      head.append(el('h3', null, title), el('p', 'vd-note', note));
-      const ul = el('ul', 'vd-list');
-      const items = brief.filter((r) => r.who === who);
-      items.forEach((r) => ul.append(dayItem(r, D.projects)));
-      group.append(head, items.length ? ul : el('p', 'vd-empty', 'Nothing listed.'));
-      cols.append(group);
-    });
-    main.append(cols);
+    const ol = el('ol', 'vd-list');
+    brief.forEach((r) => ol.append(dayItem(r, D.projects)));
+    main.append(ol);
   }
 
   const side = el('div', 'vd-side');
@@ -381,6 +412,23 @@ function drawToday(D) {
     side.append(sectionCard('Wrap', [], D.projects, 'This day is not wrapped yet.', 'wrap'));
   }
   body.replaceChildren(main, side);
+}
+
+// Between a week wrap and the next brief there is no daily note, so show what the projects hold.
+function drawNoBrief(D) {
+  const refDay = latestDay(D);
+  const weekOut = isoDay(d3.utcDay.offset(parseDay(refDay), 7));
+  const nowSlugs = D.projects.filter((p) => p.focus === 'now' && ['active', 'waiting'].includes(p.status)).map((p) => p.slug);
+  const inPlay = nowSlugs.map((slug) => D.tasks.find((t) => t.project === slug && !t.waiting_on)).filter(Boolean);
+  const main = taskCard('No brief yet', 'The next brief starts a daily note. Until then: the next action of every focus-now project.',
+    inPlay, D.projects, refDay, 'No focus-now project has an open next action.');
+  main.id = 'brief';
+  const side = el('div', 'vd-side');
+  side.append(
+    taskCard('Due within 7 days', null, D.tasks.filter((t) => t.due && t.due <= weekOut).sort((a, b) => d3.ascending(a.due, b.due)), D.projects, refDay, 'Nothing due.'),
+    taskCard('Waiting on others', null, D.tasks.filter((t) => t.waiting_on), D.projects, refDay, 'Nothing waits on others.'),
+  );
+  document.getElementById('today-body').replaceChildren(main, side);
 }
 
 /* ---------- week ---------- */
@@ -436,19 +484,7 @@ function drawWeek(D, byDay) {
   if (!dueRows.length) {
     dl.replaceChildren(el('li', 'vd-empty', 'No open task has a due date.'));
   } else {
-    dl.replaceChildren(...dueRows.map((t) => {
-      const li = el('li', 'vd-item');
-      const meta = el('div', 'vd-meta');
-      const pill = mark(el('span', 'vd-pill', prettyDay(t.due)), 'tasks', 'due', whereId(t.id));
-      if (t.due < lastDay) pill.dataset.tone = 'late';
-      else if (t.due <= isoDay(d3.utcDay.offset(parseDay(lastDay), 7))) pill.dataset.tone = 'waiting';
-      meta.append(pill);
-      const chip = projectChip(t.project, D.projects);
-      if (chip) meta.append(chip);
-      if (t.every) meta.append(mark(el('span', null, t.every), 'tasks', 'every', whereId(t.id)));
-      li.append(meta, mark(el('span', null, t.text), 'tasks', 'text', whereId(t.id)));
-      return li;
-    }));
+    dl.replaceChildren(...dueRows.map((t) => taskItem(t, D.projects, lastDay)));
   }
 
   drawHeat(D, lastDay);

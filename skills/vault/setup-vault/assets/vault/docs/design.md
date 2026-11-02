@@ -40,6 +40,10 @@ Daily notes exist only for the current week and roll into one journal note per w
 
 Claude can edit everything, so access is never the limit. The limit is initiative. Claude changes things on its own only when evidence settles the change, gives each such change its own `auto:` commit, and lists it in the daily note so the next brief shows it first.
 
+## Why the plan lists threads without owners
+
+Nearly all of the work runs through Claude sessions and still needs the user, so marking each plan line `agent` or `user` sorted nothing. The plan lists the day's threads, and the `threads` skill shows which sessions are running. A plan line gets a tick when its thread is done, so the dashboard shows progress during the day.
+
 ## Why the dashboard is a snapshot
 
-The dashboard is a private claude.ai artifact. It shows today's brief, the week, a project board, and the open tasks, which a phone or a browser can open without a Claude session. No connector reaches the vault, so the `dashboard` skill exports the vault as JSON files and uploads them after each brief and wrap. Between refreshes the dashboard shows the last upload. The files hold vault content, so the dashboard stays private.
+The dashboard is a private claude.ai artifact. It shows today's brief, the week, a project board, and the open tasks, which a phone or a browser can open without a Claude session. No connector reaches the vault, so the `dashboard` skill exports the vault as JSON files and uploads them after each brief and wrap. Between refreshes the dashboard shows the last upload. The files hold vault content, so the dashboard stays private. Between the week wrap and the next brief there is no daily note, so the Today view shows the next actions, due tasks, and waiting tasks from the projects instead.

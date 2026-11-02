@@ -51,8 +51,8 @@ Outcomes for the week:
 
 Today:
 
-1. agent · [[parser-rewrite]]: profile with the fixed size, as [[ada|Ada]] asked.
-2. user · [[parser-rewrite]]: mail the [[lab]].
+1. [[parser-rewrite]]: profile with the fixed size, as [[ada|Ada]] asked.
+2. [x] [[parser-rewrite]]: mail the [[lab]].
 
 Meetings: Jour fixe 11:00, Team 13:00.
 
@@ -146,9 +146,10 @@ class ExportTests(unittest.TestCase):
         for r in self.rows['days']:
             by.setdefault(r['section'], []).append(r)
         self.assertEqual([r['text'] for r in by['outcome']], ['Slowdown fixed (Parser rewrite).'])
-        agent, user = by['brief']
-        self.assertEqual((agent['who'], agent['project'], agent['text']), ('agent', 'parser-rewrite', 'profile with the fixed size, as Ada asked.'))
-        self.assertEqual((user['who'], user['text']), ('user', 'mail the The Lab.'))
+        open_, ticked = by['brief']
+        self.assertEqual((open_['project'], open_['text'], open_['done']), ('parser-rewrite', 'profile with the fixed size, as Ada asked.', False))
+        self.assertEqual((ticked['project'], ticked['text'], ticked['done']), ('parser-rewrite', 'mail the The Lab.', True))
+        self.assertNotIn('who', open_)
         self.assertEqual([r['text'] for r in by['meeting']], ['Jour fixe 11:00', 'Team 13:00'])
         self.assertEqual([r['text'] for r in by['decision']], ['The rerun waits.', 'Ada reviews.'])
         self.assertEqual(by['capture'][0]['project'], 'parser-rewrite')

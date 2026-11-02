@@ -65,8 +65,8 @@ Week plan confirmed. Outcomes for the week:
 
 Today:
 
-1. agent · [[parser-rewrite]]: profile the large input, as [[ada|Ada]] asked.
-2. user · [[parser-rewrite]]: mail the [[lab]] about the test data.
+1. [x] [[parser-rewrite]]: profile the large input, as [[ada|Ada]] asked.
+2. [[parser-rewrite]]: mail the [[lab]] about the test data.
 
 Meetings: Weekly sync 11:00, Review 14:00.
 
@@ -93,7 +93,7 @@ Moves to tomorrow:
 
 - `Outcomes for the week:`, `Today:`, `Done:`, and `Moves to tomorrow:` each end their line. A lead-in sentence may come before the label on the same line. The items follow as a list.
 - `Outcomes for the week:` appears only in the week's first brief, before `Today:`.
-- Each plan line under `Today:` is `agent` or `user`, then ` · `, the project link, `: `, and the thread.
+- Each plan line under `Today:` is the project link, `: `, and the thread. When a capture or the wrap records that the thread is done, put `[x] ` before the link.
 - `Meetings:` and `Decisions:` start their line and carry their items on it: meetings separated by commas, decisions as sentences. Leave the line out when it has no items.
 
 The end-of-week wrap rolls the daily notes into `journal/YYYY-Www.md` (ISO week) and deletes them. Each journal note has `## Done`, `## Decisions`, `## Claude did`, and `## Next week`. Status reports are built from the journal.

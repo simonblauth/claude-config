@@ -30,13 +30,12 @@ A brief has run on a day when that day's daily note has content under `## Brief`
      A thread waits on the user when it asks them something or touches one of their projects, and neither Sent Items nor the user's own Teams messages hold a later reply to it.
 3. Answer in this shape, with sections that have content:
    1. **Claude did**: the entries from step 2, or "Nothing since the last brief."
-   2. **In play**: the next action of every `focus: now` project, which is its first open Next task without a `waiting:` tag. One line each: project, then task.
-   3. **Threads**: the list from the `threads` skill.
-   4. **Plan**: today's work threads, drawn from In play, Threads, due dates, and people to chase. A project that already has a running session continues in it. The user runs several agent threads in parallel, so propose at least five threads an agent can drive, plus the work only the user can do, such as mails, meetings, and decisions. Mark each line `agent` or `user` and give one line of reason. When In play holds fewer than five agent threads, name the projects that lack an agent-ready next action. In week mode, list the outcomes for the week first.
-   5. **Due**: overdue tasks and tasks due today or, in week mode, this week.
-   6. **Waiting on**: from project `waiting_on` fields and task `waiting:` tags. Give the person or org, since when, and for which project.
-   7. **Meetings**: from the calendar, when available.
-   8. **Needs a decision**: at most five decisions that change the plan or what a project takes up next, such as promoting an idea to Next. A question that a running thread asks stays on that thread's line under Threads.
+   2. **Threads**: the list from the `threads` skill.
+   3. **Plan**: today's threads, one line each: project, then thread. Start from the next action of every `focus: now` project, which is its first open Next task without a `waiting:` tag. Add what Threads, due dates, mail, and people to chase bring in. A project that already has a running session continues in it. Plan what fits the day. Close with one line naming the `focus: now` projects left out. In week mode, list the outcomes for the week first.
+   4. **Due**: overdue tasks and tasks due today or, in week mode, this week.
+   5. **Waiting on**: from project `waiting_on` fields and task `waiting:` tags. Give the person or org, since when, and for which project.
+   6. **Meetings**: from the calendar.
+   7. **Needs a decision**: at most three decisions that change today's plan or what a project takes up next, such as promoting an idea to Next. Each question lives in one place: a question that a session under Threads or a line of the Plan already carries is settled in that thread. Most days this section is empty.
 
    End with one question: does the plan stand, or what changes?
 4. When the user confirms or adjusts the plan:

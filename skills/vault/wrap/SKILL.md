@@ -23,6 +23,7 @@ The vault lives at `$VAULT_DIR` (default `~/vault`). Its `CLAUDE.md` and `schema
    - `inbox.md` and today's Captures
 3. Record what the user reported or confirmed, as normal commits:
    - Done tasks leave Next and become Log lines, as `CLAUDE.md` describes. Recurring tasks get their next occurrence.
+   - Tick each plan line in today's Brief whose thread is done.
    - Other events become dated Log lines.
    - Rewrite a project's State when the day changed where the project stands.
 4. Make changes on your own only where evidence settles them, such as a merged PR that closes a task. Each one gets an `auto:` commit and a line under `## Claude did`.
