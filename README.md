@@ -22,6 +22,7 @@ existing commands and hooks. `vendor` updates the shared sources for both.
 | --- | --- | --- |
 | Global instructions | `~/.claude/CLAUDE.md` | `~/.codex/AGENTS.md` |
 | Skills | `~/.claude/skills/` | `~/.agents/skills/` |
+| Rules (`rules/` and rule sources) | `~/.claude/rules/` | appended to `~/.codex/AGENTS.md` |
 | Settings | `~/.claude/settings.json` | `~/.codex/config.toml` |
 | Startup drift check | inside settings | `~/.codex/hooks.json` |
 | Backslash guard (`hooks/heredoc_guard.py`) | inside settings, Windows only | — |
@@ -49,6 +50,32 @@ calendar day, and `--local-only` skips network checks. Startup hooks run the
 check with the appropriate target. **After installing Codex, review and trust
 its hook with `/hooks`**; Codex requires review again when the hook changes.
 [Codex hook documentation](https://learn.chatgpt.com/docs/hooks)
+
+### Machine config
+
+Settings that differ between machines live in `~/.config/claude-config/config.toml`
+(`$XDG_CONFIG_HOME/claude-config/config.toml` when that is set), outside the repo.
+A rule source can be a private repo, and naming it here would publish it. With no
+file, nothing changes.
+
+```toml
+[review]
+default = "subagent"  # copilot, subagent, claude or codex
+
+[[rules]]
+repo = "git@github.com:<owner>/<rules-repo>.git"
+ref = "main"          # optional, defaults to main
+```
+
+- `review.default` adds a line to both runtimes' global instructions. `issue-to-pr`
+  and `review-loop` take it as their reviewer when no `--reviewer` is given.
+- Each `[[rules]]` source is a repo with a `rules/` folder. `install` clones or
+  fetches it into `.cache/` and installs its files beside this repo's `rules/`. A
+  file name both provide stops the install. Claude Code gets the files as rules.
+  Codex has no path-scoped rules, so each file is appended to `AGENTS.md` with its
+  `paths:` written out as a sentence.
+- `check` reads the cached clone, so `--local-only` stays offline. Without it,
+  `check` also reports a source with commits the cache lacks.
 
 ## Vault
 

@@ -13,8 +13,11 @@ from unittest.mock import patch
 
 import cc
 
+# Tests never read this machine's own config file.
+os.environ['XDG_CONFIG_HOME'] = tempfile.mkdtemp()
 
-class InstallTests(unittest.TestCase):
+
+class InstallBase(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
@@ -34,6 +37,8 @@ class InstallTests(unittest.TestCase):
             cc.cmd_install(argparse.Namespace(target=target))
         return output.getvalue()
 
+
+class InstallTests(InstallBase):
     def test_both_targets_and_repeat_install(self):
         self.install()
         for target in self.roots:
@@ -193,6 +198,97 @@ multi_agent = false
         with patch.object(cc, 'PATCHES', patches), self.assertRaisesRegex(RuntimeError, 'PATCH FAILED'):
             self.install()
         self.assertFalse(cc.config_dir().exists())
+
+
+class MachineConfigTests(InstallBase):
+    """The per-machine config file adds rule sources and a default reviewer."""
+
+    def setUp(self):
+        super().setUp()
+        p = patch.object(cc, 'CACHE', self.base / 'cache')
+        p.start()
+        self.addCleanup(p.stop)
+        self.config = self.base / 'config.toml'
+        p = patch.object(cc, 'machine_config_path', lambda: self.config)
+        p.start()
+        self.addCleanup(p.stop)
+        self.source = self.base / 'rules-src'
+        (self.source / 'rules').mkdir(parents=True)
+        self.git('init', '-q', '-b', 'main')
+        self.write_rule('julia.md', '---\npaths:\n  - "**/*.jl"\n  - "**/Project.toml"\n---\n\n# Julia\n\n- Use the project env.\n')
+        self.write_rule('compute.md', '# Compute\n\n- Use the fleet.\n')
+        self.commit()
+
+    def git(self, *args):
+        subprocess.run(['git', '-C', str(self.source), '-c', 'commit.gpgsign=false', '-c', 'user.name=t',
+                        '-c', 'user.email=t@t', *args], check=True, capture_output=True)
+
+    def write_rule(self, name, text):
+        (self.source / 'rules' / name).write_text(text)
+
+    def commit(self):
+        self.git('add', '-A')
+        self.git('commit', '-q', '-m', 'rules')
+
+    def configure(self, text):
+        self.config.write_text(text)
+
+    def with_source(self, extra=''):
+        self.configure(extra + f'[[rules]]\nrepo = "{self.source.as_uri()}"\n')
+
+    def test_rules_reach_both_targets(self):
+        self.with_source()
+        self.install()
+        claude = cc.config_dir()
+        self.assertIn('# Julia', (claude / 'rules/julia.md').read_text())
+        agents = (cc.config_dir('codex') / 'AGENTS.md').read_text()
+        self.assertIn('`**/*.jl`, `**/Project.toml`', agents)
+        self.assertIn('- Use the project env.', agents)
+        self.assertNotIn('- "**/*.jl"', agents)
+        self.assertIn('- Use the fleet.', agents)
+        for target in self.roots:
+            self.assertEqual(cc.check_local(cc.config_dir(target), target), [])
+
+    def test_source_changes_show_upstream_then_install(self):
+        self.with_source()
+        self.install()
+        self.assertEqual(cc.check_rule_sources(), [])
+        (self.source / 'rules' / 'compute.md').unlink()
+        self.write_rule('julia.md', '# Julia\n\n- Changed.\n')
+        self.commit()
+        self.assertEqual(len(cc.check_rule_sources()), 1)
+        self.install()
+        claude = cc.config_dir()
+        self.assertIn('Changed.', (claude / 'rules/julia.md').read_text())
+        self.assertFalse((claude / 'rules/compute.md').exists())
+        self.assertNotIn('Use the fleet.', (cc.config_dir('codex') / 'AGENTS.md').read_text())
+
+    def test_missing_clone_is_drift_not_a_crash(self):
+        self.with_source()
+        self.assertTrue(any('run install' in line for line in cc.check_local(cc.config_dir(), 'claude')))
+
+    def test_default_reviewer_reaches_the_instructions(self):
+        self.configure('[review]\ndefault = "codex"\n')
+        self.install()
+        for target, name in (('claude', 'CLAUDE.md'), ('codex', 'AGENTS.md')):
+            self.assertIn('Default reviewer for `issue-to-pr` and `review-loop`: `codex`',
+                          (cc.config_dir(target) / name).read_text())
+
+    def test_no_config_adds_nothing(self):
+        self.install()
+        self.assertNotIn('Default reviewer', (cc.config_dir() / 'CLAUDE.md').read_text())
+
+    def test_invalid_config_is_refused(self):
+        for text in ('[review]\ndefault = "nobody"\n', 'reviewer = "codex"\n', '[[rules]]\nref = "main"\n'):
+            with self.subTest(text=text):
+                self.configure(text)
+                with self.assertRaisesRegex(ValueError, 'config.toml'):
+                    cc.machine_config()
+
+    def test_a_rule_from_two_places_fails(self):
+        self.with_source()
+        with patch.object(cc, 'RULES', self.source / 'rules'), self.assertRaisesRegex(RuntimeError, 'comes from both'):
+            self.install()
 
 
 class SettingsTests(unittest.TestCase):

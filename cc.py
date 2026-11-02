@@ -139,10 +139,14 @@ def verbatim(dest: Path) -> bool:
     return all(c in have for c in CLONE_CONFIG)
 
 
+def cache_path(repo: str) -> Path:
+    return CACHE / hashlib.sha256(repo.encode()).hexdigest()[:12]
+
+
 def clone(repo: str, ref: str) -> Path:
     """Shallow clone into the cache, or update an existing one."""
     CACHE.mkdir(exist_ok=True)
-    dest = CACHE / hashlib.sha256(repo.encode()).hexdigest()[:12]
+    dest = cache_path(repo)
     # Setting the config leaves a checkout made before it untouched, endings
     # and all, so such a cache has to go.
     if dest.exists() and not verbatim(dest):
@@ -403,10 +407,100 @@ def cmd_vendor(args) -> int:
     return 0
 
 
-def render_instructions(target: str) -> bytes:
+REVIEWERS = ("copilot", "subagent", "claude", "codex")
+
+
+def machine_config_path() -> Path:
+    base = os.environ.get("XDG_CONFIG_HOME")
+    return (Path(base).expanduser() if base else Path.home() / ".config") / "claude-config" / "config.toml"
+
+
+def machine_config() -> dict:
+    """This machine's settings. They live outside the repo, so the public repo never names a private rule source."""
+    path = machine_config_path()
+    if not path.exists():
+        return {"review": {}, "rules": []}
+    try:
+        data = tomllib.loads(path.read_text(encoding="utf-8"))
+    except tomllib.TOMLDecodeError as e:
+        raise ValueError(f"{path}: {e}") from e
+    unknown = set(data) - {"review", "rules"}
+    if unknown:
+        raise ValueError(f"{path}: unknown key(s) {', '.join(sorted(unknown))}")
+    review = data.get("review", {})
+    if set(review) - {"default"} or review.get("default", "subagent") not in REVIEWERS:
+        raise ValueError(f"{path}: [review] takes only default, one of {', '.join(REVIEWERS)}")
+    rules = data.get("rules", [])
+    for source in rules:
+        if not isinstance(source.get("repo"), str) or set(source) - {"repo", "ref"}:
+            raise ValueError(f"{path}: each [[rules]] needs repo and may set ref")
+        source.setdefault("ref", "main")
+    return {"review": review, "rules": rules}
+
+
+def rule_files(fetch: bool = False) -> dict[str, bytes]:
+    """Every rule file to install, keyed by its path under rules/: this repo's, then each configured source's.
+    Without fetch, a source is read from its cached clone, so a drift check stays offline."""
+    out: dict[str, bytes] = {}
+    origin: dict[str, str] = {}
+
+    def add(root: Path, name: str) -> None:
+        for f in sorted(root.rglob("*")):
+            if f.is_file() and f.name != ".gitkeep":
+                rel = f.relative_to(root).as_posix()
+                if rel in out:
+                    raise RuntimeError(f"rules/{rel} comes from both {origin[rel]} and {name}")
+                out[rel], origin[rel] = f.read_bytes(), name
+
+    add(RULES, "this repo")
+    for source in machine_config()["rules"]:
+        dest = clone(source["repo"], source["ref"]) if fetch else cache_path(source["repo"])
+        if not dest.exists():
+            raise RuntimeError(f"rules source {source['repo']} is not cloned yet, run install")
+        add(dest / "rules", source["repo"])
+    return out
+
+
+def split_frontmatter(text: str) -> tuple[list[str], str]:
+    """The `paths:` globs of a rule file, and its body without the frontmatter."""
+    if not text.startswith("---\n"):
+        return [], text
+    end = text.find("\n---\n", 3)
+    if end < 0:
+        return [], text
+    paths, in_paths = [], False
+    for line in text[4:end].splitlines():
+        if line.rstrip() == "paths:":
+            in_paths = True
+        elif in_paths and line.lstrip().startswith("- "):
+            paths.append(line.lstrip()[2:].strip().strip("'\""))
+        else:
+            in_paths = False
+    return paths, text[end + 5:]
+
+
+def codex_rules(rules: dict[str, bytes]) -> list[str]:
+    """Codex has no path-scoped rules, so each file joins AGENTS.md with its scope written out."""
+    parts = []
+    for rel, data in sorted(rules.items()):
+        if not rel.endswith(".md"):
+            continue
+        paths, body = split_frontmatter(data.decode("utf-8"))
+        scope = ("for files matching " + ", ".join(f"`{p}`" for p in paths)) if paths else "everywhere"
+        parts.append(f"_From rules/{rel}, applies {scope}._\n\n{body.strip()}")
+    return parts
+
+
+def render_instructions(target: str, rules: dict[str, bytes] | None = None) -> bytes:
     base = REPO / "instructions"
-    return ("\n\n".join((base / name).read_text(encoding="utf-8").strip()
-                        for name in ("shared.md", f"{target}.md")) + "\n").encode()
+    parts = [(base / name).read_text(encoding="utf-8").strip() for name in ("shared.md", f"{target}.md")]
+    reviewer = machine_config()["review"].get("default")
+    if reviewer:
+        parts.append(f"## This machine\n\nDefault reviewer for `issue-to-pr` and `review-loop`: `{reviewer}`. "
+                     "A `--reviewer` argument overrides it.")
+    if target == "codex" and rules:
+        parts += codex_rules(rules)
+    return ("\n\n".join(parts) + "\n").encode()
 
 
 def skill_dirs() -> list[Path]:
@@ -438,18 +532,17 @@ def skill_files(target: str) -> dict[str, bytes]:
     return out
 
 
-def planned_files(cfg: Path, target: str = "claude") -> dict[str, dict[str, bytes]]:
+def planned_files(cfg: Path, target: str = "claude", fetch: bool = False) -> dict[str, dict[str, bytes]]:
     skills = skill_files(target)
+    rules = rule_files(fetch)
     if target == "codex":
         return {"skills": skills, "config": {
-            "AGENTS.md": render_instructions(target),
+            "AGENTS.md": render_instructions(target, rules),
             "config.toml": render_codex_settings(cfg),
             "hooks.json": render_codex_hooks(cfg),
         }}
     out = {f"skills/{rel}": data for rel, data in skills.items()}
-    for f in sorted(RULES.rglob("*")):
-        if f.is_file() and f.name != ".gitkeep":
-            out[f"rules/{f.relative_to(RULES).as_posix()}"] = f.read_bytes()
+    out.update({f"rules/{rel}": data for rel, data in rules.items()})
     out["CLAUDE.md"] = render_instructions(target)
     out["settings.json"] = render_settings(cfg)
     return {"config": out}
@@ -648,7 +741,7 @@ def targets(args) -> tuple[str, ...]:
 def cmd_install(args) -> int:
     # Render every target first, so patch/config failures cannot leave a partial
     # installation across the two runtimes.
-    plans = {t: planned_files(config_dir(t), t) for t in targets(args)}
+    plans = {t: planned_files(config_dir(t), t, fetch=True) for t in targets(args)}
     for target, planned in plans.items():
         install_target(target, planned)
     if "codex" in plans:
@@ -785,7 +878,11 @@ def check_fork(branch: str) -> list[str]:
 def check_local(cfg: Path, target: str = "claude") -> list[str]:
     out = []
     roots = install_roots(target)
-    for label, files in planned_files(cfg, target).items():
+    try:
+        planned = planned_files(cfg, target)
+    except RuntimeError as e:
+        return [str(e)]
+    for label, files in planned.items():
         root = roots[label]
         for rel, data in sorted(files.items()):
             path = safe_path(root, rel)
@@ -827,6 +924,21 @@ def check_upstream() -> list[str]:
                 out.append(f"{s.name} vanished upstream at {s.path}")
             elif tree_hash(src) != s.content:
                 out.append(f"{s.name} changed upstream, vendor {s.name.split('/')[0]} to review")
+    return out + check_rule_sources()
+
+
+def check_rule_sources() -> list[str]:
+    out = []
+    for source in machine_config()["rules"]:
+        repo, dest = source["repo"], cache_path(source["repo"])
+        try:
+            head = remote_sha(repo, source["ref"])
+        except RuntimeError as e:
+            out.append(f"rules source {repo} unreachable ({e.args[0].splitlines()[-1]})")
+            continue
+        have = run(["git", "-C", str(dest), "rev-parse", "HEAD"]) if dest.exists() else ""
+        if head and head != have:
+            out.append(f"rules source {repo} has new commits, run install")
     return out
 
 
