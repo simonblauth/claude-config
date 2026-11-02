@@ -38,7 +38,7 @@ The closing trailer is `Closes #<n>`, and on GitLab it is conditional: the [clos
 
 ## Step 8. Work the review
 
-GitLab has no Copilot review, so the reviewer defaults to `subagent`, and `claude` or `codex` are the alternatives. When the invocation passed `--reviewer copilot`, say so and ask before running the loop, because the user chose a reviewer this forge does not have.
+GitLab has no Copilot review. Without `--reviewer`, the reviewer is the default the global instructions name for this machine, and `subagent` when they name none or name `copilot`. `claude` or `codex` are the alternatives. When the invocation passed `--reviewer copilot`, say so and ask before running the loop, because the user chose a reviewer this forge does not have.
 
 Step 8's CI gate reads the MR's head pipeline (verified against `glab` 1.123.0):
 
