@@ -40,7 +40,7 @@ If the repo has no working verification command (no tests, broken build), record
 
 Audit the codebase across the categories in [references/audit-playbook.md](references/audit-playbook.md) — read it now. Categories: **correctness/bugs, security, performance, test coverage, tech debt & architecture, dependencies & migrations (including modernization against the project's version floor), DX & tooling, docs, direction (features & what to build next)**. The dependencies & migrations subagent needs web access for the changelog research its section requires.
 
-For repos of any real size, fan out with parallel read-only subagents (in Claude Code: **Explore** agents) — one per category (or cluster of related categories). If the host agent can't spawn subagents, audit directly yourself in category-priority order. **Subagents do not inherit this skill's context**, so each subagent prompt must include:
+For repos of any real size, fan out with parallel read-only subagents (in Claude Code: **Explore** agents) — one per category (or cluster of related categories), each on the `audit` task's model and effort from the Models section of your instructions. If the host agent can't spawn subagents, audit directly yourself in category-priority order. **Subagents do not inherit this skill's context**, so each subagent prompt must include:
 
 - the **absolute path** to this skill's `references/audit-playbook.md` plus the exact section headings to read — **always including "## Finding format"** (subagents can read files — this is far cheaper than pasting; paste the sections only if the path may not resolve in the subagent's environment),
 - the recon facts that scope the search (languages, frameworks, key directories, what to skip),
