@@ -485,6 +485,8 @@ class ModelPolicyTests(InstallBase):
                      '[models.claude.tasks.review]\nallowed = ["opus@high"]\n',
                      '[models.claude.tasks.review]\ndefault = "sonnet@low"\nallowed = "opus@high"\n',
                      '[models.claude.limits]\nopus = { min_effort = "high", max_effort = "low" }\n',
+                     '[models.claude.limits]\nsonet = { max_effort = "low" }\n',
+                     '[models.claude.tasks.review]\ndefault = "sonnet@medium"\nmodels = ["sonet", "sonnet"]\n',
                      '[models.claude]\nreview = "sonnet@low"\n',
                      '[models.claude]\nmin_effort = "high"\nmax_effort = "medium"\n',
                      '[models.claude.tasks.review]\ndefault = "sonnet@medium"\nmodels = "sonnet"\n',

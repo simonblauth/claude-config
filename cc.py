@@ -493,7 +493,13 @@ def model_policy(models: dict, path: Path) -> dict:
         floor = {k: given.get(k, built_in[k]) for k in ("min_effort", "max_effort")}
         bounds(f"[models.{runtime}]", floor)
         limits = {**built_in["limits"], **given.get("limits", {})}
+        def known(model: str, where: str) -> None:
+            # A misspelled Claude model would match no choice and silently never apply.
+            if runtime == "claude" and model not in CLAUDE_MODELS:
+                raise ValueError(f"{path}: {where} names {model!r}, not one of {', '.join(CLAUDE_MODELS)}")
+
         for model, bound in limits.items():
+            known(model, f"models.{runtime}.limits")
             if not isinstance(bound, dict) or set(bound) - {"min_effort", "max_effort"}:
                 raise ValueError(f"{path}: models.{runtime}.limits.{model} takes min_effort and max_effort")
             bounds(f"models.{runtime}.limits.{model}", bound)
@@ -510,6 +516,8 @@ def model_policy(models: dict, path: Path) -> dict:
             kept = {"models": built_in["tasks"][kind]["models"]} if "models" in built_in["tasks"].get(kind, {}) else {}
             task = {"allowed": [], **kept, **task}
             tasks[kind] = task
+            for model in task.get("models", []):
+                known(model, f"models.{runtime}.tasks.{kind}.models")
             for choice in [task["default"], *task["allowed"]]:
                 model, _, effort = choice.partition("@") if isinstance(choice, str) else ("", "", "")
                 if not model or effort not in levels or (runtime == "claude" and model not in CLAUDE_MODELS):
