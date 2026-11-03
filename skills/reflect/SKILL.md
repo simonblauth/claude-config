@@ -23,15 +23,15 @@ Spawn three reviewers with the runtime's subagent tools and model policy. Review
 
 | Lens | `model` | Prompt template |
 |---|---|---|
-| Judgment | runtime judgment model | `references/judgment-reviewer.md` |
-| Tooling | runtime tooling model | `references/tooling-reviewer.md` |
-| Divergent | runtime judgment model | `references/divergent-reviewer.md` |
+| Judgment | runtime reviewer model | `references/judgment-reviewer.md` |
+| Tooling | runtime reviewer model | `references/tooling-reviewer.md` |
+| Divergent | runtime reviewer model | `references/divergent-reviewer.md` |
 
 Pass each template verbatim, substituting the transcript path or digest where marked. Add nothing beside a transcript path, not even a focus note for a long transcript. Collect each reviewer's complete result before synthesis.
 
 ## 3. Synthesize
 
-Use a fresh synthesizer with the runtime judgment model, or a clearly labeled sequential synthesis when subagents are unavailable. Retain available MCP access for spot-verifying citations. Use `references/synthesizer.md` verbatim, with each reviewer's full output inlined where marked. The synthesizer returns a structured Accepted / Rejected / Backlog list.
+Use a fresh synthesizer with the runtime synthesizer model, or a clearly labeled sequential synthesis when subagents are unavailable. Retain available MCP access for spot-verifying citations. Use `references/synthesizer.md` verbatim, with each reviewer's full output inlined where marked. The synthesizer returns a structured Accepted / Rejected / Backlog list.
 
 ## 4. Structural enforcement check
 
