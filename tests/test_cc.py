@@ -407,10 +407,14 @@ class ModelPolicyTests(InstallBase):
     def test_built_in_policy_reaches_both_runtimes(self):
         self.install()
         claude, codex = self.instructions('claude'), self.instructions('codex')
-        self.assertIn('| review | `sonnet` at `medium` | `opus` at `high` |', claude)
+        self.assertIn('| review | `sonnet` at `medium` | `haiku` at `medium`, `sonnet` at `high`, `opus` at `high` |', claude)
         self.assertIn('| explore | `haiku` at `medium` | `sonnet` at `medium` |', claude)
-        self.assertIn('| judgment | `opus` at `medium` | `opus` at `high` |', claude)
-        self.assertIn('| design | `opus` at `medium` | `opus` at `high` |', claude)
+        self.assertIn('| judgment | `opus` at `medium` | `opus` at `high`, `opus` at `xhigh` |', claude)
+        self.assertIn('| design | `opus` at `medium` | `opus` at `high`, `opus` at `xhigh` |', claude)
+        self.assertIn('| implement | `sonnet` at `medium` | `haiku` at `medium`, `sonnet` at `high`, `opus` at `medium`, `opus` at `high` |', claude)
+        # The guideline asks for a choice in both directions, with examples of each.
+        self.assertIn('**Stronger**', claude)
+        self.assertIn('**Smaller**', claude)
         self.assertNotIn('synthesis', claude)
         self.assertIn('inherits your model and effort', claude)
         self.assertIn('| review | `default` at `medium` |', codex)
@@ -450,7 +454,9 @@ class ModelPolicyTests(InstallBase):
     def test_max_effort_caps_the_claude_settings(self):
         settings = json.loads(cc.render_settings(self.base))
         self.assertEqual(settings['maxEffortLevel'], 'xhigh')
-        self.config.write_text('[models.claude]\nmax_effort = "high"\n')
+        self.config.write_text('[models.claude]\nmax_effort = "high"\n'
+                               '[models.claude.tasks.design]\ndefault = "opus@medium"\nallowed = ["opus@high"]\n'
+                               '[models.claude.tasks.judgment]\ndefault = "opus@medium"\nallowed = ["opus@high"]\n')
         self.assertEqual(json.loads(cc.render_settings(self.base))['maxEffortLevel'], 'high')
         self.config.write_text('[models.claude]\nmax_effort = "max"\n')
         self.assertNotIn('maxEffortLevel', json.loads(cc.render_settings(self.base)))

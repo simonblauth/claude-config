@@ -437,11 +437,12 @@ BUILT_IN_MODELS = {
         "limits": {"haiku": {"max_effort": "medium"}},
         "tasks": {
             "explore": {"default": "haiku@medium", "allowed": ["sonnet@medium"]},
-            "audit": {"default": "sonnet@medium", "allowed": ["opus@medium"]},
-            "implement": {"default": "sonnet@medium", "allowed": ["opus@medium", "opus@high"]},
-            "review": {"default": "sonnet@medium", "allowed": ["opus@high"]},
-            "design": {"default": "opus@medium", "allowed": ["opus@high"], "models": ["opus"]},
-            "judgment": {"default": "opus@medium", "allowed": ["opus@high"], "models": ["opus"]},
+            "audit": {"default": "sonnet@medium", "allowed": ["haiku@medium", "sonnet@high", "opus@medium"]},
+            "implement": {"default": "sonnet@medium",
+                          "allowed": ["haiku@medium", "sonnet@high", "opus@medium", "opus@high"]},
+            "review": {"default": "sonnet@medium", "allowed": ["haiku@medium", "sonnet@high", "opus@high"]},
+            "design": {"default": "opus@medium", "allowed": ["opus@high", "opus@xhigh"], "models": ["opus"]},
+            "judgment": {"default": "opus@medium", "allowed": ["opus@high", "opus@xhigh"], "models": ["opus"]},
         },
     },
     "codex": {
@@ -450,10 +451,10 @@ BUILT_IN_MODELS = {
         "tasks": {
             "explore": {"default": "default@medium", "allowed": []},
             "audit": {"default": "default@medium", "allowed": ["default@high"]},
-            "implement": {"default": "default@medium", "allowed": ["default@high"]},
+            "implement": {"default": "default@medium", "allowed": ["default@high", "default@xhigh"]},
             "review": {"default": "default@medium", "allowed": ["default@high"]},
-            "design": {"default": "default@high", "allowed": []},
-            "judgment": {"default": "default@high", "allowed": []},
+            "design": {"default": "default@high", "allowed": ["default@xhigh"]},
+            "judgment": {"default": "default@high", "allowed": ["default@xhigh"]},
         },
     },
 }
@@ -685,12 +686,18 @@ def render_models(target: str, policy: dict) -> str:
                  f"entry: {choices([review['default']])}, also allowed {choices(review['allowed']) or 'nothing else'}.")
     note = ("`CLAUDE_CODE_EFFORT_LEVEL`, when set in the environment, overrides every effort below. A hook refuses "
             "an `Agent` call whose model or effort is outside this table.\n\n" if target == "claude" else "")
-    return (f"## Models\n\nStart every subagent on the model and effort of its task kind, and {spawn}. "
-            "Use the default. Take a choice from the last column only when the task needs more than the default "
-            "can give, such as a high-risk or large change, and name the choice and the reason in the subagent's "
-            "report. Use nothing outside the table. A subagent that fits no kind, such as one that tests how a "
-            "model behaves with a skill, inherits your model and effort: pass neither. "
-            f"No effort goes below `{own['min_effort']}` or above `{own['max_effort']}`.\n\n{note}"
+    return (f"## Models\n\nChoose each subagent's model and effort for the work in front of it, from its task "
+            f"kind's row below, and {spawn}. The default fits the typical task. Weigh every task in both directions:"
+            "\n\n- **Stronger**, a bigger model or more effort: the implementation looks complex or spans several "
+            "modules; the decisions matter or are hard to undo, such as a stored or wire format, a public API or "
+            "security; the work is open-ended, such as design, research or an unclear spec; or an earlier attempt "
+            "or review round fell short.\n- **Smaller**, a smaller model or less effort: the work is simple and "
+            "well defined, such as a docs or config change, a rename, a one-file fix with a clear test, a search for "
+            "a precise target, or re-checking one specific claim.\n\n"
+            "Name the choice and the reason in the subagent's report. Use nothing outside the table. A subagent "
+            "that fits no kind, such as one that tests how a model behaves with a skill, inherits your model and "
+            f"effort: pass neither. No effort goes below `{own['min_effort']}` or above `{own['max_effort']}`."
+            f"\n\n{note}"
             f"| Task | Default | Also allowed |\n|---|---|---|\n{rows}\n\n{kinds}\n\n{cross}\n\n"
             "Hand broad reading, such as searching a codebase, surveying files, or reading logs and transcripts, "
             "to an `explore` subagent. Keep your own context to what you act on.")

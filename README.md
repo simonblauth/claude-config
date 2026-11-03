@@ -129,8 +129,8 @@ skills = ["some-skill", "another-skill"]
   `usage_limit_continue`, described under [Install and check](#install-and-check).
 - `[models]` sets, per runtime and per task kind (`explore`, `audit`, `implement`,
   `review`, `design`, `judgment`), the model and effort a subagent starts on
-  (`default`) and the choices an agent may move to when the task needs more
-  (`allowed`). Each is `model@effort`; Claude takes the aliases `opus`, `sonnet`,
+  (`default`) and the other choices an agent picks from, stronger or smaller,
+  by how complex, consequential or open-ended the work is (`allowed`). Each is `model@effort`; Claude takes the aliases `opus`, `sonnet`,
   `haiku` and `fable`. A task's `models` list restricts its choices; the built-in
   `design` and `judgment` take only `opus`, and keep that when the config changes
   their default. Built-in defaults fill every task kind and bound the config
