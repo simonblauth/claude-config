@@ -419,10 +419,12 @@ OPT_IN_HOOKS = {"usage_limit_continue": "StopFailure"}
 # What each task kind covers, as the rendered policy names it.
 TASKS = {
     "explore": "searching and reading broadly",
-    "audit": "reading code or a transcript to judge it: improve, architecture review, triage, reflect's reviewers",
-    "implement": "changing code: issue-to-pr runs",
+    "audit": "reading code or a transcript to report findings: improve's and architecture review's auditors, "
+             "reflect's reviewers, dispatched improve and architecture runs",
+    "implement": "changing code: issue-to-pr runs, improve's executor",
     "review": "reviewing a diff: each review-loop round",
-    "synthesis": "merging findings into decisions: reflect's synthesizer",
+    "design": "designing or planning: interfaces, design-it-twice, plans",
+    "judgment": "deciding: triage, reflect's synthesizer, a dispatcher's own decisions",
 }
 # Effort levels each runtime documents. Claude Code's Agent call takes only these model aliases.
 EFFORTS = {"claude": ("low", "medium", "high", "xhigh", "max"),
@@ -431,23 +433,27 @@ CLAUDE_MODELS = ("opus", "sonnet", "haiku", "fable")
 # Codex's model ids differ between accounts, so its built-ins use `default`: the model in Codex's own config.
 BUILT_IN_MODELS = {
     "claude": {
-        "limits": {"opus": {"min_effort": "medium"}, "haiku": {"max_effort": "medium"}},
+        "min_effort": "medium", "max_effort": "xhigh",
+        "limits": {"haiku": {"max_effort": "medium"}},
         "tasks": {
-            "explore": {"default": "haiku@medium", "allowed": ["sonnet@low", "sonnet@medium"]},
+            "explore": {"default": "haiku@medium", "allowed": ["sonnet@medium"]},
             "audit": {"default": "sonnet@medium", "allowed": ["opus@medium"]},
             "implement": {"default": "sonnet@medium", "allowed": ["opus@medium", "opus@high"]},
             "review": {"default": "sonnet@medium", "allowed": ["opus@high"]},
-            "synthesis": {"default": "opus@medium", "allowed": ["opus@high"]},
+            "design": {"default": "opus@medium", "allowed": ["opus@high"], "models": ["opus"]},
+            "judgment": {"default": "opus@medium", "allowed": ["opus@high"], "models": ["opus"]},
         },
     },
     "codex": {
+        "min_effort": "medium", "max_effort": "xhigh",
         "limits": {},
         "tasks": {
-            "explore": {"default": "default@low", "allowed": ["default@medium"]},
+            "explore": {"default": "default@medium", "allowed": []},
             "audit": {"default": "default@medium", "allowed": ["default@high"]},
             "implement": {"default": "default@medium", "allowed": ["default@high"]},
             "review": {"default": "default@medium", "allowed": ["default@high"]},
-            "synthesis": {"default": "default@high", "allowed": []},
+            "design": {"default": "default@high", "allowed": []},
+            "judgment": {"default": "default@high", "allowed": []},
         },
     },
 }
@@ -465,45 +471,59 @@ def selection(value, path: Path, key: str) -> list[str] | str:
 
 
 def model_policy(models: dict, path: Path) -> dict:
-    """The built-in policy with this machine's [models] laid over it: a task kind replaces its built-in entry
-    whole, and a model's limits replace its built-in limits. Every choice must fit its model's limits."""
+    """The built-in policy with this machine's [models] laid over it. A task kind replaces its built-in entry
+    except for a built-in models list, a model's limits replace its built-in limits, and min_effort and max_effort bound every effort.
+    Every choice must fit the bounds, its model's limits, and its task's models when the task names them."""
     if not isinstance(models, dict) or set(models) - set(EFFORTS):
         raise ValueError(f"{path}: [models] takes {' and '.join(EFFORTS)} tables")
     policy = {}
     for runtime, built_in in BUILT_IN_MODELS.items():
         given = models.get(runtime, {})
-        if not isinstance(given, dict) or set(given) - {"limits", "tasks"} \
+        if not isinstance(given, dict) or set(given) - {"min_effort", "max_effort", "limits", "tasks"} \
                 or not all(isinstance(given.get(k, {}), dict) for k in ("limits", "tasks")):
-            raise ValueError(f"{path}: [models.{runtime}] takes only limits and tasks tables")
+            raise ValueError(f"{path}: [models.{runtime}] takes min_effort, max_effort, limits and tasks")
         levels = EFFORTS[runtime]
+        rank = levels.index
+
+        def bounds(where: str, bound: dict) -> None:
+            if any(v not in levels for v in bound.values()) \
+                    or rank(bound.get("min_effort", levels[0])) > rank(bound.get("max_effort", levels[-1])):
+                raise ValueError(f"{path}: {where} takes min_effort and max_effort, in order, from {', '.join(levels)}")
+
+        floor = {k: given.get(k, built_in[k]) for k in ("min_effort", "max_effort")}
+        bounds(f"[models.{runtime}]", floor)
         limits = {**built_in["limits"], **given.get("limits", {})}
         for model, bound in limits.items():
-            if not isinstance(bound, dict) or set(bound) - {"min_effort", "max_effort"} \
-                    or any(v not in levels for v in bound.values()) \
-                    or levels.index(bound.get("min_effort", levels[0])) > levels.index(bound.get("max_effort", levels[-1])):
-                raise ValueError(f"{path}: models.{runtime}.limits.{model} takes min_effort and max_effort, "
-                                 f"in order, from {', '.join(levels)}")
+            if not isinstance(bound, dict) or set(bound) - {"min_effort", "max_effort"}:
+                raise ValueError(f"{path}: models.{runtime}.limits.{model} takes min_effort and max_effort")
+            bounds(f"models.{runtime}.limits.{model}", bound)
         tasks = {**built_in["tasks"], **given.get("tasks", {})}
         for kind, task in tasks.items():
             where = f"{path}: models.{runtime}.tasks.{kind}"
             if kind not in TASKS:
                 raise ValueError(f"{where} is not a task kind; the kinds are {', '.join(TASKS)}")
-            if not isinstance(task, dict) or "default" not in task or set(task) - {"default", "allowed"} \
-                    or not isinstance(task.get("allowed", []), list):
-                raise ValueError(f"{where} needs default, and may set allowed, a list")
-            task.setdefault("allowed", [])
+            if not isinstance(task, dict) or "default" not in task or set(task) - {"default", "allowed", "models"} \
+                    or not all(isinstance(task.get(k, []), list) for k in ("allowed", "models")):
+                raise ValueError(f"{where} needs default, and may set allowed and models, each a list")
+            # A built-in models list stays unless the config sets its own: it keeps judgment and design on
+            # strong models when the config only changes their default.
+            kept = {"models": built_in["tasks"][kind]["models"]} if "models" in built_in["tasks"].get(kind, {}) else {}
+            task = {"allowed": [], **kept, **task}
+            tasks[kind] = task
             for choice in [task["default"], *task["allowed"]]:
                 model, _, effort = choice.partition("@") if isinstance(choice, str) else ("", "", "")
                 if not model or effort not in levels or (runtime == "claude" and model not in CLAUDE_MODELS):
-                    models_hint = f"model one of {', '.join(CLAUDE_MODELS)}" if runtime == "claude" else "a model id or default"
-                    raise ValueError(f"{where}: {choice!r} is not model@effort, with {models_hint} "
+                    hint = f"model one of {', '.join(CLAUDE_MODELS)}" if runtime == "claude" else "a model id or default"
+                    raise ValueError(f"{where}: {choice!r} is not model@effort, with {hint} "
                                      f"and effort one of {', '.join(levels)}")
-                bound = limits.get(model, {})
-                for key, ok in (("min_effort", lambda b: levels.index(effort) >= levels.index(b)),
-                                ("max_effort", lambda b: levels.index(effort) <= levels.index(b))):
-                    if key in bound and not ok(bound[key]):
-                        raise ValueError(f"{where}: {choice} breaks the {model} limit {key} = {bound[key]}")
-        policy[runtime] = {"limits": limits, "tasks": tasks}
+                if "models" in task and model not in task["models"]:
+                    raise ValueError(f"{where}: {choice} uses {model}, and {kind} takes only {', '.join(task['models'])}")
+                for scope, bound in ((f"models.{runtime}", floor), (f"the {model} limit", limits.get(model, {}))):
+                    if "min_effort" in bound and rank(effort) < rank(bound["min_effort"]):
+                        raise ValueError(f"{where}: {choice} is below {scope} min_effort = {bound['min_effort']}")
+                    if "max_effort" in bound and rank(effort) > rank(bound["max_effort"]):
+                        raise ValueError(f"{where}: {choice} is above {scope} max_effort = {bound['max_effort']}")
+        policy[runtime] = {**floor, "limits": limits, "tasks": tasks}
     return policy
 
 
@@ -641,10 +661,11 @@ def choices(entries: list[str]) -> str:
 def render_models(target: str, policy: dict) -> str:
     """The model policy for one runtime, with the other runtime's review entry for cross-model review."""
     other = "codex" if target == "claude" else "claude"
+    own = policy[target]
     spawn = ("pass its `model` and `effort` on the `Agent` call" if target == "claude"
              else "give it that model and reasoning effort when you start it")
     rows = "\n".join(f"| {kind} | {choices([t['default']])} | {choices(t['allowed']) or '—'} |"
-                     for kind, t in policy[target]["tasks"].items())
+                     for kind, t in own["tasks"].items())
     kinds = "\n".join(f"- `{kind}`: {about}." for kind, about in TASKS.items())
     review = policy[other]["tasks"]["review"]
     if other == "codex":
@@ -654,12 +675,14 @@ def render_models(target: str, policy: dict) -> str:
     else:
         cross = ("A `--reviewer claude` round runs `claude -p --model <model> --effort <effort>` with Claude's review "
                  f"entry: {choices([review['default']])}, also allowed {choices(review['allowed']) or 'nothing else'}.")
-    note = ("\n\n`CLAUDE_CODE_EFFORT_LEVEL`, when set in the environment, overrides every effort below."
-            if target == "claude" else "")
+    note = ("`CLAUDE_CODE_EFFORT_LEVEL`, when set in the environment, overrides every effort below."
+            "\n\n" if target == "claude" else "")
     return (f"## Models\n\nStart every subagent on the model and effort of its task kind, and {spawn}. "
             "Use the default. Take a choice from the last column only when the task needs more than the default "
             "can give, such as a high-risk or large change, and name the choice and the reason in the subagent's "
-            f"report. Use nothing outside the table.{note}\n\n"
+            "report. Use nothing outside the table. A subagent that fits no kind, such as one that tests how a "
+            "model behaves with a skill, inherits your model and effort: pass neither. "
+            f"No effort goes below `{own['min_effort']}` or above `{own['max_effort']}`.\n\n{note}"
             f"| Task | Default | Also allowed |\n|---|---|---|\n{rows}\n\n{kinds}\n\n{cross}\n\n"
             "Hand broad reading, such as searching a codebase, surveying files, or reading logs and transcripts, "
             "to an `explore` subagent. Keep your own context to what you act on.")
@@ -827,6 +850,9 @@ def render_settings(cfg: Path) -> bytes:
     text = text.replace("{{UV}}", json_escape(uv_executable()))
     text = text.replace("{{REPO}}", json_escape(str(REPO)))
     planned = json.loads(text)
+    cap = machine_config()["models"]["claude"]["max_effort"]
+    if cap != "max":
+        planned["maxEffortLevel"] = cap
     installed = read_json(cfg / "settings.json")
     enabled = machine_config()["hooks"]
     for name, event in OPT_IN_HOOKS.items():

@@ -408,7 +408,11 @@ class ModelPolicyTests(InstallBase):
         self.install()
         claude, codex = self.instructions('claude'), self.instructions('codex')
         self.assertIn('| review | `sonnet` at `medium` | `opus` at `high` |', claude)
-        self.assertIn('| explore | `haiku` at `medium` |', claude)
+        self.assertIn('| explore | `haiku` at `medium` | `sonnet` at `medium` |', claude)
+        self.assertIn('| judgment | `opus` at `medium` | `opus` at `high` |', claude)
+        self.assertIn('| design | `opus` at `medium` | `opus` at `high` |', claude)
+        self.assertNotIn('synthesis', claude)
+        self.assertIn('inherits your model and effort', claude)
         self.assertIn('| review | `default` at `medium` |', codex)
         self.assertIn('explore', claude.split('## Models', 1)[1])
         # Each runtime also learns the other's review choice, for review-loop's --reviewer claude|codex.
@@ -421,13 +425,35 @@ class ModelPolicyTests(InstallBase):
         self.install()
         codex = self.instructions('codex')
         self.assertIn('| review | `gpt-x` at `high` | `gpt-x` at `xhigh` |', codex)
-        self.assertIn('| explore | `default` at `low` |', codex)
+        self.assertIn('| explore | `default` at `medium` |', codex)
         self.assertIn('`gpt-x` at `high`', self.instructions('claude'))
 
     def test_limits_forbid_a_choice_even_when_the_config_sets_none(self):
         self.config.write_text('[models.claude.tasks.review]\ndefault = "opus@low"\n')
         with self.assertRaisesRegex(ValueError, 'opus@low.*min_effort'):
             cc.machine_config()
+
+    def test_effort_bounds_cover_every_choice(self):
+        for text, error in (('[models.claude.tasks.explore]\ndefault = "sonnet@low"\n', 'min_effort'),
+                            ('[models.claude.tasks.review]\ndefault = "sonnet@max"\n', 'max_effort'),
+                            ('[models.codex.tasks.review]\ndefault = "default@ultra"\n', 'max_effort')):
+            with self.subTest(text=text):
+                self.config.write_text(text)
+                with self.assertRaisesRegex(ValueError, error):
+                    cc.machine_config()
+
+    def test_judgment_and_design_take_only_their_models(self):
+        self.config.write_text('[models.claude.tasks.judgment]\ndefault = "sonnet@high"\n')
+        with self.assertRaisesRegex(ValueError, 'judgment.*opus'):
+            cc.machine_config()
+
+    def test_max_effort_caps_the_claude_settings(self):
+        settings = json.loads(cc.render_settings(self.base))
+        self.assertEqual(settings['maxEffortLevel'], 'xhigh')
+        self.config.write_text('[models.claude]\nmax_effort = "high"\n')
+        self.assertEqual(json.loads(cc.render_settings(self.base))['maxEffortLevel'], 'high')
+        self.config.write_text('[models.claude]\nmax_effort = "max"\n')
+        self.assertNotIn('maxEffortLevel', json.loads(cc.render_settings(self.base)))
 
     def test_a_tighter_limit_rejects_a_built_in_default(self):
         self.config.write_text('[models.claude.limits]\nhaiku = { max_effort = "low" }\n')
@@ -443,6 +469,8 @@ class ModelPolicyTests(InstallBase):
                      '[models.claude.tasks.review]\ndefault = "sonnet@low"\nallowed = "opus@high"\n',
                      '[models.claude.limits]\nopus = { min_effort = "high", max_effort = "low" }\n',
                      '[models.claude]\nreview = "sonnet@low"\n',
+                     '[models.claude]\nmin_effort = "high"\nmax_effort = "medium"\n',
+                     '[models.claude.tasks.review]\ndefault = "sonnet@medium"\nmodels = "sonnet"\n',
                      'models = 1\n'):
             with self.subTest(text=text):
                 self.config.write_text(text)

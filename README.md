@@ -88,8 +88,12 @@ inputs = ["calendar", "github"]  # outside inputs the vault brief and wrap read
 [hooks]
 usage_limit_continue = true     # opt-in Claude hooks, off by default
 
+[models.claude]
+min_effort = "medium"             # no choice goes below this ...
+max_effort = "xhigh"              # ... or above this, which also caps Claude's maxEffortLevel
+
 [models.claude.limits]
-opus = { min_effort = "medium" }  # no choice may put opus below medium
+haiku = { max_effort = "medium" } # per-model bounds inside those
 
 [models.claude.tasks.review]
 default = "sonnet@medium"
@@ -123,14 +127,18 @@ skills = ["some-skill", "another-skill"]
   installs into `settings.json` only when set to `true`. The one hook so far is
   `usage_limit_continue`, described under [Install and check](#install-and-check).
 - `[models]` sets, per runtime and per task kind (`explore`, `audit`, `implement`,
-  `review`, `synthesis`), the model and effort a subagent starts on (`default`)
-  and the choices an agent may move to when the task needs more (`allowed`).
-  Each is `model@effort`; Claude takes the aliases `opus`, `sonnet`, `haiku` and
-  `fable`. `limits` bound the effort per model, and a choice outside them is an
-  error. Built-in defaults fill every task kind and limit the config leaves out.
-  Install renders the result as a Models section in both runtimes' instructions.
-  Each runtime also gets the other's `review` entry, for `review-loop --reviewer
-  claude|codex`. `CLAUDE_CODE_EFFORT_LEVEL` in the environment overrides every
+  `review`, `design`, `judgment`), the model and effort a subagent starts on
+  (`default`) and the choices an agent may move to when the task needs more
+  (`allowed`). Each is `model@effort`; Claude takes the aliases `opus`, `sonnet`,
+  `haiku` and `fable`. A task's `models` list restricts its choices; the built-in
+  `design` and `judgment` take only `opus`, and keep that when the config changes
+  their default. Built-in defaults fill every task kind and bound the config
+  leaves out, and a choice outside its bounds is an error.
+- Install renders the result as a Models section in both runtimes' instructions,
+  with the other runtime's `review` entry for `review-loop --reviewer
+  claude|codex`. A subagent that fits no kind inherits its parent's model and
+  effort. On Claude, `max_effort` becomes `maxEffortLevel` in `settings.json`,
+  which caps every request including the main session's. `CLAUDE_CODE_EFFORT_LEVEL` in the environment overrides every
   Claude effort.
 - `{{name}}` in a Markdown rule becomes the `[vars]` value of that name, or `none`
   when it is not set.
