@@ -1,5 +1,5 @@
 diff --git a/SKILL.md b/SKILL.md
-index 3863da3..f152e02 100644
+index 43b02d4..62afab6 100644
 --- a/SKILL.md
 +++ b/SKILL.md
 @@ -6,8 +6,6 @@ description: >
@@ -11,3 +11,12 @@ index 3863da3..f152e02 100644
  ---
  
  # Dispatch
+@@ -21,7 +19,7 @@ Dispatch is a driver. One run takes one **scope**, one **skill** and its argumen
+ | `dispatch <scope> triage` | repo | repos with an open issue that is unlabelled, `needs-triage`, or `needs-info` with a reply since triage | each issue moved to `ready-for-agent`, `ready-for-human`, `needs-info` or `wontfix` |
+ | `dispatch <scope> issue-to-pr` | issue | open `ready-for-agent` issues, see step 2 | one reviewed, open pull request per issue |
+ 
+-Each run is a single stage, so each stage gets its own schedule. A person steps in by changing a label. Dispatch keeps no state between runs: the labels are the state. The dispatcher's own decisions, such as answering a subagent's question, are `judgment` work. The frontmatter puts dispatch's first turn on it, and later turns, which start when a subagent reports, run on the session's model: start a dispatch session on a `judgment` choice. A run ends with its summary. It never waits inside the conversation for a dependency, a merge or a release: the summary names the run to schedule next, and that run selects what has landed by then.
++Each run is a single stage, so each stage gets its own schedule. A person steps in by changing a label. Dispatch keeps no state between runs: the labels are the state. The dispatcher's own decisions, such as answering a subagent's question, are `judgment` work. They run on the session's model: start a dispatch session on a `judgment` choice. A run ends with its summary. It never waits inside the conversation for a dependency, a merge or a release: the summary names the run to schedule next, and that run selects what has landed by then.
+ 
+ A scope is an owner, a repo, or, for `issue-to-pr` only, a list of issues written `owner/repo#N`. An issue list names its targets itself, so step 2 checks each named issue instead of searching. Its repos are the repos those issues live in.
+ 
