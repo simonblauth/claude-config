@@ -391,6 +391,69 @@ class MachineConfigTests(InstallBase):
             self.install()
 
 
+class ModelPolicyTests(InstallBase):
+    """[models] picks a model and effort per runtime and task kind, inside limits per model."""
+
+    def setUp(self):
+        super().setUp()
+        self.config = self.base / 'config.toml'
+        p = patch.object(cc, 'machine_config_path', lambda: self.config)
+        p.start()
+        self.addCleanup(p.stop)
+
+    def instructions(self, target):
+        return (cc.config_dir(target) / ('CLAUDE.md' if target == 'claude' else 'AGENTS.md')).read_text()
+
+    def test_built_in_policy_reaches_both_runtimes(self):
+        self.install()
+        claude, codex = self.instructions('claude'), self.instructions('codex')
+        self.assertIn('| review | `sonnet` at `medium` | `opus` at `high` |', claude)
+        self.assertIn('| explore | `haiku` at `medium` |', claude)
+        self.assertIn('| review | `default` at `medium` |', codex)
+        self.assertIn('explore', claude.split('## Models', 1)[1])
+        # Each runtime also learns the other's review choice, for review-loop's --reviewer claude|codex.
+        self.assertIn('`codex exec -m <model> -c model_reasoning_effort=<effort>`', claude)
+        self.assertIn('`claude -p --model <model> --effort <effort>`', codex)
+        self.assertIn('CLAUDE_CODE_EFFORT_LEVEL', claude)
+
+    def test_a_task_override_keeps_the_other_built_ins(self):
+        self.config.write_text('[models.codex.tasks.review]\ndefault = "gpt-x@high"\nallowed = ["gpt-x@xhigh"]\n')
+        self.install()
+        codex = self.instructions('codex')
+        self.assertIn('| review | `gpt-x` at `high` | `gpt-x` at `xhigh` |', codex)
+        self.assertIn('| explore | `default` at `low` |', codex)
+        self.assertIn('`gpt-x` at `high`', self.instructions('claude'))
+
+    def test_limits_forbid_a_choice_even_when_the_config_sets_none(self):
+        self.config.write_text('[models.claude.tasks.review]\ndefault = "opus@low"\n')
+        with self.assertRaisesRegex(ValueError, 'opus@low.*min_effort'):
+            cc.machine_config()
+
+    def test_a_tighter_limit_rejects_a_built_in_default(self):
+        self.config.write_text('[models.claude.limits]\nhaiku = { max_effort = "low" }\n')
+        with self.assertRaisesRegex(ValueError, 'haiku@medium.*max_effort'):
+            cc.machine_config()
+
+    def test_invalid_model_tables_are_refused(self):
+        for text in ('[models.gemini.tasks.review]\ndefault = "x@low"\n',
+                     '[models.claude.tasks.coding]\ndefault = "sonnet@low"\n',
+                     '[models.claude.tasks.review]\ndefault = "sonnet@turbo"\n',
+                     '[models.claude.tasks.review]\ndefault = "claude-sonnet-5-5@low"\n',
+                     '[models.claude.tasks.review]\nallowed = ["opus@high"]\n',
+                     '[models.claude.tasks.review]\ndefault = "sonnet@low"\nallowed = "opus@high"\n',
+                     '[models.claude.limits]\nopus = { min_effort = "high", max_effort = "low" }\n',
+                     '[models.claude]\nreview = "sonnet@low"\n',
+                     'models = 1\n'):
+            with self.subTest(text=text):
+                self.config.write_text(text)
+                with self.assertRaisesRegex(ValueError, 'config.toml'):
+                    cc.machine_config()
+
+    def test_explore_handoff_is_in_the_policy(self):
+        self.install()
+        self.assertIn('Hand broad reading', self.instructions('claude'))
+
+
 class SettingsTests(unittest.TestCase):
     def test_heredoc_guard_is_installed_on_every_platform(self):
         for windows in (True, False):

@@ -416,6 +416,43 @@ REVIEWERS = ("copilot", "subagent", "claude", "codex")
 OPT_IN_HOOKS = {"usage_limit_continue": "StopFailure"}
 
 
+# What each task kind covers, as the rendered policy names it.
+TASKS = {
+    "explore": "searching and reading broadly",
+    "audit": "reading code or a transcript to judge it: improve, architecture review, triage, reflect's reviewers",
+    "implement": "changing code: issue-to-pr runs",
+    "review": "reviewing a diff: each review-loop round",
+    "synthesis": "merging findings into decisions: reflect's synthesizer",
+}
+# Effort levels each runtime documents. Claude Code's Agent call takes only these model aliases.
+EFFORTS = {"claude": ("low", "medium", "high", "xhigh", "max"),
+           "codex": ("low", "medium", "high", "xhigh", "max", "ultra")}
+CLAUDE_MODELS = ("opus", "sonnet", "haiku", "fable")
+# Codex's model ids differ between accounts, so its built-ins use `default`: the model in Codex's own config.
+BUILT_IN_MODELS = {
+    "claude": {
+        "limits": {"opus": {"min_effort": "medium"}, "haiku": {"max_effort": "medium"}},
+        "tasks": {
+            "explore": {"default": "haiku@medium", "allowed": ["sonnet@low", "sonnet@medium"]},
+            "audit": {"default": "sonnet@medium", "allowed": ["opus@medium"]},
+            "implement": {"default": "sonnet@medium", "allowed": ["opus@medium", "opus@high"]},
+            "review": {"default": "sonnet@medium", "allowed": ["opus@high"]},
+            "synthesis": {"default": "opus@medium", "allowed": ["opus@high"]},
+        },
+    },
+    "codex": {
+        "limits": {},
+        "tasks": {
+            "explore": {"default": "default@low", "allowed": ["default@medium"]},
+            "audit": {"default": "default@medium", "allowed": ["default@high"]},
+            "implement": {"default": "default@medium", "allowed": ["default@high"]},
+            "review": {"default": "default@medium", "allowed": ["default@high"]},
+            "synthesis": {"default": "default@high", "allowed": []},
+        },
+    },
+}
+
+
 def machine_config_path() -> Path:
     base = os.environ.get("XDG_CONFIG_HOME")
     return (Path(base).expanduser() if base else Path.home() / ".config") / "claude-config" / "config.toml"
@@ -427,16 +464,60 @@ def selection(value, path: Path, key: str) -> list[str] | str:
     raise ValueError(f"{path}: {key} is \"all\" or a list of names")
 
 
+def model_policy(models: dict, path: Path) -> dict:
+    """The built-in policy with this machine's [models] laid over it: a task kind replaces its built-in entry
+    whole, and a model's limits replace its built-in limits. Every choice must fit its model's limits."""
+    if not isinstance(models, dict) or set(models) - set(EFFORTS):
+        raise ValueError(f"{path}: [models] takes {' and '.join(EFFORTS)} tables")
+    policy = {}
+    for runtime, built_in in BUILT_IN_MODELS.items():
+        given = models.get(runtime, {})
+        if not isinstance(given, dict) or set(given) - {"limits", "tasks"} \
+                or not all(isinstance(given.get(k, {}), dict) for k in ("limits", "tasks")):
+            raise ValueError(f"{path}: [models.{runtime}] takes only limits and tasks tables")
+        levels = EFFORTS[runtime]
+        limits = {**built_in["limits"], **given.get("limits", {})}
+        for model, bound in limits.items():
+            if not isinstance(bound, dict) or set(bound) - {"min_effort", "max_effort"} \
+                    or any(v not in levels for v in bound.values()) \
+                    or levels.index(bound.get("min_effort", levels[0])) > levels.index(bound.get("max_effort", levels[-1])):
+                raise ValueError(f"{path}: models.{runtime}.limits.{model} takes min_effort and max_effort, "
+                                 f"in order, from {', '.join(levels)}")
+        tasks = {**built_in["tasks"], **given.get("tasks", {})}
+        for kind, task in tasks.items():
+            where = f"{path}: models.{runtime}.tasks.{kind}"
+            if kind not in TASKS:
+                raise ValueError(f"{where} is not a task kind; the kinds are {', '.join(TASKS)}")
+            if not isinstance(task, dict) or "default" not in task or set(task) - {"default", "allowed"} \
+                    or not isinstance(task.get("allowed", []), list):
+                raise ValueError(f"{where} needs default, and may set allowed, a list")
+            task.setdefault("allowed", [])
+            for choice in [task["default"], *task["allowed"]]:
+                model, _, effort = choice.partition("@") if isinstance(choice, str) else ("", "", "")
+                if not model or effort not in levels or (runtime == "claude" and model not in CLAUDE_MODELS):
+                    models_hint = f"model one of {', '.join(CLAUDE_MODELS)}" if runtime == "claude" else "a model id or default"
+                    raise ValueError(f"{where}: {choice!r} is not model@effort, with {models_hint} "
+                                     f"and effort one of {', '.join(levels)}")
+                bound = limits.get(model, {})
+                for key, ok in (("min_effort", lambda b: levels.index(effort) >= levels.index(b)),
+                                ("max_effort", lambda b: levels.index(effort) <= levels.index(b))):
+                    if key in bound and not ok(bound[key]):
+                        raise ValueError(f"{where}: {choice} breaks the {model} limit {key} = {bound[key]}")
+        policy[runtime] = {"limits": limits, "tasks": tasks}
+    return policy
+
+
 def machine_config() -> dict:
     """This machine's settings. They live outside the repo, so the public repo never names a private source."""
     path = machine_config_path()
     if not path.exists():
-        return {"review": {}, "vars": {}, "vault": {}, "hooks": {}, "sources": []}
+        return {"review": {}, "vars": {}, "vault": {}, "hooks": {}, "sources": [],
+                "models": model_policy({}, path)}
     try:
         data = tomllib.loads(path.read_text(encoding="utf-8"))
     except tomllib.TOMLDecodeError as e:
         raise ValueError(f"{path}: {e}") from e
-    unknown = set(data) - {"review", "vars", "vault", "hooks", "sources"}
+    unknown = set(data) - {"review", "vars", "vault", "hooks", "sources", "models"}
     if unknown:
         raise ValueError(f"{path}: unknown key(s) {', '.join(sorted(unknown))}")
     for key in ("review", "vars", "vault", "hooks"):
@@ -469,7 +550,8 @@ def machine_config() -> dict:
         source["skills"] = selection(source.get("skills", []), path, "skills")
         if not source["rules"] and not source["skills"]:
             raise ValueError(f"{path}: source {source['repo']} picks nothing; set rules or skills")
-    return {"review": review, "vars": variables, "vault": vault, "hooks": hooks, "sources": sources}
+    return {"review": review, "vars": variables, "vault": vault, "hooks": hooks, "sources": sources,
+            "models": model_policy(data.get("models", {}), path)}
 
 
 def source_checkouts(fetch: bool = False) -> list[tuple[dict, Path]]:
@@ -552,13 +634,46 @@ def codex_rules(rules: dict[str, bytes]) -> list[str]:
     return parts
 
 
+def choices(entries: list[str]) -> str:
+    return ", ".join(f"`{m}` at `{e}`" for m, _, e in (c.partition("@") for c in entries))
+
+
+def render_models(target: str, policy: dict) -> str:
+    """The model policy for one runtime, with the other runtime's review entry for cross-model review."""
+    other = "codex" if target == "claude" else "claude"
+    spawn = ("pass its `model` and `effort` on the `Agent` call" if target == "claude"
+             else "give it that model and reasoning effort when you start it")
+    rows = "\n".join(f"| {kind} | {choices([t['default']])} | {choices(t['allowed']) or '—'} |"
+                     for kind, t in policy[target]["tasks"].items())
+    kinds = "\n".join(f"- `{kind}`: {about}." for kind, about in TASKS.items())
+    review = policy[other]["tasks"]["review"]
+    if other == "codex":
+        cross = ("A `--reviewer codex` round runs `codex exec -m <model> -c model_reasoning_effort=<effort>` with "
+                 f"Codex's review entry: {choices([review['default']])}, also allowed {choices(review['allowed']) or 'nothing else'}. "
+                 "A model of `default` means leaving `-m` off, so Codex uses its own configured model.")
+    else:
+        cross = ("A `--reviewer claude` round runs `claude -p --model <model> --effort <effort>` with Claude's review "
+                 f"entry: {choices([review['default']])}, also allowed {choices(review['allowed']) or 'nothing else'}.")
+    note = ("\n\n`CLAUDE_CODE_EFFORT_LEVEL`, when set in the environment, overrides every effort below."
+            if target == "claude" else "")
+    return (f"## Models\n\nStart every subagent on the model and effort of its task kind, and {spawn}. "
+            "Use the default. Take a choice from the last column only when the task needs more than the default "
+            "can give, such as a high-risk or large change, and name the choice and the reason in the subagent's "
+            f"report. Use nothing outside the table.{note}\n\n"
+            f"| Task | Default | Also allowed |\n|---|---|---|\n{rows}\n\n{kinds}\n\n{cross}\n\n"
+            "Hand broad reading, such as searching a codebase, surveying files, or reading logs and transcripts, "
+            "to an `explore` subagent. Keep your own context to what you act on.")
+
+
 def render_instructions(target: str, rules: dict[str, bytes] | None = None) -> bytes:
     base = REPO / "instructions"
     parts = [(base / name).read_text(encoding="utf-8").strip() for name in ("shared.md", f"{target}.md")]
-    reviewer = machine_config()["review"].get("default")
+    config = machine_config()
+    reviewer = config["review"].get("default")
     if reviewer:
         parts.append(f"## This machine\n\nDefault reviewer for `issue-to-pr` and `review-loop`: `{reviewer}`. "
                      "A `--reviewer` argument overrides it.")
+    parts.append(render_models(target, config["models"]))
     if target == "codex" and rules:
         parts += codex_rules(rules)
     return ("\n\n".join(parts) + "\n").encode()
