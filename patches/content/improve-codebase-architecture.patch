@@ -142,7 +142,7 @@ index e39e825..4cfe92e 100644
  
  ## Top recommendation section
 diff --git a/SKILL.md b/SKILL.md
-index 44cc7d3..69443a2 100644
+index 44cc7d3..920c85d 100644
 --- a/SKILL.md
 +++ b/SKILL.md
 @@ -24,7 +24,7 @@ This command is _informed_ by the project's domain model and built on a shared d
@@ -150,7 +150,7 @@ index 44cc7d3..69443a2 100644
  Read the project's domain glossary (`GLOSSARY.md`) and any ADRs in the area you're touching first.
  
 -Then spawn a sub-agent to walk the codebase. Don't follow rigid heuristics; explore organically and note where you experience friction:
-+Then spawn a sub-agent to walk the codebase, on the `audit` task's model and effort from the Models section of your instructions. Don't follow rigid heuristics; explore organically and note where you experience friction:
++Then spawn a sub-agent to walk the codebase, on a model and effort chosen from the `audit` row of the Models section of your instructions. Don't follow rigid heuristics; explore organically and note where you experience friction:
  
  - Where does understanding one concept require bouncing between many small modules?
  - Where are modules **shallow**, with an interface nearly as complex as the implementation?

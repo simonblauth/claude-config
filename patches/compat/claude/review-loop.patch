@@ -3,7 +3,7 @@
 @@ -0,0 +1,6 @@
 +# Claude Code review dispatch
 +
-+Use `Agent` with `subagent_type: "general-purpose"`, not `Explore`, and pass the
-+`review` task's `model` and `effort` from the Models section of your instructions.
++Use `Agent` with `subagent_type: "general-purpose"`, not `Explore`, and pass a
++`model` and `effort` chosen from the `review` row of your Models section.
 +Start a new agent for every round. The reviewer must read the applicable
 +instruction files and follow reviewer.md's prohibition on repository writes.

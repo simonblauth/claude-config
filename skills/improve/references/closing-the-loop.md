@@ -16,7 +16,7 @@ The founding rule survives unchanged: **the advisor never edits source code.** I
 
 ### Dispatch
 
-Spawn **one** `general-purpose` subagent with `isolation: "worktree"`. Executor model: the `implement` task's default from the Models section of your instructions. A model the user names (`execute 003 opus`) must be one that task allows.
+Spawn **one** `general-purpose` subagent with `isolation: "worktree"`. Executor model: a choice from the `implement` row of the Models section of your instructions, sized by the plan's Effort and Risk. A model the user names (`execute 003 opus`) must be one that row allows.
 
 The subagent prompt must contain:
 

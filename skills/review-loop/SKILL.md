@@ -95,7 +95,7 @@ One note, not one thread per finding. An agent opening threads against its own r
 | "The reviewer is wrong, moving on" | A decline is written down, with what you checked. Silence is not a decline. |
 | "Three rounds ran, so it is clean" | Budget exhaustion and a clean round are different hand-backs. |
 | "Skip loading project instructions" | Instruction compliance is part of the review. |
-| "A costlier model would review better" | Start on the `review` default of the Models section. Escalate only to a choice it allows, and name the reason in the hand-back. |
+| "The default is right for every round" | Choose each round's reviewer from the `review` row by the diff: a large, risky or subtle diff takes a stronger choice, a small mechanical one a smaller one. Name the choice in the hand-back. |
 | "One thread per finding is more traceable" | One note. Threads against your own request are theater. |
 | "The base is `main`, that is what the API said" | Both forges return a bare name. Fetch, then diff against `origin/main`. |
 | "The fixes are committed, so the note can claim them" | Unless the owned-remote rules allow pushing the request's head branch, standalone commits are local until a fresh ask pushes them. The note says which. |

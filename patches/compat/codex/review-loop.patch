@@ -30,7 +30,7 @@
 +target repository, base ref, and applicable instruction paths. Carry prior
 +findings and declines only in the template's explicit fields.
 +
-+Give it the `review` task's model and reasoning effort from the Models section.
++Give it a model and reasoning effort chosen from the `review` row of the Models section.
 +Follow the available tool schema rather than passing
 +Claude `general-purpose` or `Explore` types. Wait for the complete result.
 +The reviewer must read the instruction files and must not modify the repository.
