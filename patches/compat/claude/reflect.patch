@@ -1,6 +1,6 @@
 diff --git a/references/runtime.md b/references/runtime.md
 new file mode 100644
-index 0000000..430aff8
+index 0000000..84f0553
 --- /dev/null
 +++ b/references/runtime.md
 @@ -0,0 +1,20 @@
@@ -19,8 +19,8 @@ index 0000000..430aff8
 +Never glob across other projects.
 +
 +Dispatch reviewers and the synthesizer using `Agent`, `subagent_type:
-+"general-purpose"`. The tooling and judgment roles default to `opus`
-+unless the user supplies an override. Preserve MCP access; the prompts prohibit writes.
++"general-purpose"`, the reviewers on the `audit` task and the synthesizer on the
++`synthesis` task of your Models section. Preserve MCP access; the prompts prohibit writes.
 +When the `SubagentHandback` tool is present, this run is itself a subagent: start
 +the three reviewers in one message and the synthesizer after them, all with
 +`run_in_background: false`, so a hand-back never stops them.
