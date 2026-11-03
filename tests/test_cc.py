@@ -473,7 +473,11 @@ class ModelPolicyTests(InstallBase):
         self.install()
         front = (cc.config_dir() / 'skills/dispatch/SKILL.md').read_text().split('---')[1]
         self.assertIn('model: opus\neffort: high\n', front)
-        self.assertNotIn('{{', (self.roots['codex']['skills'] / 'dispatch/SKILL.md').read_text())
+        codex = (self.roots['codex']['skills'] / 'dispatch/SKILL.md').read_text()
+        self.assertNotIn('{{', codex)
+        # Codex has no frontmatter model, so its dispatch must not claim the first turn runs on one.
+        self.assertIn('first turn', (cc.config_dir() / 'skills/dispatch/SKILL.md').read_text())
+        self.assertNotIn('first turn', codex)
 
     def test_install_writes_the_policy_the_guard_reads(self):
         self.install()
