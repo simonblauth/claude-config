@@ -681,7 +681,9 @@ def render_models(target: str, policy: dict) -> str:
         "max_effort": own["max_effort"],
         "runtime_note": ("\n\n`CLAUDE_CODE_EFFORT_LEVEL`, when set in the environment, overrides every effort "
                          "below. A hook refuses an `Agent` call whose model or effort is outside this table."
-                         if target == "claude" else ""),
+                         if target == "claude" else
+                         "\n\nA model of `default` means leaving the model unset, so the subagent runs Codex's "
+                         "configured model; set only its reasoning effort."),
         "rows": "\n".join(f"| {kind} | {choices([t['default']])} | {choices(t['allowed']) or '—'} |"
                           for kind, t in own["tasks"].items()),
         "cross": cross,

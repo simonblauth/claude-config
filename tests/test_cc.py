@@ -419,6 +419,8 @@ class ModelPolicyTests(InstallBase):
         self.assertNotIn('synthesis', claude)
         self.assertIn('inherits your model and effort', claude)
         self.assertIn('| review | `default` at `medium` |', codex)
+        # Codex's own table uses `default`, so its section must say what that means.
+        self.assertIn('A model of `default` means leaving the model unset', codex.split('| Task |', 1)[0])
         self.assertIn('explore', claude.split('## Models', 1)[1])
         # Each runtime also learns the other's review choice, for review-loop's --reviewer claude|codex.
         self.assertIn('`codex exec -m <model> -c model_reasoning_effort=<effort>`', claude)
