@@ -1,3 +1,19 @@
+diff --git a/references/codex-tools.md b/references/codex-tools.md
+index 96533b5..05a4ccd 100644
+--- a/references/codex-tools.md
++++ b/references/codex-tools.md
+@@ -10,7 +10,7 @@ Adapted from pstack's Codex mapping; upstream provenance is tracked in
+ | Load a named skill | Read its discovered `SKILL.md` and follow it. |
+ | Dispatch and collect reviewers | Use the available `spawn_agent` and wait tools, following their schemas. |
+ | Ask the user | Use a question tool when available and applicable; otherwise ask in plain text. |
+-| Choose models | Inherit the session model unless the user specifies a supported override. Claude model slugs are not Codex model identifiers. |
++| Choose models | Start each subagent on its task kind from the Models section of your instructions. Claude model slugs are not Codex model identifiers. |
+ | Load instructions | Read applicable `AGENTS.md` files and configured fallbacks, including global instructions. |
+ 
+ Tool availability and argument names vary between Codex surfaces. Do not assume
+diff --git a/references/runtime.md b/references/runtime.md
+new file mode 100644
+index 0000000..c300c75
 --- /dev/null
 +++ b/references/runtime.md
 @@ -0,0 +1,18 @@
@@ -12,8 +28,8 @@
 +actually loaded. State that the review used a digest.
 +
 +Use the available `spawn_agent` and wait tools. Pass each reviewer its template
-+and the same transcript or digest. Use the configured session model by default;
-+only use model overrides the user requested and the runtime supports. Do not
++and the same transcript or digest. Start the reviewers on the `audit` task and
++the synthesizer on the `judgment` task of your Models section. Do not
 +pass Claude model slugs or Claude `subagent_type` fields. Follow the tool schema
 +for context isolation and retain available MCP access.
 +
