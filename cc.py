@@ -694,13 +694,14 @@ def render_models(target: str, policy: dict) -> str:
             "or review round fell short.\n- **Smaller**, a smaller model or less effort: the work is simple and "
             "well defined, such as a docs or config change, a rename, a one-file fix with a clear test, a search for "
             "a precise target, or re-checking one specific claim.\n\n"
+            "Hand broad reading, such as searching a codebase, surveying files, or reading logs and transcripts, "
+            "to an `explore` subagent, and keep your own context to what you act on: whatever you read yourself "
+            "is re-read on every later call.\n\n"
             "Name the choice and the reason in the subagent's report. Use nothing outside the table. A subagent "
             "that fits no kind, such as one that tests how a model behaves with a skill, inherits your model and "
             f"effort: pass neither. No effort goes below `{own['min_effort']}` or above `{own['max_effort']}`."
             f"\n\n{note}"
-            f"| Task | Default | Also allowed |\n|---|---|---|\n{rows}\n\n{kinds}\n\n{cross}\n\n"
-            "Hand broad reading, such as searching a codebase, surveying files, or reading logs and transcripts, "
-            "to an `explore` subagent. Keep your own context to what you act on.")
+            f"| Task | Default | Also allowed |\n|---|---|---|\n{rows}\n\n{kinds}\n\n{cross}")
 
 
 def model_guard_policy(policy: dict) -> bytes:

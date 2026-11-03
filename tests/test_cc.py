@@ -504,7 +504,9 @@ class ModelPolicyTests(InstallBase):
 
     def test_explore_handoff_is_in_the_policy(self):
         self.install()
-        self.assertIn('Hand broad reading', self.instructions('claude'))
+        models = self.instructions('claude').split('## Models', 1)[1]
+        # It sits with the guideline, before the table, where it is read.
+        self.assertLess(models.index('Hand broad reading'), models.index('| Task |'))
 
 
 class SettingsTests(unittest.TestCase):
