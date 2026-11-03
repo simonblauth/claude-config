@@ -135,7 +135,9 @@ skills = ["some-skill", "another-skill"]
   `design` and `judgment` take only `opus`, and keep that when the config changes
   their default. Built-in defaults fill every task kind and bound the config
   leaves out, and a choice outside its bounds is an error.
-- Install renders the result as a Models section in both runtimes' instructions,
+- Install renders the result as a Models section in both runtimes' instructions:
+  the prose and task kinds come from `instructions/models.md`, and `cc.py` fills
+  in the table, the bounds and the cross-model line,
   with the other runtime's `review` entry for `review-loop --reviewer
   claude|codex`. A subagent that fits no kind inherits its parent's model and
   effort. On Claude, `max_effort` becomes `maxEffortLevel` in `settings.json`,

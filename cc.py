@@ -416,16 +416,8 @@ REVIEWERS = ("copilot", "subagent", "claude", "codex")
 OPT_IN_HOOKS = {"usage_limit_continue": "StopFailure"}
 
 
-# What each task kind covers, as the rendered policy names it.
-TASKS = {
-    "explore": "searching and reading broadly",
-    "audit": "reading code or a transcript to report findings: improve's and architecture review's auditors, "
-             "reflect's reviewers, dispatched improve and architecture runs",
-    "implement": "changing code: issue-to-pr runs, improve's executor",
-    "review": "reviewing a diff: each review-loop round",
-    "design": "designing or planning: interfaces, design-it-twice, plans",
-    "judgment": "deciding: triage, reflect's synthesizer, a dispatcher's own decisions",
-}
+# The task kinds a policy sets. instructions/models.md describes each one.
+TASKS = ("explore", "audit", "implement", "review", "design", "judgment")
 # Effort levels each runtime documents. Claude Code's Agent call takes only these model aliases.
 EFFORTS = {"claude": ("low", "medium", "high", "xhigh", "max"),
            "codex": ("low", "medium", "high", "xhigh", "max", "ultra")}
@@ -668,40 +660,35 @@ def choices(entries: list[str]) -> str:
 
 
 def render_models(target: str, policy: dict) -> str:
-    """The model policy for one runtime, with the other runtime's review entry for cross-model review."""
+    """instructions/models.md for one runtime: its table and bounds, and the other runtime's review entry for
+    cross-model review."""
     other = "codex" if target == "claude" else "claude"
     own = policy[target]
-    spawn = ("pass its `model` and `effort` on the `Agent` call" if target == "claude"
-             else "give it that model and reasoning effort when you start it")
-    rows = "\n".join(f"| {kind} | {choices([t['default']])} | {choices(t['allowed']) or '—'} |"
-                     for kind, t in own["tasks"].items())
-    kinds = "\n".join(f"- `{kind}`: {about}." for kind, about in TASKS.items())
     review = policy[other]["tasks"]["review"]
+    review_choices = (f"{choices([review['default']])}, also allowed "
+                      f"{choices(review['allowed']) or 'nothing else'}")
     if other == "codex":
         cross = ("A `--reviewer codex` round runs `codex exec -m <model> -c model_reasoning_effort=<effort>` with "
-                 f"Codex's review entry: {choices([review['default']])}, also allowed {choices(review['allowed']) or 'nothing else'}. "
-                 "A model of `default` means leaving `-m` off, so Codex uses its own configured model.")
+                 f"a choice from Codex's review row: {review_choices}. A model of `default` means leaving `-m` off, "
+                 "so Codex uses its own configured model.")
     else:
-        cross = ("A `--reviewer claude` round runs `claude -p --model <model> --effort <effort>` with Claude's review "
-                 f"entry: {choices([review['default']])}, also allowed {choices(review['allowed']) or 'nothing else'}.")
-    note = ("`CLAUDE_CODE_EFFORT_LEVEL`, when set in the environment, overrides every effort below. A hook refuses "
-            "an `Agent` call whose model or effort is outside this table.\n\n" if target == "claude" else "")
-    return (f"## Models\n\nChoose each subagent's model and effort for the work in front of it, from its task "
-            f"kind's row below, and {spawn}. The default fits the typical task. Weigh every task in both directions:"
-            "\n\n- **Stronger**, a bigger model or more effort: the implementation looks complex or spans several "
-            "modules; the decisions matter or are hard to undo, such as a stored or wire format, a public API or "
-            "security; the work is open-ended, such as design, research or an unclear spec; or an earlier attempt "
-            "or review round fell short.\n- **Smaller**, a smaller model or less effort: the work is simple and "
-            "well defined, such as a docs or config change, a rename, a one-file fix with a clear test, a search for "
-            "a precise target, or re-checking one specific claim.\n\n"
-            "Hand broad reading, such as searching a codebase, surveying files, or reading logs and transcripts, "
-            "to an `explore` subagent, and keep your own context to what you act on: whatever you read yourself "
-            "is re-read on every later call.\n\n"
-            "Name the choice and the reason in the subagent's report. Use nothing outside the table. A subagent "
-            "that fits no kind, such as one that tests how a model behaves with a skill, inherits your model and "
-            f"effort: pass neither. No effort goes below `{own['min_effort']}` or above `{own['max_effort']}`."
-            f"\n\n{note}"
-            f"| Task | Default | Also allowed |\n|---|---|---|\n{rows}\n\n{kinds}\n\n{cross}")
+        cross = ("A `--reviewer claude` round runs `claude -p --model <model> --effort <effort>` with a choice from "
+                 f"Claude's review row: {review_choices}.")
+    fills = {
+        "spawn": ("pass its `model` and `effort` on the `Agent` call" if target == "claude"
+                  else "give it that model and reasoning effort when you start it"),
+        "min_effort": own["min_effort"],
+        "max_effort": own["max_effort"],
+        "runtime_note": ("\n\n`CLAUDE_CODE_EFFORT_LEVEL`, when set in the environment, overrides every effort "
+                         "below. A hook refuses an `Agent` call whose model or effort is outside this table."
+                         if target == "claude" else ""),
+        "rows": "\n".join(f"| {kind} | {choices([t['default']])} | {choices(t['allowed']) or '—'} |"
+                          for kind, t in own["tasks"].items()),
+        "cross": cross,
+    }
+    text = (REPO / "instructions" / "models.md").read_text(encoding="utf-8").strip()
+    text = re.sub(r"\{\{(\w+)\}\}", lambda m: fills[m.group(1)], text)
+    return text
 
 
 def model_guard_policy(policy: dict) -> bytes:

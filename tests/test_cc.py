@@ -3,6 +3,7 @@ import contextlib
 import io
 import json
 import os
+import re
 import shutil
 from pathlib import Path
 import subprocess
@@ -501,6 +502,13 @@ class ModelPolicyTests(InstallBase):
                 self.config.write_text(text)
                 with self.assertRaisesRegex(ValueError, 'config.toml'):
                     cc.machine_config()
+
+    def test_the_template_describes_exactly_the_task_kinds(self):
+        template = (cc.REPO / 'instructions' / 'models.md').read_text()
+        described = re.findall(r'^- `(\w+)`: ', template, re.M)
+        self.assertEqual(described, list(cc.TASKS))
+        for target in ('claude', 'codex'):
+            self.assertNotIn('{{', cc.render_models(target, cc.machine_config()['models']))
 
     def test_explore_handoff_is_in_the_policy(self):
         self.install()
