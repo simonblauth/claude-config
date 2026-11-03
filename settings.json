@@ -159,6 +159,16 @@
             "timeout": 30
           }
         ]
+      },
+      {
+        "matcher": "Agent",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"{{UV}}\" run --script \"{{REPO}}/hooks/model_guard.py\"",
+            "timeout": 30
+          }
+        ]
       }
     ]
   }

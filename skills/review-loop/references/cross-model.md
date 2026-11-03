@@ -13,14 +13,15 @@ Both commands block writes to the repository, so a reviewer may be unable to run
 
 ## Codex reviews
 
-    codex exec --sandbox read-only --ephemeral -C <REPO> -o <out file> - < <prompt file>
+    codex exec -m <model> -c model_reasoning_effort=<effort> \
+      --sandbox read-only --ephemeral -C <REPO> -o <out file> - < <prompt file>
 
-Per the [non-interactive docs](https://learn.chatgpt.com/docs/non-interactive-mode): `-` reads the prompt from standard input, `read-only` is also `exec`'s default sandbox and is passed anyway so the command says what it relies on, `--ephemeral` skips persisting session files, `-C` sets the working directory, and `-o` writes the final message to the file. Leave the model to the user's Codex configuration.
+Per the [non-interactive docs](https://learn.chatgpt.com/docs/non-interactive-mode): `-` reads the prompt from standard input, `read-only` is also `exec`'s default sandbox and is passed anyway so the command says what it relies on, `--ephemeral` skips persisting session files, `-C` sets the working directory, and `-o` writes the final message to the file. `-m` and `-c model_reasoning_effort` take a choice from the Codex `review` row of the Models section in your instructions. For a model of `default`, leave `-m` off, so Codex runs its own configured model.
 
 ## Claude reviews
 
-    (cd <REPO> && claude -p --permission-mode dontAsk \
+    (cd <REPO> && claude -p --model <model> --effort <effort> --permission-mode dontAsk \
       --disallowedTools Edit Write NotebookEdit \
       --no-session-persistence < <prompt file> > <out file>)
 
-`dontAsk` auto-denies every tool call that would prompt and still allows reads, read-only Bash and the user's allow rules, per the [permission modes docs](https://code.claude.com/docs/en/permission-modes). `--disallowedTools` removes the edit tools outright. On Claude Code 2.1.221 this pair ran `git status` and denied both the `Write` tool and a `printf > file` redirect. Leave `--model` off, so the reviewer runs on the user's configured model.
+`dontAsk` auto-denies every tool call that would prompt and still allows reads, read-only Bash and the user's allow rules, per the [permission modes docs](https://code.claude.com/docs/en/permission-modes). `--disallowedTools` removes the edit tools outright. On Claude Code 2.1.221 this pair ran `git status` and denied both the `Write` tool and a `printf > file` redirect. `--model` and `--effort` take a choice from Claude's `review` row of the Models section in your instructions.

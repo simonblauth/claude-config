@@ -26,6 +26,7 @@ existing commands and hooks. `vendor` updates the shared sources for both.
 | Settings | `~/.claude/settings.json` | `~/.codex/config.toml` |
 | Startup drift check | inside settings | `~/.codex/hooks.json` |
 | Bash guard (`hooks/heredoc_guard.py`) | inside settings | — |
+| Model guard (`hooks/model_guard.py`) | inside settings | — |
 | Usage-limit continue (`hooks/usage_limit_continue.py`) | inside settings, opt-in | — |
 
 The guard refuses two kinds of Bash command:
@@ -88,6 +89,20 @@ inputs = ["calendar", "github"]  # outside inputs the vault brief and wrap read
 [hooks]
 usage_limit_continue = true     # opt-in Claude hooks, off by default
 
+[models.claude]
+min_effort = "medium"             # no choice goes below this ...
+max_effort = "xhigh"              # ... or above this, which also caps Claude's maxEffortLevel
+
+[models.claude.limits]
+haiku = { max_effort = "medium" } # per-model bounds inside those
+
+[models.claude.tasks.review]
+default = "sonnet@medium"
+allowed = ["opus@high"]
+
+[models.codex.tasks.review]
+default = "default@medium"        # default: the model in Codex's own config
+
 [[sources]]
 repo = "git@github.com:<owner>/<my-rules>.git"
 rules = "all"
@@ -112,6 +127,24 @@ skills = ["some-skill", "another-skill"]
 - `[hooks]` turns on Claude hooks that most machines don't need. Each
   installs into `settings.json` only when set to `true`. The one hook so far is
   `usage_limit_continue`, described under [Install and check](#install-and-check).
+- `[models]` sets, per runtime and per task kind (`explore`, `audit`, `implement`,
+  `review`, `design`, `judgment`), the model and effort a subagent starts on
+  (`default`) and the other choices an agent picks from, stronger or smaller,
+  by how complex, consequential or open-ended the work is (`allowed`). Each is `model@effort`; Claude takes the aliases `opus`, `sonnet`,
+  `haiku` and `fable`. A task's `models` list restricts its choices; the built-in
+  `design` and `judgment` take only `opus`, and keep that when the config changes
+  their default. Built-in defaults fill every task kind and bound the config
+  leaves out, and a choice outside its bounds is an error.
+- Install renders the result as a Models section in both runtimes' instructions:
+  the prose and task kinds come from `instructions/models.md`, and `cc.py` fills
+  in the table, the bounds and the cross-model line,
+  with the other runtime's `review` entry for `review-loop --reviewer
+  claude|codex`. A subagent that fits no kind inherits its parent's model and
+  effort. On Claude, `max_effort` becomes `maxEffortLevel` in `settings.json`,
+  which caps every request including the main session's, and
+  `hooks/model_guard.py` refuses an `Agent` call whose model or effort is outside
+  the table. `CLAUDE_CODE_EFFORT_LEVEL` in the environment overrides every
+  Claude effort.
 - `{{name}}` in a Markdown rule becomes the `[vars]` value of that name, or `none`
   when it is not set.
 - Claude Code gets the rules in `~/.claude/rules/`. Codex has no path-scoped rules,

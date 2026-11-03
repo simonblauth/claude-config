@@ -6,6 +6,8 @@ description: >
   set, asks to dispatch improve, improve-codebase-architecture, triage or
   issue-to-pr over an owner, a repo, or a list of issues.
 argument-hint: "<owner | owner/repo | owner/repo#N ...> <skill> [skill args] [--parallel N] [--max N] [--dry-run]"
+model: {{model:judgment}}
+effort: {{effort:judgment}}
 ---
 
 # Dispatch
@@ -19,7 +21,7 @@ Dispatch is a driver. One run takes one **scope**, one **skill** and its argumen
 | `dispatch <scope> triage` | repo | repos with an open issue that is unlabelled, `needs-triage`, or `needs-info` with a reply since triage | each issue moved to `ready-for-agent`, `ready-for-human`, `needs-info` or `wontfix` |
 | `dispatch <scope> issue-to-pr` | issue | open `ready-for-agent` issues, see step 2 | one reviewed, open pull request per issue |
 
-Each run is a single stage, so each stage gets its own schedule. A person steps in by changing a label. Dispatch keeps no state between runs: the labels are the state. A run ends with its summary. It never waits inside the conversation for a dependency, a merge or a release: the summary names the run to schedule next, and that run selects what has landed by then.
+Each run is a single stage, so each stage gets its own schedule. A person steps in by changing a label. Dispatch keeps no state between runs: the labels are the state. The dispatcher's own decisions, such as answering a subagent's question, are `judgment` work. The frontmatter puts dispatch's first turn on it, and later turns, which start when a subagent reports, run on the session's model: start a dispatch session on a `judgment` choice. A run ends with its summary. It never waits inside the conversation for a dependency, a merge or a release: the summary names the run to schedule next, and that run selects what has landed by then.
 
 A scope is an owner, a repo, or, for `issue-to-pr` only, a list of issues written `owner/repo#N`. An issue list names its targets itself, so step 2 checks each named issue instead of searching. Its repos are the repos those issues live in.
 
@@ -109,7 +111,7 @@ Each target gets a clone in the dispatch cache, `~/.cache/dispatch/repos/<owner>
 
 ## 4. Spawn the subagents
 
-Read [references/preamble.md](references/preamble.md), fill it for the target, and start one background `general-purpose` subagent with it. Context you add beyond the preamble states facts, verification limits, the outcome the reporter needs after the fix, and the user's preference between the issue's alternatives, or that there is none. A question the user asked is not a preference. Each fact about another package or repo cites the code you read for it: the caller's real call path, the real symbol path, and for a claim that something is absent, the search that found nothing. A pull request or issue title is not that evidence. The same holds for an issue you write for a run. The run's step 4 picks the direction. The skill directory it names is the installed one, on Claude Code `${CLAUDE_CONFIG_DIR:-~/.claude}/skills/<skill>`. The four skills are user-invoked, so the subagent reads the file rather than invoking the skill, as `issue-to-pr` does with `review-loop`. Keep `--parallel` running. When one finishes, start the next.
+Read [references/preamble.md](references/preamble.md), fill it for the target, and start one background `general-purpose` subagent with it. Choose its model and effort from its task kind's row in the Models section of your instructions: `audit` for `improve` and `improve-codebase-architecture`, `judgment` for `triage`, and `implement` for `issue-to-pr`. Size each `issue-to-pr` target by its issue. A plan rated Risk HIGH or Effort L, or an issue that changes a stored format or a public API, takes a stronger choice. A plan rated Effort S and Risk LOW, or a docs or config change, takes a smaller one. Context you add beyond the preamble states facts, verification limits, the outcome the reporter needs after the fix, and the user's preference between the issue's alternatives, or that there is none. A question the user asked is not a preference. Each fact about another package or repo cites the code you read for it: the caller's real call path, the real symbol path, and for a claim that something is absent, the search that found nothing. A pull request or issue title is not that evidence. The same holds for an issue you write for a run. The run's step 4 picks the direction. The skill directory it names is the installed one, on Claude Code `${CLAUDE_CONFIG_DIR:-~/.claude}/skills/<skill>`. The four skills are user-invoked, so the subagent reads the file rather than invoking the skill, as `issue-to-pr` does with `review-loop`. Keep `--parallel` running. When one finishes, start the next.
 
 A subagent can't ask the user, so a question comes back as a `QUESTION:` block in its report. Answer it with `SendMessage` to that subagent, but only from a source you can cite:
 

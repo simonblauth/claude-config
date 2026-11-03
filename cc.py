@@ -416,6 +416,42 @@ REVIEWERS = ("copilot", "subagent", "claude", "codex")
 OPT_IN_HOOKS = {"usage_limit_continue": "StopFailure"}
 
 
+# The task kinds a policy sets. instructions/models.md describes each one.
+TASKS = ("explore", "audit", "implement", "review", "design", "judgment")
+# Effort levels each runtime documents. Claude Code's Agent call takes only these model aliases.
+EFFORTS = {"claude": ("low", "medium", "high", "xhigh", "max"),
+           "codex": ("low", "medium", "high", "xhigh", "max", "ultra")}
+CLAUDE_MODELS = ("opus", "sonnet", "haiku", "fable")
+# Codex's model ids differ between accounts, so its built-ins use `default`: the model in Codex's own config.
+BUILT_IN_MODELS = {
+    "claude": {
+        "min_effort": "medium", "max_effort": "xhigh",
+        "limits": {"haiku": {"max_effort": "medium"}},
+        "tasks": {
+            "explore": {"default": "haiku@medium", "allowed": ["sonnet@medium"]},
+            "audit": {"default": "sonnet@medium", "allowed": ["haiku@medium", "sonnet@high", "opus@medium"]},
+            "implement": {"default": "sonnet@medium",
+                          "allowed": ["haiku@medium", "sonnet@high", "opus@medium", "opus@high"]},
+            "review": {"default": "sonnet@medium", "allowed": ["haiku@medium", "sonnet@high", "opus@high"]},
+            "design": {"default": "opus@medium", "allowed": ["opus@high", "opus@xhigh"], "models": ["opus"]},
+            "judgment": {"default": "opus@medium", "allowed": ["opus@high", "opus@xhigh"], "models": ["opus"]},
+        },
+    },
+    "codex": {
+        "min_effort": "medium", "max_effort": "xhigh",
+        "limits": {},
+        "tasks": {
+            "explore": {"default": "default@medium", "allowed": []},
+            "audit": {"default": "default@medium", "allowed": ["default@high"]},
+            "implement": {"default": "default@medium", "allowed": ["default@high", "default@xhigh"]},
+            "review": {"default": "default@medium", "allowed": ["default@high"]},
+            "design": {"default": "default@high", "allowed": ["default@xhigh"]},
+            "judgment": {"default": "default@high", "allowed": ["default@xhigh"]},
+        },
+    },
+}
+
+
 def machine_config_path() -> Path:
     base = os.environ.get("XDG_CONFIG_HOME")
     return (Path(base).expanduser() if base else Path.home() / ".config") / "claude-config" / "config.toml"
@@ -427,16 +463,82 @@ def selection(value, path: Path, key: str) -> list[str] | str:
     raise ValueError(f"{path}: {key} is \"all\" or a list of names")
 
 
+def model_policy(models: dict, path: Path) -> dict:
+    """The built-in policy with this machine's [models] laid over it. A task kind replaces its built-in entry
+    except for a built-in models list, a model's limits replace its built-in limits, and min_effort and max_effort bound every effort.
+    Every choice must fit the bounds, its model's limits, and its task's models when the task names them."""
+    if not isinstance(models, dict) or set(models) - set(EFFORTS):
+        raise ValueError(f"{path}: [models] takes {' and '.join(EFFORTS)} tables")
+    policy = {}
+    for runtime, built_in in BUILT_IN_MODELS.items():
+        given = models.get(runtime, {})
+        if not isinstance(given, dict) or set(given) - {"min_effort", "max_effort", "limits", "tasks"} \
+                or not all(isinstance(given.get(k, {}), dict) for k in ("limits", "tasks")):
+            raise ValueError(f"{path}: [models.{runtime}] takes min_effort, max_effort, limits and tasks")
+        levels = EFFORTS[runtime]
+        rank = levels.index
+
+        def bounds(where: str, bound: dict) -> None:
+            if any(v not in levels for v in bound.values()) \
+                    or rank(bound.get("min_effort", levels[0])) > rank(bound.get("max_effort", levels[-1])):
+                raise ValueError(f"{path}: {where} takes min_effort and max_effort, in order, from {', '.join(levels)}")
+
+        floor = {k: given.get(k, built_in[k]) for k in ("min_effort", "max_effort")}
+        bounds(f"[models.{runtime}]", floor)
+        limits = {**built_in["limits"], **given.get("limits", {})}
+        def known(model: str, where: str) -> None:
+            # A misspelled Claude model would match no choice and silently never apply.
+            if runtime == "claude" and model not in CLAUDE_MODELS:
+                raise ValueError(f"{path}: {where} names {model!r}, not one of {', '.join(CLAUDE_MODELS)}")
+
+        for model, bound in limits.items():
+            known(model, f"models.{runtime}.limits")
+            if not isinstance(bound, dict) or set(bound) - {"min_effort", "max_effort"}:
+                raise ValueError(f"{path}: models.{runtime}.limits.{model} takes min_effort and max_effort")
+            bounds(f"models.{runtime}.limits.{model}", bound)
+        tasks = {**built_in["tasks"], **given.get("tasks", {})}
+        for kind, task in tasks.items():
+            where = f"{path}: models.{runtime}.tasks.{kind}"
+            if kind not in TASKS:
+                raise ValueError(f"{where} is not a task kind; the kinds are {', '.join(TASKS)}")
+            if not isinstance(task, dict) or "default" not in task or set(task) - {"default", "allowed", "models"} \
+                    or not all(isinstance(task.get(k, []), list) for k in ("allowed", "models")):
+                raise ValueError(f"{where} needs default, and may set allowed and models, each a list")
+            # A built-in models list stays unless the config sets its own: it keeps judgment and design on
+            # strong models when the config only changes their default.
+            kept = {"models": built_in["tasks"][kind]["models"]} if "models" in built_in["tasks"].get(kind, {}) else {}
+            task = {"allowed": [], **kept, **task}
+            tasks[kind] = task
+            for model in task.get("models", []):
+                known(model, f"models.{runtime}.tasks.{kind}.models")
+            for choice in [task["default"], *task["allowed"]]:
+                model, _, effort = choice.partition("@") if isinstance(choice, str) else ("", "", "")
+                if not model or effort not in levels or (runtime == "claude" and model not in CLAUDE_MODELS):
+                    hint = f"model one of {', '.join(CLAUDE_MODELS)}" if runtime == "claude" else "a model id or default"
+                    raise ValueError(f"{where}: {choice!r} is not model@effort, with {hint} "
+                                     f"and effort one of {', '.join(levels)}")
+                if "models" in task and model not in task["models"]:
+                    raise ValueError(f"{where}: {choice} uses {model}, and {kind} takes only {', '.join(task['models'])}")
+                for scope, bound in ((f"models.{runtime}", floor), (f"the {model} limit", limits.get(model, {}))):
+                    if "min_effort" in bound and rank(effort) < rank(bound["min_effort"]):
+                        raise ValueError(f"{where}: {choice} is below {scope} min_effort = {bound['min_effort']}")
+                    if "max_effort" in bound and rank(effort) > rank(bound["max_effort"]):
+                        raise ValueError(f"{where}: {choice} is above {scope} max_effort = {bound['max_effort']}")
+        policy[runtime] = {**floor, "limits": limits, "tasks": tasks}
+    return policy
+
+
 def machine_config() -> dict:
     """This machine's settings. They live outside the repo, so the public repo never names a private source."""
     path = machine_config_path()
     if not path.exists():
-        return {"review": {}, "vars": {}, "vault": {}, "hooks": {}, "sources": []}
+        return {"review": {}, "vars": {}, "vault": {}, "hooks": {}, "sources": [],
+                "models": model_policy({}, path)}
     try:
         data = tomllib.loads(path.read_text(encoding="utf-8"))
     except tomllib.TOMLDecodeError as e:
         raise ValueError(f"{path}: {e}") from e
-    unknown = set(data) - {"review", "vars", "vault", "hooks", "sources"}
+    unknown = set(data) - {"review", "vars", "vault", "hooks", "sources", "models"}
     if unknown:
         raise ValueError(f"{path}: unknown key(s) {', '.join(sorted(unknown))}")
     for key in ("review", "vars", "vault", "hooks"):
@@ -469,7 +571,8 @@ def machine_config() -> dict:
         source["skills"] = selection(source.get("skills", []), path, "skills")
         if not source["rules"] and not source["skills"]:
             raise ValueError(f"{path}: source {source['repo']} picks nothing; set rules or skills")
-    return {"review": review, "vars": variables, "vault": vault, "hooks": hooks, "sources": sources}
+    return {"review": review, "vars": variables, "vault": vault, "hooks": hooks, "sources": sources,
+            "models": model_policy(data.get("models", {}), path)}
 
 
 def source_checkouts(fetch: bool = False) -> list[tuple[dict, Path]]:
@@ -552,13 +655,62 @@ def codex_rules(rules: dict[str, bytes]) -> list[str]:
     return parts
 
 
+def choices(entries: list[str]) -> str:
+    return ", ".join(f"`{m}` at `{e}`" for m, _, e in (c.partition("@") for c in entries))
+
+
+def render_models(target: str, policy: dict) -> str:
+    """instructions/models.md for one runtime: its table and bounds, and the other runtime's review entry for
+    cross-model review."""
+    other = "codex" if target == "claude" else "claude"
+    own = policy[target]
+    review = policy[other]["tasks"]["review"]
+    review_choices = (f"{choices([review['default']])}, also allowed "
+                      f"{choices(review['allowed']) or 'nothing else'}")
+    if other == "codex":
+        cross = ("A `--reviewer codex` round runs `codex exec -m <model> -c model_reasoning_effort=<effort>` with "
+                 f"a choice from Codex's review row: {review_choices}. A model of `default` means leaving `-m` off, "
+                 "so Codex uses its own configured model.")
+    else:
+        cross = ("A `--reviewer claude` round runs `claude -p --model <model> --effort <effort>` with a choice from "
+                 f"Claude's review row: {review_choices}.")
+    fills = {
+        "spawn": ("pass its `model` and `effort` on the `Agent` call" if target == "claude"
+                  else "give it that model and reasoning effort when you start it"),
+        "min_effort": own["min_effort"],
+        "max_effort": own["max_effort"],
+        "runtime_note": ("\n\n`CLAUDE_CODE_EFFORT_LEVEL`, when set in the environment, overrides every effort "
+                         "below. A hook refuses an `Agent` call whose model or effort is outside this table."
+                         if target == "claude" else
+                         "\n\nA model of `default` means leaving the model unset, so the subagent runs Codex's "
+                         "configured model; set only its reasoning effort."),
+        "rows": "\n".join(f"| {kind} | {choices([t['default']])} | {choices(t['allowed']) or '—'} |"
+                          for kind, t in own["tasks"].items()),
+        "cross": cross,
+    }
+    text = (REPO / "instructions" / "models.md").read_text(encoding="utf-8").strip()
+    text = re.sub(r"\{\{(\w+)\}\}", lambda m: fills[m.group(1)], text)
+    return text
+
+
+def model_guard_policy(policy: dict) -> bytes:
+    """What hooks/model_guard.py checks an Agent call against: Claude's bounds and every listed choice."""
+    claude = policy["claude"]
+    listed = sorted({tuple(c.split("@")) for t in claude["tasks"].values() for c in [t["default"], *t["allowed"]]})
+    return (json.dumps({"levels": list(EFFORTS["claude"]), "min_effort": claude["min_effort"],
+                        "max_effort": claude["max_effort"], "choices": [list(c) for c in listed]},
+                       indent=2) + "\n").encode()
+
+
 def render_instructions(target: str, rules: dict[str, bytes] | None = None) -> bytes:
     base = REPO / "instructions"
     parts = [(base / name).read_text(encoding="utf-8").strip() for name in ("shared.md", f"{target}.md")]
-    reviewer = machine_config()["review"].get("default")
+    config = machine_config()
+    reviewer = config["review"].get("default")
     if reviewer:
         parts.append(f"## This machine\n\nDefault reviewer for `issue-to-pr` and `review-loop`: `{reviewer}`. "
                      "A `--reviewer` argument overrides it.")
+    parts.append(render_models(target, config["models"]))
     if target == "codex" and rules:
         parts += codex_rules(rules)
     return ("\n\n".join(parts) + "\n").encode()
@@ -583,9 +735,25 @@ def skill_dirs(root: Path | None = None) -> list[Path]:
     return sorted(found.values(), key=lambda d: d.name)
 
 
+SKILL_MODEL = re.compile(r"\{\{(model|effort):([a-z]+)\}\}")
+
+
+def fill_skill_models(text: str, tasks: dict) -> str:
+    """`{{model:<kind>}}` and `{{effort:<kind>}}` in a skill become that task kind's default, so frontmatter
+    such as dispatch's follows the installed policy."""
+    def fill(m: re.Match) -> str:
+        if m.group(2) not in tasks:
+            raise RuntimeError(f"skill placeholder {m.group(0)} names no task kind")
+        model, _, effort = tasks[m.group(2)]["default"].partition("@")
+        return model if m.group(1) == "model" else effort
+    return SKILL_MODEL.sub(fill, text)
+
+
 def skill_files(target: str, checkouts: list[tuple[dict, Path]] = ()) -> dict[str, bytes]:
-    """This repo's skills with their compat patches, then each source's picks as they are."""
+    """This repo's skills with their compat patches and the policy filled in, then each source's picks as
+    they are."""
     out = {}
+    tasks = machine_config()["models"][target]["tasks"]
     with tempfile.TemporaryDirectory() as tmp:
         for source in skill_dirs():
             stage = Path(tmp) / source.name
@@ -593,7 +761,10 @@ def skill_files(target: str, checkouts: list[tuple[dict, Path]] = ()) -> dict[st
             apply_patch(source.name, stage, f"compat/{target}")
             for f in sorted(stage.rglob("*")):
                 if f.is_file():
-                    out[f"{source.name}/{f.relative_to(stage).as_posix()}"] = f.read_bytes()
+                    data = f.read_bytes()
+                    if f.name == "SKILL.md":
+                        data = fill_skill_models(data.decode("utf-8"), tasks).encode("utf-8")
+                    out[f"{source.name}/{f.relative_to(stage).as_posix()}"] = data
     origin = {name: "this repo" for name in {rel.split("/")[0] for rel in out}}
     for source, dest in checkouts:
         available = {d.name: d for d in skill_dirs(dest / "skills")}
@@ -622,6 +793,7 @@ def planned_files(cfg: Path, target: str = "claude",
     out = {f"skills/{rel}": data for rel, data in skills.items()}
     out.update({f"rules/{rel}": data for rel, data in rules.items()})
     out["CLAUDE.md"] = render_instructions(target)
+    out["model-policy.json"] = model_guard_policy(machine_config()["models"])
     out["settings.json"] = render_settings(cfg)
     return {"config": out}
 
@@ -712,6 +884,9 @@ def render_settings(cfg: Path) -> bytes:
     text = text.replace("{{UV}}", json_escape(uv_executable()))
     text = text.replace("{{REPO}}", json_escape(str(REPO)))
     planned = json.loads(text)
+    cap = machine_config()["models"]["claude"]["max_effort"]
+    if cap != "max":
+        planned["maxEffortLevel"] = cap
     installed = read_json(cfg / "settings.json")
     enabled = machine_config()["hooks"]
     for name, event in OPT_IN_HOOKS.items():

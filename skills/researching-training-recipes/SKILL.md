@@ -77,8 +77,8 @@ The loop's own rules, on top of the file:
 - One job per GPU, busy as the file defines it. The job owns its RAM
   (`free -g` before anything else runs). Anything it reads (package, entry
   point, configs, input data) is frozen until it exits.
-- Reviewers are fresh general-purpose agents, never forks: a fork inherits
-  your reading.
+- Reviewers are fresh general-purpose agents, never forks, on the `judgment`
+  task of your Models section: a fork inherits your reading.
 
 ## Autonomy
 
@@ -115,7 +115,7 @@ the user says so, or on the stop rule (Explore and exploit).
    exit code is not hidden behind a pipe; every launch passes a dry run first.
    Add a compare script (metric at matched epochs, per stratum) and the
    runs.csv generator.
-4. **Pipeline brief** from a read-only subagent: inputs, normalization, loss and
+4. **Pipeline brief** from a read-only `explore` subagent: inputs, normalization, loss and
    its reduction, optimizer and schedule (and whether the schedule depends on
    the epoch cap), what the evaluation scores on which weights and sample set,
    where every series is logged.

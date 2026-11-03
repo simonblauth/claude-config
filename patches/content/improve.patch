@@ -1,16 +1,19 @@
 diff --git a/SKILL.md b/SKILL.md
-index df5b900..47ae938 100644
+index df5b900..f429adc 100644
 --- a/SKILL.md
 +++ b/SKILL.md
-@@ -38,7 +38,7 @@ If the repo has no working verification command (no tests, broken build), record
+@@ -38,9 +38,9 @@ If the repo has no working verification command (no tests, broken build), record
  
  ### Phase 2 — Audit (parallel)
  
 -Audit the codebase across the categories in [references/audit-playbook.md](references/audit-playbook.md) — read it now. Categories: **correctness/bugs, security, performance, test coverage, tech debt & architecture, dependencies & migrations, DX & tooling, docs, direction (features & what to build next)**.
 +Audit the codebase across the categories in [references/audit-playbook.md](references/audit-playbook.md) — read it now. Categories: **correctness/bugs, security, performance, test coverage, tech debt & architecture, dependencies & migrations (including modernization against the project's version floor), DX & tooling, docs, direction (features & what to build next)**. The dependencies & migrations subagent needs web access for the changelog research its section requires.
  
- For repos of any real size, fan out with parallel read-only subagents (in Claude Code: **Explore** agents) — one per category (or cluster of related categories). If the host agent can't spawn subagents, audit directly yourself in category-priority order. **Subagents do not inherit this skill's context**, so each subagent prompt must include:
+-For repos of any real size, fan out with parallel read-only subagents (in Claude Code: **Explore** agents) — one per category (or cluster of related categories). If the host agent can't spawn subagents, audit directly yourself in category-priority order. **Subagents do not inherit this skill's context**, so each subagent prompt must include:
++For repos of any real size, fan out with parallel read-only subagents (in Claude Code: **Explore** agents) — one per category (or cluster of related categories), each on a model and effort chosen from the `audit` row of the Models section of your instructions, by how large and risky its category is. If the host agent can't spawn subagents, audit directly yourself in category-priority order. **Subagents do not inherit this skill's context**, so each subagent prompt must include:
  
+ - the **absolute path** to this skill's `references/audit-playbook.md` plus the exact section headings to read — **always including "## Finding format"** (subagents can read files — this is far cheaper than pasting; paste the sections only if the path may not resolve in the subagent's environment),
+ - the recon facts that scope the search (languages, frameworks, key directories, what to skip),
 @@ -65,7 +65,7 @@ Every finding needs: evidence (`file:line` references), impact, effort estimate
  
  ### Phase 3 — Vet, prioritize, confirm
@@ -79,6 +82,19 @@ index 6c2278c..aceb24a 100644
  ## 7. DX & Tooling
  
  - Missing or broken: typecheck script, lint config, formatter, pre-commit hooks, editorconfig.
+diff --git a/references/closing-the-loop.md b/references/closing-the-loop.md
+index f0e524f..725edc6 100644
+--- a/references/closing-the-loop.md
++++ b/references/closing-the-loop.md
+@@ -16,7 +16,7 @@ The founding rule survives unchanged: **the advisor never edits source code.** I
+ 
+ ### Dispatch
+ 
+-Spawn **one** `general-purpose` subagent with `isolation: "worktree"`. Executor model: default `sonnet`; use what the user named if they named one (`execute 003 haiku`).
++Spawn **one** `general-purpose` subagent with `isolation: "worktree"`. Executor model: a choice from the `implement` row of the Models section of your instructions, sized by the plan's Effort and Risk. A model the user names (`execute 003 opus`) must be one that row allows.
+ 
+ The subagent prompt must contain:
+ 
 diff --git a/references/plan-template.md b/references/plan-template.md
 index f4ff6fc..32c0fc7 100644
 --- a/references/plan-template.md

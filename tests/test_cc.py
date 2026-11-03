@@ -3,6 +3,7 @@ import contextlib
 import io
 import json
 import os
+import re
 import shutil
 from pathlib import Path
 import subprocess
@@ -391,6 +392,137 @@ class MachineConfigTests(InstallBase):
             self.install()
 
 
+class ModelPolicyTests(InstallBase):
+    """[models] picks a model and effort per runtime and task kind, inside limits per model."""
+
+    def setUp(self):
+        super().setUp()
+        self.config = self.base / 'config.toml'
+        p = patch.object(cc, 'machine_config_path', lambda: self.config)
+        p.start()
+        self.addCleanup(p.stop)
+
+    def instructions(self, target):
+        return (cc.config_dir(target) / ('CLAUDE.md' if target == 'claude' else 'AGENTS.md')).read_text()
+
+    def test_built_in_policy_reaches_both_runtimes(self):
+        self.install()
+        claude, codex = self.instructions('claude'), self.instructions('codex')
+        self.assertIn('| review | `sonnet` at `medium` | `haiku` at `medium`, `sonnet` at `high`, `opus` at `high` |', claude)
+        self.assertIn('| explore | `haiku` at `medium` | `sonnet` at `medium` |', claude)
+        self.assertIn('| judgment | `opus` at `medium` | `opus` at `high`, `opus` at `xhigh` |', claude)
+        self.assertIn('| design | `opus` at `medium` | `opus` at `high`, `opus` at `xhigh` |', claude)
+        self.assertIn('| implement | `sonnet` at `medium` | `haiku` at `medium`, `sonnet` at `high`, `opus` at `medium`, `opus` at `high` |', claude)
+        # The guideline asks for a choice in both directions, with examples of each.
+        self.assertIn('**Stronger**', claude)
+        self.assertIn('**Smaller**', claude)
+        self.assertNotIn('synthesis', claude)
+        self.assertIn('inherits your model and effort', claude)
+        self.assertIn('| review | `default` at `medium` |', codex)
+        # Codex's own table uses `default`, so its section must say what that means.
+        self.assertIn('A model of `default` means leaving the model unset', codex.split('| Task |', 1)[0])
+        self.assertIn('explore', claude.split('## Models', 1)[1])
+        # Each runtime also learns the other's review choice, for review-loop's --reviewer claude|codex.
+        self.assertIn('`codex exec -m <model> -c model_reasoning_effort=<effort>`', claude)
+        self.assertIn('`claude -p --model <model> --effort <effort>`', codex)
+        self.assertIn('CLAUDE_CODE_EFFORT_LEVEL', claude)
+
+    def test_a_task_override_keeps_the_other_built_ins(self):
+        self.config.write_text('[models.codex.tasks.review]\ndefault = "gpt-x@high"\nallowed = ["gpt-x@xhigh"]\n')
+        self.install()
+        codex = self.instructions('codex')
+        self.assertIn('| review | `gpt-x` at `high` | `gpt-x` at `xhigh` |', codex)
+        self.assertIn('| explore | `default` at `medium` |', codex)
+        self.assertIn('`gpt-x` at `high`', self.instructions('claude'))
+
+    def test_limits_forbid_a_choice_even_when_the_config_sets_none(self):
+        self.config.write_text('[models.claude.tasks.review]\ndefault = "opus@low"\n')
+        with self.assertRaisesRegex(ValueError, 'opus@low.*min_effort'):
+            cc.machine_config()
+
+    def test_effort_bounds_cover_every_choice(self):
+        for text, error in (('[models.claude.tasks.explore]\ndefault = "sonnet@low"\n', 'min_effort'),
+                            ('[models.claude.tasks.review]\ndefault = "sonnet@max"\n', 'max_effort'),
+                            ('[models.codex.tasks.review]\ndefault = "default@ultra"\n', 'max_effort')):
+            with self.subTest(text=text):
+                self.config.write_text(text)
+                with self.assertRaisesRegex(ValueError, error):
+                    cc.machine_config()
+
+    def test_judgment_and_design_take_only_their_models(self):
+        self.config.write_text('[models.claude.tasks.judgment]\ndefault = "sonnet@high"\n')
+        with self.assertRaisesRegex(ValueError, 'judgment.*opus'):
+            cc.machine_config()
+
+    def test_max_effort_caps_the_claude_settings(self):
+        settings = json.loads(cc.render_settings(self.base))
+        self.assertEqual(settings['maxEffortLevel'], 'xhigh')
+        self.config.write_text('[models.claude]\nmax_effort = "high"\n'
+                               '[models.claude.tasks.design]\ndefault = "opus@medium"\nallowed = ["opus@high"]\n'
+                               '[models.claude.tasks.judgment]\ndefault = "opus@medium"\nallowed = ["opus@high"]\n')
+        self.assertEqual(json.loads(cc.render_settings(self.base))['maxEffortLevel'], 'high')
+        self.config.write_text('[models.claude]\nmax_effort = "max"\n')
+        self.assertNotIn('maxEffortLevel', json.loads(cc.render_settings(self.base)))
+
+    def test_skill_frontmatter_follows_the_policy(self):
+        self.config.write_text('[models.claude]\nmin_effort = "high"\n\n[models.claude.tasks.judgment]\ndefault = "opus@high"\n'
+                               '\n[models.claude.tasks.design]\ndefault = "opus@high"\n[models.claude.tasks.explore]\n'
+                               'default = "sonnet@high"\n[models.claude.tasks.audit]\ndefault = "sonnet@high"\n'
+                               '[models.claude.tasks.implement]\ndefault = "sonnet@high"\n'
+                               '[models.claude.tasks.review]\ndefault = "sonnet@high"\n')
+        self.install()
+        front = (cc.config_dir() / 'skills/dispatch/SKILL.md').read_text().split('---')[1]
+        self.assertIn('model: opus\neffort: high\n', front)
+        codex = (self.roots['codex']['skills'] / 'dispatch/SKILL.md').read_text()
+        self.assertNotIn('{{', codex)
+        # Codex has no frontmatter model, so its dispatch must not claim the first turn runs on one.
+        self.assertIn('first turn', (cc.config_dir() / 'skills/dispatch/SKILL.md').read_text())
+        self.assertNotIn('first turn', codex)
+
+    def test_install_writes_the_policy_the_guard_reads(self):
+        self.install()
+        policy = json.loads((cc.config_dir() / 'model-policy.json').read_text())
+        self.assertIn(['opus', 'high'], policy['choices'])
+        self.assertEqual(policy['min_effort'], 'medium')
+
+    def test_a_tighter_limit_rejects_a_built_in_default(self):
+        self.config.write_text('[models.claude.limits]\nhaiku = { max_effort = "low" }\n')
+        with self.assertRaisesRegex(ValueError, 'haiku@medium.*max_effort'):
+            cc.machine_config()
+
+    def test_invalid_model_tables_are_refused(self):
+        for text in ('[models.gemini.tasks.review]\ndefault = "x@low"\n',
+                     '[models.claude.tasks.coding]\ndefault = "sonnet@low"\n',
+                     '[models.claude.tasks.review]\ndefault = "sonnet@turbo"\n',
+                     '[models.claude.tasks.review]\ndefault = "claude-sonnet-5-5@low"\n',
+                     '[models.claude.tasks.review]\nallowed = ["opus@high"]\n',
+                     '[models.claude.tasks.review]\ndefault = "sonnet@low"\nallowed = "opus@high"\n',
+                     '[models.claude.limits]\nopus = { min_effort = "high", max_effort = "low" }\n',
+                     '[models.claude.limits]\nsonet = { max_effort = "low" }\n',
+                     '[models.claude.tasks.review]\ndefault = "sonnet@medium"\nmodels = ["sonet", "sonnet"]\n',
+                     '[models.claude]\nreview = "sonnet@low"\n',
+                     '[models.claude]\nmin_effort = "high"\nmax_effort = "medium"\n',
+                     '[models.claude.tasks.review]\ndefault = "sonnet@medium"\nmodels = "sonnet"\n',
+                     'models = 1\n'):
+            with self.subTest(text=text):
+                self.config.write_text(text)
+                with self.assertRaisesRegex(ValueError, 'config.toml'):
+                    cc.machine_config()
+
+    def test_the_template_describes_exactly_the_task_kinds(self):
+        template = (cc.REPO / 'instructions' / 'models.md').read_text()
+        described = re.findall(r'^- `(\w+)`: ', template, re.M)
+        self.assertEqual(described, list(cc.TASKS))
+        for target in ('claude', 'codex'):
+            self.assertNotIn('{{', cc.render_models(target, cc.machine_config()['models']))
+
+    def test_explore_handoff_is_in_the_policy(self):
+        self.install()
+        models = self.instructions('claude').split('## Models', 1)[1]
+        # It sits with the guideline, before the table, where it is read.
+        self.assertLess(models.index('Hand broad reading'), models.index('| Task |'))
+
+
 class SettingsTests(unittest.TestCase):
     def test_heredoc_guard_is_installed_on_every_platform(self):
         for windows in (True, False):
@@ -398,6 +530,12 @@ class SettingsTests(unittest.TestCase):
                     tempfile.TemporaryDirectory() as tmp:
                 settings = cc.render_settings(Path(tmp)).decode()
                 self.assertIn('heredoc_guard.py', settings)
+
+    def test_model_guard_is_registered_on_agent(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            hooks = json.loads(cc.render_settings(Path(tmp)))['hooks']['PreToolUse']
+        commands = [h['command'] for g in hooks if g.get('matcher') == 'Agent' for h in g['hooks']]
+        self.assertTrue(any('hooks/model_guard.py' in c for c in commands), commands)
 
     def repo_auto_mode(self):
         return json.loads((cc.REPO / 'settings.json').read_text()).get('autoMode')

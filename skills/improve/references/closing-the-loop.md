@@ -16,7 +16,7 @@ The founding rule survives unchanged: **the advisor never edits source code.** I
 
 ### Dispatch
 
-Spawn **one** `general-purpose` subagent with `isolation: "worktree"`. Executor model: default `sonnet`; use what the user named if they named one (`execute 003 haiku`).
+Spawn **one** `general-purpose` subagent with `isolation: "worktree"`. Executor model: a choice from the `implement` row of the Models section of your instructions, sized by the plan's Effort and Risk. A model the user names (`execute 003 opus`) must be one that row allows.
 
 The subagent prompt must contain:
 
