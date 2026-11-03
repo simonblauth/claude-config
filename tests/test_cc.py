@@ -509,6 +509,12 @@ class SettingsTests(unittest.TestCase):
                 settings = cc.render_settings(Path(tmp)).decode()
                 self.assertIn('heredoc_guard.py', settings)
 
+    def test_model_guard_is_registered_on_agent(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            hooks = json.loads(cc.render_settings(Path(tmp)))['hooks']['PreToolUse']
+        commands = [h['command'] for g in hooks if g.get('matcher') == 'Agent' for h in g['hooks']]
+        self.assertTrue(any('hooks/model_guard.py' in c for c in commands), commands)
+
     def repo_auto_mode(self):
         return json.loads((cc.REPO / 'settings.json').read_text()).get('autoMode')
 
