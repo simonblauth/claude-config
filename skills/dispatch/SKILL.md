@@ -6,8 +6,8 @@ description: >
   set, asks to dispatch improve, improve-codebase-architecture, triage or
   issue-to-pr over an owner, a repo, or a list of issues.
 argument-hint: "<owner | owner/repo | owner/repo#N ...> <skill> [skill args] [--parallel N] [--max N] [--dry-run]"
-model: opus
-effort: medium
+model: {{model:judgment}}
+effort: {{effort:judgment}}
 ---
 
 # Dispatch

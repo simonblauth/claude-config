@@ -455,6 +455,17 @@ class ModelPolicyTests(InstallBase):
         self.config.write_text('[models.claude]\nmax_effort = "max"\n')
         self.assertNotIn('maxEffortLevel', json.loads(cc.render_settings(self.base)))
 
+    def test_skill_frontmatter_follows_the_policy(self):
+        self.config.write_text('[models.claude]\nmin_effort = "high"\n\n[models.claude.tasks.judgment]\ndefault = "opus@high"\n'
+                               '\n[models.claude.tasks.design]\ndefault = "opus@high"\n[models.claude.tasks.explore]\n'
+                               'default = "sonnet@high"\n[models.claude.tasks.audit]\ndefault = "sonnet@high"\n'
+                               '[models.claude.tasks.implement]\ndefault = "sonnet@high"\n'
+                               '[models.claude.tasks.review]\ndefault = "sonnet@high"\n')
+        self.install()
+        front = (cc.config_dir() / 'skills/dispatch/SKILL.md').read_text().split('---')[1]
+        self.assertIn('model: opus\neffort: high\n', front)
+        self.assertNotIn('{{', (self.roots['codex']['skills'] / 'dispatch/SKILL.md').read_text())
+
     def test_install_writes_the_policy_the_guard_reads(self):
         self.install()
         policy = json.loads((cc.config_dir() / 'model-policy.json').read_text())

@@ -730,9 +730,25 @@ def skill_dirs(root: Path | None = None) -> list[Path]:
     return sorted(found.values(), key=lambda d: d.name)
 
 
+SKILL_MODEL = re.compile(r"\{\{(model|effort):([a-z]+)\}\}")
+
+
+def fill_skill_models(text: str, tasks: dict) -> str:
+    """`{{model:<kind>}}` and `{{effort:<kind>}}` in a skill become that task kind's default, so frontmatter
+    such as dispatch's follows the installed policy."""
+    def fill(m: re.Match) -> str:
+        if m.group(2) not in tasks:
+            raise RuntimeError(f"skill placeholder {m.group(0)} names no task kind")
+        model, _, effort = tasks[m.group(2)]["default"].partition("@")
+        return model if m.group(1) == "model" else effort
+    return SKILL_MODEL.sub(fill, text)
+
+
 def skill_files(target: str, checkouts: list[tuple[dict, Path]] = ()) -> dict[str, bytes]:
-    """This repo's skills with their compat patches, then each source's picks as they are."""
+    """This repo's skills with their compat patches and the policy filled in, then each source's picks as
+    they are."""
     out = {}
+    tasks = machine_config()["models"][target]["tasks"]
     with tempfile.TemporaryDirectory() as tmp:
         for source in skill_dirs():
             stage = Path(tmp) / source.name
@@ -740,7 +756,10 @@ def skill_files(target: str, checkouts: list[tuple[dict, Path]] = ()) -> dict[st
             apply_patch(source.name, stage, f"compat/{target}")
             for f in sorted(stage.rglob("*")):
                 if f.is_file():
-                    out[f"{source.name}/{f.relative_to(stage).as_posix()}"] = f.read_bytes()
+                    data = f.read_bytes()
+                    if f.name == "SKILL.md":
+                        data = fill_skill_models(data.decode("utf-8"), tasks).encode("utf-8")
+                    out[f"{source.name}/{f.relative_to(stage).as_posix()}"] = data
     origin = {name: "this repo" for name in {rel.split("/")[0] for rel in out}}
     for source, dest in checkouts:
         available = {d.name: d for d in skill_dirs(dest / "skills")}
