@@ -675,8 +675,8 @@ def render_models(target: str, policy: dict) -> str:
     else:
         cross = ("A `--reviewer claude` round runs `claude -p --model <model> --effort <effort>` with Claude's review "
                  f"entry: {choices([review['default']])}, also allowed {choices(review['allowed']) or 'nothing else'}.")
-    note = ("`CLAUDE_CODE_EFFORT_LEVEL`, when set in the environment, overrides every effort below."
-            "\n\n" if target == "claude" else "")
+    note = ("`CLAUDE_CODE_EFFORT_LEVEL`, when set in the environment, overrides every effort below. A hook refuses "
+            "an `Agent` call whose model or effort is outside this table.\n\n" if target == "claude" else "")
     return (f"## Models\n\nStart every subagent on the model and effort of its task kind, and {spawn}. "
             "Use the default. Take a choice from the last column only when the task needs more than the default "
             "can give, such as a high-risk or large change, and name the choice and the reason in the subagent's "
@@ -686,6 +686,15 @@ def render_models(target: str, policy: dict) -> str:
             f"| Task | Default | Also allowed |\n|---|---|---|\n{rows}\n\n{kinds}\n\n{cross}\n\n"
             "Hand broad reading, such as searching a codebase, surveying files, or reading logs and transcripts, "
             "to an `explore` subagent. Keep your own context to what you act on.")
+
+
+def model_guard_policy(policy: dict) -> bytes:
+    """What hooks/model_guard.py checks an Agent call against: Claude's bounds and every listed choice."""
+    claude = policy["claude"]
+    listed = sorted({tuple(c.split("@")) for t in claude["tasks"].values() for c in [t["default"], *t["allowed"]]})
+    return (json.dumps({"levels": list(EFFORTS["claude"]), "min_effort": claude["min_effort"],
+                        "max_effort": claude["max_effort"], "choices": [list(c) for c in listed]},
+                       indent=2) + "\n").encode()
 
 
 def render_instructions(target: str, rules: dict[str, bytes] | None = None) -> bytes:
@@ -760,6 +769,7 @@ def planned_files(cfg: Path, target: str = "claude",
     out = {f"skills/{rel}": data for rel, data in skills.items()}
     out.update({f"rules/{rel}": data for rel, data in rules.items()})
     out["CLAUDE.md"] = render_instructions(target)
+    out["model-policy.json"] = model_guard_policy(machine_config()["models"])
     out["settings.json"] = render_settings(cfg)
     return {"config": out}
 

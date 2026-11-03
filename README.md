@@ -26,6 +26,7 @@ existing commands and hooks. `vendor` updates the shared sources for both.
 | Settings | `~/.claude/settings.json` | `~/.codex/config.toml` |
 | Startup drift check | inside settings | `~/.codex/hooks.json` |
 | Bash guard (`hooks/heredoc_guard.py`) | inside settings | — |
+| Model guard (`hooks/model_guard.py`) | inside settings | — |
 | Usage-limit continue (`hooks/usage_limit_continue.py`) | inside settings, opt-in | — |
 
 The guard refuses two kinds of Bash command:
@@ -138,7 +139,9 @@ skills = ["some-skill", "another-skill"]
   with the other runtime's `review` entry for `review-loop --reviewer
   claude|codex`. A subagent that fits no kind inherits its parent's model and
   effort. On Claude, `max_effort` becomes `maxEffortLevel` in `settings.json`,
-  which caps every request including the main session's. `CLAUDE_CODE_EFFORT_LEVEL` in the environment overrides every
+  which caps every request including the main session's, and
+  `hooks/model_guard.py` refuses an `Agent` call whose model or effort is outside
+  the table. `CLAUDE_CODE_EFFORT_LEVEL` in the environment overrides every
   Claude effort.
 - `{{name}}` in a Markdown rule becomes the `[vars]` value of that name, or `none`
   when it is not set.

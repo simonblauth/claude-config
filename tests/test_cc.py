@@ -455,6 +455,12 @@ class ModelPolicyTests(InstallBase):
         self.config.write_text('[models.claude]\nmax_effort = "max"\n')
         self.assertNotIn('maxEffortLevel', json.loads(cc.render_settings(self.base)))
 
+    def test_install_writes_the_policy_the_guard_reads(self):
+        self.install()
+        policy = json.loads((cc.config_dir() / 'model-policy.json').read_text())
+        self.assertIn(['opus', 'high'], policy['choices'])
+        self.assertEqual(policy['min_effort'], 'medium')
+
     def test_a_tighter_limit_rejects_a_built_in_default(self):
         self.config.write_text('[models.claude.limits]\nhaiku = { max_effort = "low" }\n')
         with self.assertRaisesRegex(ValueError, 'haiku@medium.*max_effort'):
