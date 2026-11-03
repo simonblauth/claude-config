@@ -1,6 +1,6 @@
 ---
 name: dashboard
-description: Use when the user asks to open, refresh, or rebuild the vault dashboard, and when the brief or the wrap has pushed its commit.
+description: Use when the user asks to open, refresh, or rebuild the vault dashboard, and when the brief, the wrap, or a capture has pushed its commit.
 ---
 
 # Dashboard
