@@ -43,6 +43,8 @@ Present the synthesizer's full Accepted / Rejected / Backlog output and wait for
 
 Present Backlog items as proposals. File them only when the user authorizes that remote write.
 
+Never edit an installed copy that something else generates, such as a plugin cache or a configuration repository's install. Before approval, show each edit's destination: the skill's source. Do not push or open a PR unless the user asks.
+
 Follow each approved row's Routing exactly:
 
 - Trivial existing-skill edit (a one-line bullet, a tightened sentence, a stale fact corrected): the parent does it directly.

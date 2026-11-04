@@ -1,8 +1,8 @@
 diff --git a/SKILL.md b/SKILL.md
-index 12ebcb5..01c37b2 100644
+index faf35f9..5aa6f6a 100644
 --- a/SKILL.md
 +++ b/SKILL.md
-@@ -47,13 +47,13 @@ One `Agent` call, `subagent_type: "general-purpose"`, `model` from the `reflect
+@@ -47,15 +47,15 @@ One `Agent` call, `subagent_type: "general-purpose"`, `model` from the `reflect
  
  ## 4. Structural enforcement check
  
@@ -15,6 +15,9 @@ index 12ebcb5..01c37b2 100644
  
 -File each Backlog item to your team's devex or backlog tracker without waiting. Only the Accepted list waits for approval.
 +Present Backlog items as proposals. File them only when the user authorizes that remote write.
+ 
+-Never edit a skill under `plugins/cache/`. Before approval, show its destination, `.claude/skills/<skill>/` or `${CLAUDE_CONFIG_DIR:-$HOME/.claude}/skills/<skill>/`. After approval, copy the skill folder there and edit the copy. Never open a PR or push.
++Never edit an installed copy that something else generates, such as a plugin cache or a configuration repository's install. Before approval, show each edit's destination: the skill's source. Do not push or open a PR unless the user asks.
  
  Follow each approved row's Routing exactly:
  
