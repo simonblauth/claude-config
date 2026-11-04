@@ -96,10 +96,10 @@ executor's environment. Skip the section otherwise.)
 
 ## Git workflow
 
-(Filled from recon — match the repo's observed conventions.)
+(Filled from recon — match the repo's observed conventions. The executor's instruction files set the commit message style, so this section names the branch and the commit granularity only.)
 
 - Branch: `advisor/NNN-<slug>` (or the repo's branch-naming convention if one is evident)
-- Commit per step or per logical unit; message style: <match repo, e.g. conventional commits — include an example from `git log`>
+- Commit per step or per logical unit.
 - Do NOT push or open a PR unless the operator instructed it.
 
 ## Steps
