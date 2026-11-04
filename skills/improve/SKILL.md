@@ -90,19 +90,17 @@ plans/
 
 **Excerpts come from your own reads, never from a subagent's report.** Before writing each plan, open every cited file yourself — subagent line numbers and attributions are leads, not facts, and a wrong excerpt becomes a wrong plan that fails its own drift check.
 
-**Check every line reference before a plan is final.** Paths are complete and relative to the repo root. For each `path:line` or `path:start-end` in the plan, run `git show <planned-at SHA>:<path> | sed -n '<start>,<end>p'` and confirm it prints the code the plan describes. Correct a reference that fails, or cite the enclosing function or class instead. A plan is final when every line reference in it has been printed and matched.
+**Check every code reference before a plan is final.** Cite code by path and symbol, not line number: line numbers rot on the next edit above them. Paths are complete and relative to the repo root. For each cited symbol, run `git show <planned-at SHA>:<path> | grep -n '<symbol>'` and confirm it is the code the plan describes. A plan is final when every cited symbol has been found and matched.
 
 Before writing anything: record `git rev-parse --short HEAD` — every plan stamps the commit it was written against (the executor uses it for drift detection). If `plans/` already exists from a previous run, **reconcile, don't duplicate**: read `plans/README.md`, keep numbering monotonic, skip findings already planned or listed as rejected, and mark superseded plans stale in the index. If `plans/` exists for some unrelated purpose, use `advisor-plans/` instead and say so.
 
-Write each plan **for the weakest plausible executor**. That means:
+Write each plan **for the weakest plausible executor**, and specify the outcome, not the edits: the executor reads the live code and chooses the steps, the code shape and the tests. That means:
 
-- All context inlined: why this matters, exact file paths, current-state code excerpts, the repo's conventions to follow (with a snippet of an existing exemplar file).
-- Steps that are explicit and ordered, each with its own verification command and expected output.
+- All context inlined: why this matters, the current behavior with its evidence (paths, symbols, a reproduction), the desired behavior, and the constraints the change must respect — interfaces, stored formats, the repo's conventions with an exemplar.
 - Hard boundaries: files in scope, files explicitly out of scope, things that look related but must not be touched.
-- Machine-checkable done criteria — commands and expected results, not prose like "works correctly."
-- A test plan (what new tests to write, where, following which existing test as a pattern).
+- Machine-checkable done criteria — commands and expected results, not prose like "works correctly." They name the tests that must exist by the cases they cover, not by their code.
 - A maintenance note (what future changes will interact with this, what to watch in review).
-- Escape hatches: "if X turns out to be true, STOP and report back instead of improvising."
+- Escape hatches: "if X turns out to be true, STOP and report back."
 
 Finish by writing `plans/README.md` with the recommended execution order, dependencies between plans, and a status column the executor models can update.
 
@@ -115,7 +113,7 @@ Finish by writing `plans/README.md` with the recommended execution order, depend
 - `next` (or `features`, `roadmap`) → run Recon, then audit only the direction category, in more depth: 4–6 grounded suggestions, each with evidence, trade-offs, and a coarse effort estimate. Selected ones become design/spike plans, not build-everything plans.
 - `plan <description>` → skip the audit; the user already knows what they want. Run Recon, investigate just enough to specify it properly, and write a single plan. If the description is too ambiguous to specify honestly, first try to resolve each ambiguity from the codebase itself; only what's left becomes questions to the user — asked one at a time, each with a recommended answer.
 - `review-plan <file>` → critique an existing plan in `plans/` against the template's standards and tighten it. If you authored the plan in this same session, also have a fresh-context subagent read it cold and report ambiguities — self-critique misses gaps you mentally fill from context the executor won't have.
-- `execute <plan>` → dispatch a cheaper executor subagent on one plan (isolated worktree), then review its diff like a tech lead — re-run done criteria, check scope, read the code — and render a verdict. Treat the executor's diff as untrusted until reviewed: verify every hunk traces to a plan step and reject any out-of-scope change, however plausible it looks. Requires a host agent that can spawn subagents in an isolated worktree; if yours can't, say so and hand the plan over for manual execution instead. **Read [references/closing-the-loop.md](references/closing-the-loop.md) before the first dispatch.**
+- `execute <plan>` → dispatch a cheaper executor subagent on one plan (isolated worktree), then review its diff like a tech lead — re-run done criteria, check scope, read the code — and render a verdict. Treat the executor's diff as untrusted until reviewed: verify every hunk serves the plan's desired behavior and reject any out-of-scope change, however plausible it looks. Requires a host agent that can spawn subagents in an isolated worktree; if yours can't, say so and hand the plan over for manual execution instead. **Read [references/closing-the-loop.md](references/closing-the-loop.md) before the first dispatch.**
 - `reconcile` → process what happened since last session: verify DONE plans, investigate BLOCKED ones, refresh drifted TODOs, retire dead findings. See [references/closing-the-loop.md](references/closing-the-loop.md).
 - `--issues` (modifier on any planning invocation) → also publish each written plan as a GitHub issue via `gh`, URL recorded in the plan and index. Only with the explicit flag. **Before creating any issue, check whether the repo is public (`gh repo view --json visibility`). If it is, warn the user that issues are publicly visible and get explicit confirmation before publishing any plan that describes a security vulnerability, credential location, or other sensitive finding.** See [references/closing-the-loop.md](references/closing-the-loop.md).
 
