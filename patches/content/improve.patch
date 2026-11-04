@@ -1,5 +1,5 @@
 diff --git a/SKILL.md b/SKILL.md
-index df5b900..f429adc 100644
+index df5b900..4aae745 100644
 --- a/SKILL.md
 +++ b/SKILL.md
 @@ -38,9 +38,9 @@ If the repo has no working verification command (no tests, broken build), record
@@ -23,16 +23,31 @@ index df5b900..f429adc 100644
  
  Present the vetted findings table to the user, ordered by leverage (impact ÷ effort, weighted by confidence):
  
-@@ -90,6 +90,8 @@ plans/
+@@ -90,17 +90,17 @@ plans/
  
  **Excerpts come from your own reads, never from a subagent's report.** Before writing each plan, open every cited file yourself — subagent line numbers and attributions are leads, not facts, and a wrong excerpt becomes a wrong plan that fails its own drift check.
  
-+**Check every line reference before a plan is final.** Paths are complete and relative to the repo root. For each `path:line` or `path:start-end` in the plan, run `git show <planned-at SHA>:<path> | sed -n '<start>,<end>p'` and confirm it prints the code the plan describes. Correct a reference that fails, or cite the enclosing function or class instead. A plan is final when every line reference in it has been printed and matched.
++**Check every code reference before a plan is final.** Cite code by path and symbol, not line number: line numbers rot on the next edit above them. Paths are complete and relative to the repo root. For each cited symbol, run `git show <planned-at SHA>:<path> | grep -n '<symbol>'` and confirm it is the code the plan describes. A plan is final when every cited symbol has been found and matched.
 +
  Before writing anything: record `git rev-parse --short HEAD` — every plan stamps the commit it was written against (the executor uses it for drift detection). If `plans/` already exists from a previous run, **reconcile, don't duplicate**: read `plans/README.md`, keep numbering monotonic, skip findings already planned or listed as rejected, and mark superseded plans stale in the index. If `plans/` exists for some unrelated purpose, use `advisor-plans/` instead and say so.
  
- Write each plan **for the weakest plausible executor**. That means:
-@@ -108,7 +110,7 @@ Finish by writing `plans/README.md` with the recommended execution order, depend
+-Write each plan **for the weakest plausible executor**. That means:
++Write each plan **for the weakest plausible executor**, and specify the outcome, not the edits: the executor reads the live code and chooses the steps, the code shape and the tests. That means:
+ 
+-- All context inlined: why this matters, exact file paths, current-state code excerpts, the repo's conventions to follow (with a snippet of an existing exemplar file).
+-- Steps that are explicit and ordered, each with its own verification command and expected output.
++- All context inlined: why this matters, the current behavior with its evidence (paths, symbols, a reproduction), the desired behavior, and the constraints the change must respect — interfaces, stored formats, the repo's conventions with an exemplar.
+ - Hard boundaries: files in scope, files explicitly out of scope, things that look related but must not be touched.
+-- Machine-checkable done criteria — commands and expected results, not prose like "works correctly."
+-- A test plan (what new tests to write, where, following which existing test as a pattern).
++- Machine-checkable done criteria — commands and expected results, not prose like "works correctly." They name the tests that must exist by the cases they cover, not by their code.
+ - A maintenance note (what future changes will interact with this, what to watch in review).
+-- Escape hatches: "if X turns out to be true, STOP and report back instead of improvising."
++- Escape hatches: "if X turns out to be true, STOP and report back."
+ 
+ Finish by writing `plans/README.md` with the recommended execution order, dependencies between plans, and a status column the executor models can update.
+ 
+@@ -108,15 +108,26 @@ Finish by writing `plans/README.md` with the recommended execution order, depend
  
  - Bare invocation → full workflow above.
  - `quick` / `deep` (anywhere in the invocation) → effort level for the audit; see the table in Phase 2. Composes with everything: `quick security`, `deep --issues`. Default is `standard`.
@@ -41,7 +56,9 @@ index df5b900..f429adc 100644
  - `branch` → audit only the current working branch's changes: scope = files changed since the merge-base with the default branch (`git diff --name-only $(git merge-base origin/<default> HEAD)..HEAD`) plus their direct importers/callers. Light recon, all categories, usually no subagents. **Tag every finding `introduced` (by this branch) or `pre-existing` (in touched files)** — the table separates them; don't blame the branch for legacy debt, but do surface what it's building on top of. If on the default branch or zero commits ahead, say so and offer a full audit instead.
  - `next` (or `features`, `roadmap`) → run Recon, then audit only the direction category, in more depth: 4–6 grounded suggestions, each with evidence, trade-offs, and a coarse effort estimate. Selected ones become design/spike plans, not build-everything plans.
  - `plan <description>` → skip the audit; the user already knows what they want. Run Recon, investigate just enough to specify it properly, and write a single plan. If the description is too ambiguous to specify honestly, first try to resolve each ambiguity from the codebase itself; only what's left becomes questions to the user — asked one at a time, each with a recommended answer.
-@@ -117,6 +119,17 @@ Finish by writing `plans/README.md` with the recommended execution order, depend
+ - `review-plan <file>` → critique an existing plan in `plans/` against the template's standards and tighten it. If you authored the plan in this same session, also have a fresh-context subagent read it cold and report ambiguities — self-critique misses gaps you mentally fill from context the executor won't have.
+-- `execute <plan>` → dispatch a cheaper executor subagent on one plan (isolated worktree), then review its diff like a tech lead — re-run done criteria, check scope, read the code — and render a verdict. Treat the executor's diff as untrusted until reviewed: verify every hunk traces to a plan step and reject any out-of-scope change, however plausible it looks. Requires a host agent that can spawn subagents in an isolated worktree; if yours can't, say so and hand the plan over for manual execution instead. **Read [references/closing-the-loop.md](references/closing-the-loop.md) before the first dispatch.**
++- `execute <plan>` → dispatch a cheaper executor subagent on one plan (isolated worktree), then review its diff like a tech lead — re-run done criteria, check scope, read the code — and render a verdict. Treat the executor's diff as untrusted until reviewed: verify every hunk serves the plan's desired behavior and reject any out-of-scope change, however plausible it looks. Requires a host agent that can spawn subagents in an isolated worktree; if yours can't, say so and hand the plan over for manual execution instead. **Read [references/closing-the-loop.md](references/closing-the-loop.md) before the first dispatch.**
  - `reconcile` → process what happened since last session: verify DONE plans, investigate BLOCKED ones, refresh drifted TODOs, retire dead findings. See [references/closing-the-loop.md](references/closing-the-loop.md).
  - `--issues` (modifier on any planning invocation) → also publish each written plan as a GitHub issue via `gh`, URL recorded in the plan and index. Only with the explicit flag. **Before creating any issue, check whether the repo is public (`gh repo view --json visibility`). If it is, warn the user that issues are publicly visible and get explicit confirmation before publishing any plan that describes a security vulnerability, credential location, or other sensitive finding.** See [references/closing-the-loop.md](references/closing-the-loop.md).
  
@@ -83,10 +100,10 @@ index 6c2278c..aceb24a 100644
  
  - Missing or broken: typecheck script, lint config, formatter, pre-commit hooks, editorconfig.
 diff --git a/references/closing-the-loop.md b/references/closing-the-loop.md
-index f0e524f..725edc6 100644
+index f0e524f..0d55463 100644
 --- a/references/closing-the-loop.md
 +++ b/references/closing-the-loop.md
-@@ -16,7 +16,7 @@ The founding rule survives unchanged: **the advisor never edits source code.** I
+@@ -16,30 +16,31 @@ The founding rule survives unchanged: **the advisor never edits source code.** I
  
  ### Dispatch
  
@@ -95,11 +112,117 @@ index f0e524f..725edc6 100644
  
  The subagent prompt must contain:
  
+ 1. **The full plan file text, inlined.** The worktree contains only committed files — if `plans/` is uncommitted, the executor can't read it. Never assume; always inline.
+ 2. The executor preamble:
+ 
+-> You are the executor for the implementation plan below. Follow it step by
+-> step. Run every verification command and confirm the expected result before
+-> moving on. Touch only the files listed as in scope. If any STOP condition
+-> occurs, stop immediately and report. Do not improvise around obstacles.
+-> Commit your work in the worktree following the plan's git workflow section.
+-> One override: SKIP the plan's instruction to update `plans/README.md` —
+-> your reviewer maintains the index. Before reporting, audit every claim in
+-> your report against an actual tool result from this session — only report
+-> what you can point to evidence for; if a verification failed or was
+-> skipped, say so plainly. When finished, reply with exactly the report
+-> format below.
++> You are the executor for the implementation plan below. It states the
++> problem, the outcome and the boundary; the steps, the code shape and the
++> tests are yours to choose within its constraints. Work until every done
++> criterion passes. Touch only the files listed as in scope. If any STOP
++> condition occurs, stop immediately and report. Record every judgment call
++> you make in NOTES. Commit your work in the worktree following the plan's
++> git workflow section. One override: SKIP the plan's instruction to update
++> `plans/README.md` — your reviewer maintains the index. Before reporting,
++> audit every claim in your report against an actual tool result from this
++> session — only report what you can point to evidence for; if a
++> verification failed or was skipped, say so plainly. When finished, reply
++> with exactly the report format below.
+ 
+ 3. The report format:
+ 
+ ```
+ STATUS: COMPLETE | STOPPED
+-STEPS: per step — done/skipped + verification command result
++CRITERIA: per done criterion — the command run and its result
+ STOPPED BECAUSE: (only if STOPPED) which STOP condition, what was observed
+ FILES CHANGED: list
+ NOTES: anything the reviewer should know (deviations, surprises, judgment calls)
+@@ -53,12 +54,12 @@ Review like a tech lead reviewing a PR against the spec — never fix anything y
+ 
+ 1. **Re-run every done criterion** in the worktree. Don't trust the executor's report — verify.
+ 2. **Scope compliance**: `git -C <worktree> diff --stat` against the plan's in-scope list. Any file outside scope fails review, full stop.
+-3. **Read the full diff.** Judge it against "Why this matters" (does it solve the actual problem?) and the repo conventions named in the plan (does it look like the rest of the codebase?).
++3. **Read the full diff.** Judge it against "Why this matters" and "Desired behavior" (does it solve the actual problem?), the plan's constraints, and the repo conventions it names (does it look like the rest of the codebase?).
+ 4. **Audit the new tests.** Executors game criteria — a test that asserts nothing meaningful passes `pnpm test` and proves nothing. Read what the tests assert.
+ 
+ ### Verdict
+ 
+-**Documented deviations are judged on merit, not reflex-blocked.** "Do not improvise" exists to stop silent drift; an executor that hits a real obstacle (e.g. the plan's approach breaks existing test mocks), adapts minimally, and explains it in NOTES has done the right thing. Approve it if the adaptation serves the plan's intent and stays in scope; treat *undocumented* deviations as review failures.
++**The approach is the executor's; judge it on merit.** The plan fixes the outcome, the constraints and the scope, not the edits. Approve an approach that meets all three and reads like the rest of the codebase. A judgment call the executor made silently, such as relaxing a constraint, is a review failure even when the result works.
+ 
+ | Verdict | When | Action |
+ |---|---|---|
+@@ -77,7 +78,7 @@ Process what happened since the last session. Read `plans/README.md` and every p
+ - **DONE** — spot-check that the done criteria still hold on the current HEAD (cheap ones only). Mark verified in the index. Don't delete plan files — they're the record.
+ - **BLOCKED** — read the reason. Investigate the underlying obstacle in the codebase. Either rewrite the plan around it (new number if the approach changed fundamentally, in-place refresh otherwise) or mark REJECTED with one line of rationale.
+ - **IN PROGRESS** (stale) — flag it to the user; an executor probably died mid-run. Check the worktree if one exists.
+-- **TODO** — run the drift check. If drifted: re-verify the finding still exists (it may have been fixed in passing), then refresh the "Current state" excerpts and `Planned at` SHA. If the finding is gone, mark REJECTED ("fixed independently").
++- **TODO** — run the drift check. If drifted: re-verify the finding still exists (it may have been fixed in passing), then refresh "Current behavior" and the `Planned at` SHA. If the finding is gone, mark REJECTED ("fixed independently").
+ 
+ Finish with a short report: what's verified done, what was refreshed, what's rejected, and what's executable right now.
+ 
 diff --git a/references/plan-template.md b/references/plan-template.md
-index f4ff6fc..32c0fc7 100644
+index f4ff6fc..ea4b752 100644
 --- a/references/plan-template.md
 +++ b/references/plan-template.md
-@@ -34,7 +34,8 @@ File naming: `plans/NNN-short-slug.md`, numbered in recommended execution order.
+@@ -1,12 +1,14 @@
+ # Handoff Plan Template
+ 
+-Every plan is written for an executor model that has **zero context**: it has not seen the advisor session, the audit, the other plans, or any prior conversation. It may be a smaller/cheaper model. Assume it is competent at following explicit instructions and weak at filling gaps, recovering from ambiguity, or knowing when to stop.
++Every plan is written for an executor that has **zero context**: it has not seen the advisor session, the audit, the other plans, or any prior conversation. It may be a smaller/cheaper model. Give it what it cannot find by looking — the problem, the evidence, the outcome, the boundary, and the decisions already made — and leave the *how* to it. The executor reads the live code anyway; implementation steps written today go stale as that code moves, and a plan that dictates them breaks on the first drift.
+ 
+ Three properties make a plan executable by a weaker model:
+ 
+-1. **Self-contained context** — everything needed is in the file: paths, code excerpts, conventions, commands.
+-2. **Verification gates** — every step ends with a command and its expected result. The executor never has to *judge* whether it succeeded.
+-3. **Hard boundaries and escape hatches** — explicit out-of-scope list, and "STOP and report" conditions instead of letting the model improvise when reality doesn't match the plan.
++1. **Self-contained context** — everything needed is in the file: the problem and its evidence, the conventions and constraints, the commands.
++2. **A checkable outcome** — done criteria are commands with expected results. The executor never has to *judge* whether it succeeded.
++3. **Hard boundaries and escape hatches** — explicit out-of-scope list, and "STOP and report" conditions for when the plan's premise turns out to be false.
++
++**Durable over precise.** Describe behavior, interfaces and contracts, not edits. Cite code by path and symbol (`src/orders/api.ts`, `listOrders()`), never by line number: line numbers rot on the next edit above them. Name the types, signatures and config shapes the change touches; leave the order of edits, the code shape and the test design to the executor, unless a constraint fixes one of them.
+ 
+ File naming: `plans/NNN-short-slug.md`, numbered in recommended execution order.
+ 
+@@ -17,24 +19,26 @@ File naming: `plans/NNN-short-slug.md`, numbered in recommended execution order.
+ ```markdown
+ # Plan NNN: <Imperative title — what will be true after this plan>
+ 
+-> **Executor instructions**: Follow this plan step by step. Run every
+-> verification command and confirm the expected result before moving to the
+-> next step. If anything in the "STOP conditions" section occurs, stop and
+-> report — do not improvise. When done, update the status row for this plan
+-> in `plans/README.md` — unless a reviewer dispatched you and told you they
+-> maintain the index.
++> **Executor instructions**: This plan states the problem, the outcome and
++> the boundary. The steps, the code shape and the tests are yours to choose
++> within its constraints. Read the whole plan, confirm on the live code that
++> "Current behavior" still holds, then work until every done criterion passes.
++> If anything in the "STOP conditions" section occurs, stop and report. When
++> done, update the status row for this plan in `plans/README.md` — unless a
++> reviewer dispatched you and told you they maintain the index.
+ >
+ > **Drift check (run first)**: `git diff --stat <planned-at SHA>..HEAD -- <in-scope paths>`
+-> If any in-scope file changed since this plan was written, compare the
+-> "Current state" excerpts against the live code before proceeding; on a
+-> mismatch, treat it as a STOP condition.
++> If any in-scope file changed since this plan was written, re-check
++> "Current behavior" against the live code; if the premise no longer holds,
++> treat it as a STOP condition.
+ 
+ ## Status
+ 
  - **Priority**: P1 | P2 | P3
  - **Effort**: S | M | L
  - **Risk**: LOW | MED | HIGH
@@ -109,3 +232,166 @@ index f4ff6fc..32c0fc7 100644
  - **Category**: bug | security | perf | tests | tech-debt | migration | dx | docs | direction
  - **Planned at**: commit `<short SHA>`, <YYYY-MM-DD>
  - **Issue**: <GitHub issue URL — only when published via `--issues`; omit otherwise>
+@@ -42,25 +46,44 @@ File naming: `plans/NNN-short-slug.md`, numbered in recommended execution order.
+ ## Why this matters
+ 
+ 2–5 sentences. The problem, its concrete cost, and what improves when this
+-lands. Written so the executor (and a human reviewer) understands the intent —
+-intent is what lets a correct judgment call happen when a detail is off.
+-
+-## Current state
+-
+-The facts the executor needs, inlined — never "as discussed" or "see audit":
+-
+-- The relevant files, each with one line on its role:
+-  - `src/orders/api.ts` — order-list endpoint; contains the N+1 (lines 130–160)
+-- Excerpts of the code as it exists today (short, with `file:line` markers),
+-  enough that the executor can confirm it's looking at the right thing.
+-- The repo conventions that apply here, with a pointer to one exemplar file:
+-  "Error handling follows the Result pattern — see `src/lib/result.ts` and its
+-  use in `src/users/api.ts:40-60`. Match it."
+-- Any documented vocabulary or design constraints the plan must honor, inlined
+-  from the intent/design docs found in recon: the relevant `CONTEXT.md` terms
+-  the executor should use in names and comments, the `DESIGN.md` tokens/components
+-  to reuse, or the ADR whose decision this work must stay consistent with. Quote
+-  the specific lines — the executor has not read those docs.
++lands. Written so the executor (and a human reviewer) understands the
++intent — intent is what lets a correct judgment call happen when a detail is off.
++
++## Current behavior
++
++What the code does today, with the evidence — never "as discussed" or "see audit":
++
++- The relevant files and symbols, each with one line on its role:
++  - `src/orders/api.ts`, `listOrders()` — order-list endpoint; issues one
++    query per order (the N+1)
++- A short excerpt at the planned-at commit only where it proves the claim.
++- A reproduction: the command, input or test that shows the problem, and
++  what it prints.
++
++## Desired behavior
++
++What is true once this lands, including the edge cases and error conditions
++that matter. Describe behavior and contracts, not edits:
++"`listOrders()` issues a constant number of queries for any page size; an
++empty page issues none."
++
++## Constraints
++
++The decisions the executor must respect, each with its reason. Only what
++the code does not reveal by itself:
++
++- Interfaces and contracts that must not change: "the public response shape
++  stays as is — the v1 clients depend on it".
++- Stored formats, schemas and public APIs the change touches, and how far it
++  may change them.
++- Repo conventions that apply, with one exemplar by path and symbol:
++  "Error handling follows the Result pattern — see `src/lib/result.ts` and
++  `getUser()` in `src/users/api.ts`. Match it."
++- Documented vocabulary or design constraints, quoted from the intent/design
++  docs found in recon: the relevant `CONTEXT.md` terms, the `DESIGN.md`
++  tokens/components to reuse, or the ADR whose decision this work must stay
++  consistent with. Quote the specific lines — the executor has not read
++  those docs.
+ 
+ ## Commands you will need
+ 
+@@ -79,7 +102,7 @@ The facts the executor needs, inlined — never "as discussed" or "see audit":
+ executor's environment. Skip the section otherwise.)
+ 
+ - Skills the executor should invoke if available, and for what:
+-  "use `vercel-react-best-practices` when writing the memoization in step 3".
++  "use `vercel-react-best-practices` for the memoization".
+ - Reference docs worth reading before starting, by path or URL.
+ 
+ ## Scope
+@@ -95,54 +118,33 @@ executor's environment. Skip the section otherwise.)
+ 
+ ## Git workflow
+ 
+-(Filled from recon — match the repo's observed conventions.)
++(Filled from recon — match the repo's observed conventions. The executor's instruction files set the commit message style, so this section names the branch and the commit granularity only.)
+ 
+ - Branch: `advisor/NNN-<slug>` (or the repo's branch-naming convention if one is evident)
+-- Commit per step or per logical unit; message style: <match repo, e.g. conventional commits — include an example from `git log`>
++- Commit per logical unit.
+ - Do NOT push or open a PR unless the operator instructed it.
+ 
+-## Steps
+-
+-### Step 1: <imperative title>
+-
+-What to do, precisely. Reference exact files/symbols. Include the target code
+-shape when it's load-bearing (the pattern to produce, not necessarily every
+-line).
+-
+-**Verify**: `<command>` → <expected output>
+-
+-### Step 2: ...
+-
+-(Each step small enough to verify independently. Order steps so the codebase
+-is never broken between steps when possible — e.g. add new path, switch
+-callers, then remove old path.)
+-
+-## Test plan
+-
+-- New tests to write, in which file, covering which cases (list them:
+-  happy path, the specific bug/regression this plan fixes, named edge cases).
+-- Which existing test to use as the structural pattern:
+-  "model after `src/users/api.test.ts`".
+-- Verification: `<test command>` → all pass, including N new tests.
+-
+ ## Done criteria
+ 
+-Machine-checkable. ALL must hold:
++Machine-checkable outcomes. ALL must hold:
+ 
++- [ ] A test reproduces <the problem> — it fails on the planned-at commit and
++      passes after the change
++- [ ] <each edge case from "Desired behavior"> is covered by a test that passes
+ - [ ] `pnpm typecheck` exits 0
+-- [ ] `pnpm test` exits 0; new tests for <X> exist and pass
++- [ ] `pnpm test` exits 0
+ - [ ] `grep -rn "<old pattern>" src/` returns no matches
+ - [ ] No files outside the in-scope list are modified (`git status`)
+ - [ ] `plans/README.md` status row updated
+ 
+ ## STOP conditions
+ 
+-Stop and report back (do not improvise) if:
++Stop and report back if:
+ 
+-- The code at the locations in "Current state" doesn't match the excerpts
+-  (the codebase has drifted since this plan was written).
+-- A step's verification fails twice after a reasonable fix attempt.
+-- The fix appears to require touching an out-of-scope file.
++- "Current behavior" no longer describes the live code (the codebase has
++  drifted since this plan was written).
++- The desired behavior appears to require touching an out-of-scope file or
++  breaking a constraint.
+ - You discover the assumption "<key assumption>" is false.
+ 
+ ## Maintenance notes
+@@ -150,7 +152,7 @@ Stop and report back (do not improvise) if:
+ For the human/agent who owns this code after the change lands:
+ 
+ - What future changes will interact with this (e.g. "if pagination is added
+-  to this endpoint, the batching in step 2 must be revisited").
++  to this endpoint, the query batching must be revisited").
+ - What a reviewer should scrutinize in the PR.
+ - Any follow-up explicitly deferred out of this plan (and why).
+ ```
+@@ -188,9 +190,10 @@ Status values: TODO | IN PROGRESS | DONE | BLOCKED (with one-line reason) | REJE
+ 
+ ## Quality bar — check before finishing each plan
+ 
+-- Could a model that has never seen this repo execute this with only the plan file and the repo? If any step requires knowledge from the advisor session, inline that knowledge.
+-- Is every verification a command with an expected result, not a judgment ("make sure it works")?
+-- Does every step name exact files and symbols, not "the relevant module"?
++- Could a model that has never seen this repo execute this with only the plan file and the repo? If the plan relies on knowledge from the advisor session, inline that knowledge.
++- Is every done criterion a command with an expected result, not a judgment ("make sure it works")?
++- Does the plan name the files, symbols and interfaces involved, not "the relevant module", and cite no line numbers?
++- Does it state outcomes and constraints, and leave the steps and test design to the executor unless a constraint fixes them?
+ - Are the STOP conditions specific to this plan's actual risks, not boilerplate?
+ - Would a reviewer reading only "Why this matters" + "Done criteria" understand what they're approving?
+ - No secret values anywhere in the file — locations and credential types only.
