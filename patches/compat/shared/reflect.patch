@@ -1,8 +1,8 @@
 diff --git a/SKILL.md b/SKILL.md
-index 5aa6f6a..d9c0d3a 100644
+index c8834ae..d9c0d3a 100644
 --- a/SKILL.md
 +++ b/SKILL.md
-@@ -5,11 +5,7 @@ description: Spawn three parallel review subagents over the active transcript, s
+@@ -5,13 +5,7 @@ description: Spawn three parallel review subagents over the active transcript, s
  
  # Reflect
  
@@ -11,11 +11,13 @@ index 5aa6f6a..d9c0d3a 100644
 -On GitHub Copilot, read the [platform mapping](../poteto-mode/references/copilot-tools.md), including its per-skill notes, before following this skill.
 -
 -On Muse, read the [platform mapping](../poteto-mode/references/muse-tools.md), including its per-skill notes, before following this skill.
+-
+-On Antigravity, read the [platform mapping](../poteto-mode/references/agy-tools.md), including its per-skill notes, before following this skill.
 +Read [runtime guidance](references/runtime.md) before following this skill. Resolve all relative paths from this skill directory.
  
  Mine the current conversation for durable learnings, then route them into skill edits.
  
-@@ -17,33 +13,25 @@ Invoke when the user says "reflect" or "/reflect". Skip when the conversation is
+@@ -19,33 +13,25 @@ Invoke when the user says "reflect" or "/reflect". Skip when the conversation is
  
  ## 1. Locate the active transcript
  
@@ -58,7 +60,7 @@ index 5aa6f6a..d9c0d3a 100644
  
  ## 4. Structural enforcement check
  
-@@ -60,9 +48,9 @@ Never edit an installed copy that something else generates, such as a plugin cac
+@@ -62,9 +48,9 @@ Never edit an installed copy that something else generates, such as a plugin cac
  Follow each approved row's Routing exactly:
  
  - Trivial existing-skill edit (a one-line bullet, a tightened sentence, a stale fact corrected): the parent does it directly.
@@ -71,7 +73,7 @@ index 5aa6f6a..d9c0d3a 100644
  
  If your environment ships a SKILL.md validator, run it on every touched skill before declaring done.
  
-@@ -77,11 +65,4 @@ Short list, no preamble:
+@@ -79,11 +65,4 @@ Short list, no preamble:
  
  ## Models
  
@@ -85,10 +87,10 @@ index 5aa6f6a..d9c0d3a 100644
 -A role value in the override sheet may name a reasoning effort after its model, as in `opus @xhigh`. Levels on Claude Code: `low`, `medium`, `high`, `xhigh`, `max`. Which ones apply depends on the model. A value without `@` takes the sheet's `default effort` line, a level or `session`, and `session` when the sheet has no such line. On Claude Code, `session` sets no effort. On other runtimes, follow the platform mapping for `session`. Strip the suffix before reading the model: `inherit-parent` or `auto` still omits `model` at every level, and a model name is passed as `model`. Pass the level as the dispatch's effort field and keep the `subagent_type` you would otherwise use. That is `effort` on the Claude Code `Agent` call and `reasoning_effort` on Codex's `spawn_agent`. On Muse it is `effort` on a Workflow child; a `subagent_spawn` dispatch keeps the session's effort.
 +Use the model policy in [runtime guidance](references/runtime.md).
 diff --git a/references/codex-tools.md b/references/codex-tools.md
-index 472c8b4..96533b5 100644
+index c6e9d1a..96533b5 100644
 --- a/references/codex-tools.md
 +++ b/references/codex-tools.md
-@@ -1,106 +1,19 @@
+@@ -1,109 +1,19 @@
 -# Codex tool mapping for pstack
 -
 -pstack skills are written in Claude Code tool language (the `Skill` tool, the `Agent` tool, `AskUserQuestion`, Claude model names). On Codex the skills are the same files; only the tool names resolve differently. Read this when a pstack skill names a Claude tool, a driver or bundled skill, or a Claude model. This file is Codex-specific. Gemini CLI, opencode, Prime Agent, and other runtimes must use their own concrete tools, model names, and configuration paths.
@@ -110,6 +112,7 @@ index 472c8b4..96533b5 100644
 -| Free a finished subagent slot | `close_agent`, when the session exposes it. Some Codex hosts don't. |
 -| Track tasks (the todolist; `TaskCreate` / `TaskUpdate`, or `TodoWrite` on Claude Code) | `update_plan` |
 -| Ask the human a fixed-choice question (`AskUserQuestion`) | Ask in plain text and let the user answer. Codex has no structured-choice tool. |
+-| Read this workspace's session transcripts (Claude Code's `${CLAUDE_CONFIG_DIR:-$HOME/.claude}/projects/<encoded-cwd>/`) | Codex sessions live in `${CODEX_HOME:-~/.codex}/sessions/YYYY/MM/DD/rollout-<timestamp>-<id>.jsonl`. Archived sessions are in `${CODEX_HOME:-~/.codex}/archived_sessions/`. Older rollouts in both directories are zstd-compressed `rollout-<timestamp>-<id>.jsonl.zst` files. Read those with `zstd -dc`. The first line of each rollout is a `session_meta` record. Keep only rollouts whose `payload.cwd` is the workspace or one of its worktrees. Never read other projects' sessions. |
 -
 -Subagent dispatch needs `multi_agent` enabled. Add to `~/.codex/config.toml`:
 -
@@ -143,7 +146,7 @@ index 472c8b4..96533b5 100644
 -- Single-model roles: your primary Codex model (for example `gpt-6.1-sol`).
 -- Roles that default to the Claude worker model (`feature, refactoring`): your fast Codex code model (for example `gpt-6.1-sol`).
 -- Roles that default to the strongest Claude model (`strongest judgment`): your strongest Codex model (for example `gpt-6-astra`).
--- Diverse-model panels (`arena`, `architect`, `interrogate`, `how` critics, `reflect`): the adversarial signal comes from model diversity, so use the distinct Codex models available to you. A good default panel on ChatGPT is `gpt-6-astra`, `gpt-6.1-sol`, `gpt-6.1-terra`, `gpt-6-luna`. If only one model family is reachable, vary reasoning effort and note in the verdict that diversity was reduced.
+-- Diverse-model panels (`arena`, `architect`, `interrogate`): the adversarial signal comes from model diversity, so use the distinct Codex models available to you. A good default panel on ChatGPT is `gpt-6-astra`, `gpt-6.1-sol`, `gpt-6.1-terra`, `gpt-6-luna`. If only one model family is reachable, vary reasoning effort and note in the verdict that diversity was reduced.
 -
 -`/setup-pstack` writes the configured model list. On Codex, set it to your Codex model slugs.
 -
@@ -185,6 +188,8 @@ index 472c8b4..96533b5 100644
 -| `arena` | The parallel candidates and the cross-judge map to `spawn_agent`; substitute your configured Codex models for the runners and the cross-judge pool (see Model names above). |
 -| `how` | The parallel explorers and the explainer map to `spawn_agent` fan-out; substitute your configured Codex models. |
 -| `reflect` | The three reviewers and the synthesizer map to `spawn_agent`; substitute your configured Codex models. The transcript finder reads Claude Code's layout under `${CLAUDE_CONFIG_DIR:-$HOME/.claude}/projects/`, so pass the session digest step 1 allows instead. |
+-| `recall` | Search this workspace's Codex rollouts (see Tool actions). Do not list or read `${CLAUDE_CONFIG_DIR:-$HOME/.claude}/projects/`. It holds Claude Code transcripts, not this session's history. In a rollout, chat messages are the `response_item` records whose `payload.type` is `message`, with the speaker in `payload.role`. Skip `developer` records, which are injected instructions. |
+-| `show-me-your-work` | Check the log against this run's Codex rollout (see Tool actions). This run's rollout is the one whose name ends in `-$CODEX_THREAD_ID.jsonl`. If `CODEX_THREAD_ID` is unset, report that the audit could not run instead of guessing a rollout. Do not read Claude Code's projects directory. |
 -| `swarm` | Each worker is a `spawn_agent` call on your configured Codex model, and those calls already run concurrently; give each writing worker its own worktree or output directory (see Subagent policy above). |
 -| `why` | The parallel investigators and the synthesizer map to `spawn_agent`; substitute your configured Codex models. List MCP servers from the tools Codex exposes to the session, not from `.mcp.json` or `claude mcp list`. |
 -
