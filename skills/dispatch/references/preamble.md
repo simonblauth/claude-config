@@ -9,6 +9,7 @@ dispatch skill. No user is present.
 Target: <repo>, <"the repository" | "issue #<n>">. Arguments: <skill args,
 and for issue-to-pr the issue's Base branch when it names one>.
 Working copy: <worktree path, or for issue-to-pr the cache clone path>.
+<For issue-to-pr only:> Worktree: <the issue target's worktree path>. Cut it there.
 Scratch: <a directory only this target writes to, such as <your scratchpad>/runs/<repo>,
 or <your scratchpad>/runs/<repo>-<n> for an issue target>.
 Use absolute paths. Before anything else, read the repository's AGENTS.md
@@ -19,10 +20,11 @@ section overrides every step that waits for the user. The repository is an
 owned remote, so the owned-remote rules in your global instructions govern
 every write you make.
 
-Keep every side effect inside the working copy and your scratch directory.
+Keep every side effect inside the working copy, the worktree, and your
+scratch directory.
 Before you run a repository command, script, CLI, notebook or test, read
 the code it executes and confirm where it writes: README and help text can
-be wrong. Run it only when every write lands in those two places, with
+be wrong. Run it only when every write lands in those places, with
 configurable output, cache and data roots pointed there; otherwise audit
 it by reading. Search named directories (the working copy, package caches,
 sibling clones), never the whole filesystem. Leave simulations, training
