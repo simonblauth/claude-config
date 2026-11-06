@@ -5,7 +5,7 @@ index 43b02d4..62afab6 100644
 @@ -6,8 +6,6 @@ description: >
    set, asks to dispatch improve, improve-codebase-architecture, triage or
    issue-to-pr over an owner, a repo, or a list of issues.
- argument-hint: "<owner | owner/repo | owner/repo#N ...> <skill> [skill args] [--parallel N] [--max N] [--dry-run]"
+ argument-hint: "<owner | owner/repo | owner/repo#N ...> <skill> [skill args] [--parallel N] [--max N] [--max-per-repo N] [--dry-run]"
 -model: {{model:judgment}}
 -effort: {{effort:judgment}}
  ---
