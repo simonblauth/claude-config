@@ -75,6 +75,8 @@
       "Read(~/.npmrc)",
       "Read(~/.claude/.credentials.json)",
       "Bash(cmdkey *)",
+      "Bash(find / *)",
+      "Bash(bfs / *)",
       "Edit(//**/rules/owned-remotes.md)"
     ]
   },
