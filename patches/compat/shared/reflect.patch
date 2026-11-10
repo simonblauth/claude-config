@@ -87,7 +87,7 @@ index c8834ae..d9c0d3a 100644
 -A role value in the override sheet may name a reasoning effort after its model, as in `opus @xhigh`. Levels on Claude Code: `low`, `medium`, `high`, `xhigh`, `max`. Which ones apply depends on the model. A value without `@` takes the sheet's `default effort` line, a level or `session`, and `session` when the sheet has no such line. On Claude Code, `session` sets no effort. On other runtimes, follow the platform mapping for `session`. Strip the suffix before reading the model: `inherit-parent` or `auto` still omits `model` at every level, and a model name is passed as `model`. Pass the level as the dispatch's effort field and keep the `subagent_type` you would otherwise use. That is `effort` on the Claude Code `Agent` call and `reasoning_effort` on Codex's `spawn_agent`. On Muse it is `effort` on a Workflow child; a `subagent_spawn` dispatch keeps the session's effort.
 +Use the model policy in [runtime guidance](references/runtime.md).
 diff --git a/references/codex-tools.md b/references/codex-tools.md
-index c6e9d1a..96533b5 100644
+index 5b52f3e..96533b5 100644
 --- a/references/codex-tools.md
 +++ b/references/codex-tools.md
 @@ -1,109 +1,19 @@
@@ -152,7 +152,7 @@ index c6e9d1a..96533b5 100644
 -
 -## Session routing hook
 -
--The native pstack plugin bundles the same `SessionStart` routing instruction as the Claude Code plugin, through `session-start.sh` on macOS and Linux and `session-start.ps1` on Windows. Codex runs the hook on startup, resume, clear, and compact after the user trusts the hook through `/hooks`. The hook reads `session hook` from the Codex sheet, at the path in [setup-pstack's runtime table](../../setup-pstack/SKILL.md#other-runtimes); `session hook: off` disables injection.
+-The native pstack plugin bundles the same `SessionStart` routing instruction as the Claude Code plugin, through `session-start.sh` on macOS and Linux and `session-start.ps1` on Windows. Codex runs the hook on startup, resume, clear, and compact after the user trusts the hook through `/hooks`. The hook reads `session hook` from the Codex sheet, at the path in [setup-pstack's runtime table](../../setup-pstack/references/runtimes.md); `session hook: off` disables injection.
 -
 -A skills-only installation does not include plugin hooks. Request `poteto-mode` explicitly or add a standing instruction to `AGENTS.md` in that case.
 -
@@ -174,7 +174,7 @@ index c6e9d1a..96533b5 100644
 -| Skill | On Codex |
 -|-------|----------|
 -| `interrogate` | The `subagent_type`/`model` dispatch fields map to `spawn_agent`; substitute your configured Codex models and keep the adversary panel model-diverse. |
--| `setup-pstack` | The skill's Other runtimes table names the Codex sheet path and how it loads; the slugs are your Codex models (see Model names above). The role rows are identical. |
+-| `setup-pstack` | The skill's [Other runtimes](../../setup-pstack/references/runtimes.md) table names the Codex sheet path and how it loads; the slugs are your Codex models (see Model names above). The role rows are identical. |
 -| `no-comments` | There is no `comment-sicko` subagent type; see Subagent policy above. |
 -| `thermos` | There are no thermo-nuclear subagent types; see Subagent policy above. |
 -| `teach` | Running `how` and `why` in parallel maps to `spawn_agent` fan-out; image generation uses the configured Codex equivalent. |
