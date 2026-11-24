@@ -1,8 +1,8 @@
 diff --git a/SKILL.md b/SKILL.md
-index c8834ae..d9c0d3a 100644
+index 02d698f..ba3861b 100644
 --- a/SKILL.md
 +++ b/SKILL.md
-@@ -5,13 +5,7 @@ description: Spawn three parallel review subagents over the active transcript, s
+@@ -5,13 +5,7 @@ description: Mine the active transcript for durable learnings and route each to
  
  # Reflect
  
@@ -15,88 +15,44 @@ index c8834ae..d9c0d3a 100644
 -On Antigravity, read the [platform mapping](../poteto-mode/references/agy-tools.md), including its per-skill notes, before following this skill.
 +Read [runtime guidance](references/runtime.md) before following this skill. Resolve all relative paths from this skill directory.
  
- Mine the current conversation for durable learnings, then route them into skill edits.
+ Mine this conversation for durable learnings and route each to an edit on an existing skill.
  
-@@ -19,33 +13,25 @@ Invoke when the user says "reflect" or "/reflect". Skip when the conversation is
+@@ -19,13 +13,7 @@ Read the whole transcript. Look for corrections the user gave, commands and quir
  
- ## 1. Locate the active transcript
+ Keep a finding only if it will still hold in six months, would change what a future agent does, and routes to a skill the session used. Read that skill first and drop what it already says clearly. Drop one-offs and details that drift, such as SHAs, versions and counts. A skill that should have fired gets its description tuned. What a lint, script or check could enforce goes to the backlog, not into prose.
  
--Before fanning out, find this conversation's transcript in Claude Code's per-project transcripts directory at `${CLAUDE_CONFIG_DIR:-$HOME/.claude}/projects/<encoded-cwd>/`. Do not glob across `${CLAUDE_CONFIG_DIR:-$HOME/.claude}/projects/`. That crosses workspace boundaries and reads private chats from unrelated projects.
--
--Run the finder at `skills/reflect/scripts/find-transcript.mjs` under the installed plugin with the projects directory and a fragment of the conversation's opening user prompt. `claude-project-dir.mjs` beside it prints this session's projects directory, wherever the shell has moved since:
+-To read the whole transcript, including turns compacted out of your context, find it in Claude Code's per-project transcripts directory at `${CLAUDE_CONFIG_DIR:-$HOME/.claude}/projects/<encoded-cwd>/`. Do not glob across `${CLAUDE_CONFIG_DIR:-$HOME/.claude}/projects/`. That crosses workspace boundaries and reads private chats from unrelated projects. Run the finder at `skills/reflect/scripts/find-transcript.mjs` under the installed plugin with the projects directory and a fragment of the conversation's opening user prompt. `claude-project-dir.mjs` beside it prints this session's projects directory, wherever the shell has moved since:
 -
 -```bash
 -dir=$(node <plugin>/skills/reflect/scripts/claude-project-dir.mjs) && node <plugin>/skills/reflect/scripts/find-transcript.mjs "$dir" "<opening prompt fragment>"
 -```
-+Use the runtime guidance to locate the active transcript or prepare a digest of this conversation. Never search unrelated conversations. Pass the verified path or digest to each reviewer.
- 
--It covers the three layouts (flat `<id>.jsonl`, nested `<id>/<id>.jsonl`, subagent `<parent>/subagents/<child>.jsonl`), newest first, and prints the first path whose opening typed prompt carries the fragment. Do not reimplement the scan by hand: the first line of a transcript is session metadata, not a message, a session that starts with `/clear` or a `!` shell command records that command's wrapper and output as `user` records before the prompt, and files run to several megabytes, so the finder streams each candidate and stops at its first typed `user` record. If the line exits 1, write a tight digest of the session and pass that instead. It lists, one line each in turn order, the user's prompts and corrections, the tool calls and their results, and the files touched. It states no diagnosis, verdict, or cause. The reviewers judge the session, not your conclusions about it.
-+A digest lists, one line each in turn order, the user's prompts and corrections, the tool calls and their results, and the files touched. It states no diagnosis, verdict, or cause. The reviewers judge the session, not your conclusions about it.
- 
- ## 2. Spawn three reviewers in parallel
- 
--One message, three `Agent` calls, `subagent_type: "general-purpose"`. Reviewers need MCP access to look up the tickets, chat threads, and observability traces the transcript references, so pick a subagent_type that retains MCP access. The prompt forbids file writes. The parent applies edits.
-+Spawn three reviewers with the runtime's subagent tools and model policy. Reviewers need available MCP tools for context lookups referenced in the transcript. Their prompts forbid writes; the parent applies approved edits. If independent subagents are unavailable, report that limitation and perform the three lenses sequentially without claiming independent review.
- 
--Each reviewer and the synthesizer name a role line in `pstack-models.md` and a default in [Models](#models). Set `model` to that line's value, or to the default if the sheet or the line is missing. Leave `model` unset when the value is `auto` or `inherit-parent`. If the `Agent` tool rejects a slug, use the default and say so. If it rejects the default, use the closest valid slug of the same family from its error message. Pick each subagent's reasoning level for the job, per the Subagents section of the **poteto-mode** skill.
 -
--| Lens | Role line | Prompt template |
-+| Lens | `model` | Prompt template |
- |---|---|---|
--| Judgment | `reflect judgment, divergent, synthesizer` | `references/judgment-reviewer.md` |
--| Tooling | `reflect tooling` | `references/tooling-reviewer.md` |
--| Divergent | `reflect judgment, divergent, synthesizer` | `references/divergent-reviewer.md` |
-+| Judgment | runtime reviewer model | `references/judgment-reviewer.md` |
-+| Tooling | runtime reviewer model | `references/tooling-reviewer.md` |
-+| Divergent | runtime reviewer model | `references/divergent-reviewer.md` |
+-It prints the first path whose opening typed prompt carries the fragment. Do not reimplement the scan by hand, because a transcript's first line is session metadata and files run to several megabytes. If the line exits 1, work from the conversation in your context and say that the transcript was not found.
++To read the whole transcript, including turns compacted out of your context, locate it as the runtime guidance says. Never search unrelated conversations. If it is not found, work from the conversation in your context and say that the transcript was not found.
  
--Pass each template verbatim, substituting the transcript path or digest where marked. Add nothing beside a transcript path, not even a focus note for a long transcript. Reviewers return findings in the `Agent` response body.
-+Pass each template verbatim, substituting the transcript path or digest where marked. Add nothing beside a transcript path, not even a focus note for a long transcript. Collect each reviewer's complete result before synthesis.
+ Present Accepted (problem, proposal, skill), Rejected (reason) and Backlog, and wait for approval before editing any skill.
  
- ## 3. Synthesize
- 
--One `Agent` call, `subagent_type: "general-purpose"`, `model` from the `reflect judgment, divergent, synthesizer` line (default in [Models](#models)). It spot-verifies citations through MCP, so pick a subagent_type that retains MCP access. Pass `references/synthesizer.md` verbatim, with each reviewer's full output inlined where marked. It returns an Accepted / Rejected / Backlog list.
-+Use a fresh synthesizer with the runtime synthesizer model, or a clearly labeled sequential synthesis when subagents are unavailable. Retain available MCP access for spot-verifying citations. Use `references/synthesizer.md` verbatim, with each reviewer's full output inlined where marked. The synthesizer returns a structured Accepted / Rejected / Backlog list.
- 
- ## 4. Structural enforcement check
- 
-@@ -62,9 +48,9 @@ Never edit an installed copy that something else generates, such as a plugin cac
- Follow each approved row's Routing exactly:
- 
- - Trivial existing-skill edit (a one-line bullet, a tightened sentence, a stale fact corrected): the parent does it directly.
--- Substantive existing-skill edit (a new section, a new pattern table, more than ~10 lines): hand to the **plugin-dev:skill-development** skill and run its draft / test / iterate loop.
--- `tune description: <skill path>` (the skill exists but didn't trigger when it should have): hand to `plugin-dev:skill-development` and run its description-optimization loop.
--- `new skill via plugin-dev:skill-development: <kebab-name>`: hand creation to `plugin-dev:skill-development`. Do not invent the shape ad hoc.
-+- Substantive existing-skill edit (a new section, a new pattern table, more than ~10 lines): use the available skill-authoring skill (`skill-creator` on Codex, `writing-skills` in this collection) and run its draft / test / iterate loop.
-+- `tune description: <skill path>` (the skill exists but didn't trigger when it should have): hand to the available skill-authoring skill and run its description-optimization loop.
-+- `new skill: <kebab-name>`: hand creation to the available skill-authoring skill. Do not invent the shape ad hoc.
- 
- If your environment ships a SKILL.md validator, run it on every touched skill before declaring done.
- 
-@@ -79,11 +65,4 @@ Short list, no preamble:
- 
- ## Models
- 
--Role defaults, stamped from `plugins/pstack/models.json` (edit there, rerun `tools/generate.mjs`). A matching role line in the `pstack-models.md` override sheet overrides each at runtime; `/setup-pstack` writes it and lists its path per runtime.
--
--- reflect tooling: `opus`
--- reflect judgment, divergent, synthesizer: `opus`
--
--## Reasoning effort
--
--A role value in the override sheet may name a reasoning effort after its model, as in `opus @xhigh`. Levels on Claude Code: `low`, `medium`, `high`, `xhigh`, `max`. Which ones apply depends on the model. A value without `@` takes the sheet's `default effort` line, a level or `session`, and `session` when the sheet has no such line. On Claude Code, `session` sets no effort. On other runtimes, follow the platform mapping for `session`. Strip the suffix before reading the model: `inherit-parent` or `auto` still omits `model` at every level, and a model name is passed as `model`. Pass the level as the dispatch's effort field and keep the `subagent_type` you would otherwise use. That is `effort` on the Claude Code `Agent` call and `reasoning_effort` on Codex's `spawn_agent`. On Muse it is `effort` on a Workflow child; a `subagent_spawn` dispatch keeps the session's effort.
-+Use the model policy in [runtime guidance](references/runtime.md).
 diff --git a/references/codex-tools.md b/references/codex-tools.md
-index 5b52f3e..96533b5 100644
+index 99d36c2..78163fe 100644
 --- a/references/codex-tools.md
 +++ b/references/codex-tools.md
-@@ -1,109 +1,19 @@
+@@ -1,110 +1,15 @@
 -# Codex tool mapping for pstack
--
++# Codex tool mapping for reflection
+ 
 -pstack skills are written in Claude Code tool language (the `Skill` tool, the `Agent` tool, `AskUserQuestion`, Claude model names). On Codex the skills are the same files; only the tool names resolve differently. Read this when a pstack skill names a Claude tool, a driver or bundled skill, or a Claude model. This file is Codex-specific. Gemini CLI, opencode, Prime Agent, and other runtimes must use their own concrete tools, model names, and configuration paths.
--
++Adapted from pstack's Codex mapping; upstream provenance is tracked in
++`support-sources.tsv` and `NOTICE.md` in the source repository.
+ 
 -## Tool actions
--
++| Workflow action | Codex behavior |
++| --- | --- |
++| Read, search, or execute | Use the available file, search, and shell tools. |
++| Edit a file | Use the available patch or editing tool. |
++| Load a named skill | Read its discovered `SKILL.md` and follow it. |
++| Ask the user | Use a question tool when available and applicable; otherwise ask in plain text. |
++| Load instructions | Read applicable `AGENTS.md` files and configured fallbacks, including global instructions. |
+ 
 -| pstack / Claude action | Codex equivalent |
 -|------------------------|------------------|
 -| Read a file | `shell` (`cat`, `head`, `tail`) |
@@ -112,7 +68,7 @@ index 5b52f3e..96533b5 100644
 -| Free a finished subagent slot | `close_agent`, when the session exposes it. Some Codex hosts don't. |
 -| Track tasks (the todolist; `TaskCreate` / `TaskUpdate`, or `TodoWrite` on Claude Code) | `update_plan` |
 -| Ask the human a fixed-choice question (`AskUserQuestion`) | Ask in plain text and let the user answer. Codex has no structured-choice tool. |
--| Read this workspace's session transcripts (Claude Code's `${CLAUDE_CONFIG_DIR:-$HOME/.claude}/projects/<encoded-cwd>/`) | Codex sessions live in `${CODEX_HOME:-~/.codex}/sessions/YYYY/MM/DD/rollout-<timestamp>-<id>.jsonl`. Archived sessions are in `${CODEX_HOME:-~/.codex}/archived_sessions/`. Older rollouts in both directories are zstd-compressed `rollout-<timestamp>-<id>.jsonl.zst` files. Read those with `zstd -dc`. The first line of each rollout is a `session_meta` record. Keep only rollouts whose `payload.cwd` is the workspace or one of its worktrees. Never read other projects' sessions. |
+-| Read this workspace's session transcripts (Claude Code's `${CLAUDE_CONFIG_DIR:-$HOME/.claude}/projects/<encoded-cwd>/`) | Codex sessions live in `${CODEX_HOME:-~/.codex}/sessions/YYYY/MM/DD/`. Ordinary names end in `-<thread-id>.jsonl`; replacements after `thread/revert` end in `-<thread-id>_<rollout-id>.jsonl`. Revert keeps the old files. Resolve the current path from the state database's `threads.rollout_path`, matched by thread ID, rather than filename order or modification time. Archived sessions are in `${CODEX_HOME:-~/.codex}/archived_sessions/`. Older rollouts in both directories can end in `.jsonl.zst`; read those with `zstd -dc`. The first line of each rollout is a `session_meta` record. Keep only rollouts whose `payload.cwd` is the workspace or one of its worktrees. Never read other projects' sessions. |
 -
 -Subagent dispatch needs `multi_agent` enabled. Add to `~/.codex/config.toml`:
 -
@@ -132,21 +88,22 @@ index 5b52f3e..96533b5 100644
 -- There is no `poteto-agent` subagent type. Route an ad-hoc subagent through poteto-mode's style by dispatching a `spawn_agent` whose instructions tell it to read the `poteto-mode` skill in full first.
 -- `spawn_agent` calls already run concurrently with your turn, so `run_in_background: true` has no separate flag. Issue the dispatch and continue.
 -- For `session`, run `node <poteto-mode-dir>/scripts/codex-session-effort.mjs` before dispatching, with `<poteto-mode-dir>` resolved to this skill's directory. The [helper](../scripts/codex-session-effort.mjs) reads the active turn's effort from the exact runtime log identified by `CODEX_THREAD_ID`, under `$CODEX_HOME/sessions` (default `~/.codex/sessions`). It prints only the effort. Run it again on each turn; a UI effort change must not reuse the previous turn's value.
+-- The helper finds the current log through `threads.rollout_path` in `$CODEX_HOME/state_*.sqlite`, or a single `-<thread-id>.jsonl` log when no indexed path is available and no replacement exists; anything else makes effort unavailable.
 -- Apply poteto-mode's task adjustment to that starting level, or to the explicit role/default effort, then pass the final level as `reasoning_effort` on `spawn_agent`, including when a model is selected explicitly. An omitted effort can use a configured subagent effort or, when a model is selected, that model's default instead of the parent's level.
 -- Do not guess the session's effort from the model, a config default, or a previous turn. If the helper cannot identify the active turn's effort, ask for an explicit role or `default effort` level before dispatching. Do not substitute an omitted `reasoning_effort` for the missing starting level. Automatic `session` resolution depends on the host exposing the current thread's runtime log; it is not available on every Codex host.
 -- There is no `comment-sicko` subagent type either. The **no-comments** skill spawns it on Claude Code; on Codex dispatch a `spawn_agent` whose instructions tell it to read `poteto-mode/references/agents/comment-sicko.md` in full first.
 -- There are no `thermo-nuclear-review-subagent` or `thermo-nuclear-code-quality-review-subagent` types. The **thermos** skill spawns both on Claude Code; on Codex dispatch two `spawn_agent` calls whose instructions tell each to read the `thermo-nuclear-review` or `thermo-nuclear-code-quality-review` skill in full first and review only the diff and file contents in its prompt.
--- Claude Code runs every subagent on this machine, so the **swarm** skill's workers and the fan-out playbooks (`orchestrate`, `autopilot-full`, `autopilot-stack`) isolate writers with worktrees. The same holds on Codex.
+-- Claude Code runs every subagent on this machine, so the **swarm** skill's workers and the fan-out playbooks (`autopilot-full`, `autopilot-stack`) isolate writers with worktrees. The same holds on Codex.
 -- Keep the rest of the policy unchanged. Pass file pointers not inlined context, give each worker its own worktree or branch when they write, review every subagent's diff yourself.
 -
 -## Model names
 -
 -Skills name Claude defaults (a single-role default for code/prose/judgment, a worker model for feature and refactoring code, plus a diverse-model panel for diverse-model panels; each model-consuming skill lists its own in a Models section). These slugs do not resolve on Codex. Substitute your configured Codex models:
 -
--- Single-model roles: your primary Codex model (for example `gpt-6.1-sol`).
--- Roles that default to the Claude worker model (`feature, refactoring`): your fast Codex code model (for example `gpt-6.1-sol`).
--- Roles that default to the strongest Claude model (`strongest judgment`): your strongest Codex model (for example `gpt-6-astra`).
--- Diverse-model panels (`arena`, `architect`, `interrogate`): the adversarial signal comes from model diversity, so use the distinct Codex models available to you. A good default panel on ChatGPT is `gpt-6-astra`, `gpt-6.1-sol`, `gpt-6.1-terra`, `gpt-6-luna`. If only one model family is reachable, vary reasoning effort and note in the verdict that diversity was reduced.
+-- Single-model roles: your primary Codex model (for example `gpt-6.2-sol`).
+-- Roles that default to the Claude worker model (`feature, refactoring`): your fast Codex code model (for example `gpt-6.2-sol`).
+-- Roles that default to the strongest Claude model (`strongest judgment`): your strongest Codex model (for example `gpt-6.2-astra`).
+-- Diverse-model panels (`arena`, `interrogate`): the adversarial signal comes from model diversity, so use the distinct Codex models available to you. A good default panel on ChatGPT is `gpt-6.2-astra`, `gpt-6.2-sol`, `gpt-6.1-terra`, `gpt-6-luna`. If only one model family is reachable, vary reasoning effort and note in the verdict that diversity was reduced.
 -
 -`/setup-pstack` writes the configured model list. On Codex, set it to your Codex model slugs.
 -
@@ -184,14 +141,14 @@ index 5b52f3e..96533b5 100644
 -| `maintain-formal-verification-skill` | Project skills, the formal verification skill among them, live under Codex's project-skill location. |
 -| `babysit` | `loop` and `AskUserQuestion` resolve through the tables above. |
 -| `automate-me` | `plugin-dev:skill-development` resolves through the skills table above. |
--| `architect` | The runner panel goes through the **arena** skill, so its `spawn_agent` fan-out and model substitution apply here too. |
+-| `architect` | A large or contested design goes through the **arena** skill, so its `spawn_agent` fan-out and model substitution apply here too. |
 -| `arena` | The parallel candidates and the cross-judge map to `spawn_agent`; substitute your configured Codex models for the runners and the cross-judge pool (see Model names above). |
--| `how` | The parallel explorers and the explainer map to `spawn_agent` fan-out; substitute your configured Codex models. |
--| `reflect` | The three reviewers and the synthesizer map to `spawn_agent`; substitute your configured Codex models. The transcript finder reads Claude Code's layout under `${CLAUDE_CONFIG_DIR:-$HOME/.claude}/projects/`, so pass the session digest step 1 allows instead. |
+-| `how` | The one read-only subagent maps to `spawn_agent`. |
+-| `reflect` | The transcript finder reads Claude Code's layout under `${CLAUDE_CONFIG_DIR:-$HOME/.claude}/projects/`, so work from the conversation in your context, as the skill allows when the finder finds nothing. For a pstack skill, never edit the installed plugin under `${CODEX_HOME:-~/.codex}/plugins/cache/`. Codex does not discover `.claude/skills/` or Claude Code's personal skills folder, so before approval show the destination in Codex's skill folders, and after approval copy the skill folder there: the repository's `.agents/skills/<skill>/` for a project copy, or `${CODEX_HOME:-~/.codex}/skills/<skill>/` for a personal one. In a skills-only install `~/.agents/skills/<skill>` is a link into a pstack checkout, so do not copy to or edit through it. Edit a project or personal skill where it already lives. Codex lists the plugin's copy as `pstack:<skill>` and the edited copy as `<skill>`, both enabled, and does not merge them. |
 -| `recall` | Search this workspace's Codex rollouts (see Tool actions). Do not list or read `${CLAUDE_CONFIG_DIR:-$HOME/.claude}/projects/`. It holds Claude Code transcripts, not this session's history. In a rollout, chat messages are the `response_item` records whose `payload.type` is `message`, with the speaker in `payload.role`. Skip `developer` records, which are injected instructions. |
--| `show-me-your-work` | Check the log against this run's Codex rollout (see Tool actions). This run's rollout is the one whose name ends in `-$CODEX_THREAD_ID.jsonl`. If `CODEX_THREAD_ID` is unset, report that the audit could not run instead of guessing a rollout. Do not read Claude Code's projects directory. |
+-| `show-me-your-work` | Check the log against this run's current Codex rollout, using `CODEX_THREAD_ID` and the state index as described in Tool actions. A filename suffix alone cannot select the current file after revert. If the current path is unavailable or ambiguous, report that the audit could not run instead of guessing a rollout. Do not read Claude Code's projects directory. |
 -| `swarm` | Each worker is a `spawn_agent` call on your configured Codex model, and those calls already run concurrently; give each writing worker its own worktree or output directory (see Subagent policy above). |
--| `why` | The parallel investigators and the synthesizer map to `spawn_agent`; substitute your configured Codex models. List MCP servers from the tools Codex exposes to the session, not from `.mcp.json` or `claude mcp list`. |
+-| `why` | List MCP servers from the tools Codex exposes to the session, not from `.mcp.json` or `claude mcp list`. |
 -
 -## Vendored scripts
 -
@@ -200,110 +157,5 @@ index 5b52f3e..96533b5 100644
 -## Instructions file
 -
 -Where a pstack skill says "your instructions file", on Codex that is `AGENTS.md` (project root, plus `~/.codex/AGENTS.md` global). On Claude Code it is `CLAUDE.md`.
-+# Codex tool mapping for reflection
-+
-+Adapted from pstack's Codex mapping; upstream provenance is tracked in
-+`support-sources.tsv` and `NOTICE.md` in the source repository.
-+
-+| Workflow action | Codex behavior |
-+| --- | --- |
-+| Read, search, or execute | Use the available file, search, and shell tools. |
-+| Edit a file | Use the available patch or editing tool. |
-+| Load a named skill | Read its discovered `SKILL.md` and follow it. |
-+| Dispatch and collect reviewers | Use the available `spawn_agent` and wait tools, following their schemas. |
-+| Ask the user | Use a question tool when available and applicable; otherwise ask in plain text. |
-+| Choose models | Inherit the session model unless the user specifies a supported override. Claude model slugs are not Codex model identifiers. |
-+| Load instructions | Read applicable `AGENTS.md` files and configured fallbacks, including global instructions. |
-+
-+Tool availability and argument names vary between Codex surfaces. Do not assume
-+Claude `Agent` fields, `general-purpose` types, or a fixed set of Codex tools.
-+If subagents are unavailable, label a sequential review as such. Use
-+[runtime.md](runtime.md) for this skill's transcript and dispatch procedure.
-diff --git a/references/divergent-reviewer.md b/references/divergent-reviewer.md
-index 10bbf52..0719b75 100644
---- a/references/divergent-reviewer.md
-+++ b/references/divergent-reviewer.md
-@@ -18,7 +18,11 @@ Scan for:
- 
- ## Scope to skills and tools the session actually used
- 
--Route findings only to skills, tools, or MCPs this transcript used. A skill counts as used when the transcript shows a `Read` of its `SKILL.md` (under `.claude/skills/`, `${CLAUDE_CONFIG_DIR:-$HOME/.claude}/skills/`, or `${CLAUDE_CODE_PLUGIN_CACHE_DIR:-${CLAUDE_CONFIG_DIR:-$HOME/.claude}/plugins}/`), a `Agent` prompt naming its path, or a tool call (Shell, Grep, MCP, etc.) matching its documented commands. Speculative routings to skills the parent never opened do not count.
-+Findings must point to skills, tools, or MCPs invoked in this transcript. Speculative routings to skills the parent never opened do not count. To check whether a skill was used, scan the transcript for:
-+
-+- File reads (including shell reads) of a `SKILL.md` at a discovered workspace, user, or plugin skill path
-+- Subagent prompts that name a skill path
-+- Tool calls (Shell, Grep, MCP, etc.) that match a skill's documented commands
- 
- Two finding shapes are valid:
- - The parent invoked the skill and you found a real gap in its body. Route to the skill's relevant section.
-diff --git a/references/judgment-reviewer.md b/references/judgment-reviewer.md
-index e80a17b..377a05a 100644
---- a/references/judgment-reviewer.md
-+++ b/references/judgment-reviewer.md
-@@ -17,7 +17,11 @@ Scan for:
- 
- ## Scope to skills and tools the session actually used
- 
--Route findings only to skills, tools, or MCPs this transcript used. A skill counts as used when the transcript shows a `Read` of its `SKILL.md` (under `.claude/skills/`, `${CLAUDE_CONFIG_DIR:-$HOME/.claude}/skills/`, or `${CLAUDE_CODE_PLUGIN_CACHE_DIR:-${CLAUDE_CONFIG_DIR:-$HOME/.claude}/plugins}/`), a `Agent` prompt naming its path, or a tool call (Shell, Grep, MCP, etc.) matching its documented commands. Speculative routings to skills the parent never opened do not count.
-+Findings must point to skills, tools, or MCPs invoked in this transcript. Speculative routings to skills the parent never opened do not count. To check whether a skill was used, scan the transcript for:
-+
-+- File reads (including shell reads) of a `SKILL.md` at a discovered workspace, user, or plugin skill path
-+- Subagent prompts that name a skill path
-+- Tool calls (Shell, Grep, MCP, etc.) that match a skill's documented commands
- 
- Two finding shapes are valid:
- - The parent invoked the skill and you found a real gap in its body. Route to the skill's relevant section.
-diff --git a/references/synthesizer.md b/references/synthesizer.md
-index 27432f5..a4199ce 100644
---- a/references/synthesizer.md
-+++ b/references/synthesizer.md
-@@ -14,7 +14,7 @@ Apply each criterion to every finding:
- 
- - Durability: still true in 6 months once paths, SHAs, tool versions, and code shapes have changed.
- - Specificity: broad enough to apply across tasks, precise enough that a future agent recognizes when to use it. Reject vague platitudes ("write good code") and hyper-specific facts ("`<specific-skill-name>` has 175 tokens at limit 80").
--- Existing-skill-first: propose `new skill via plugin-dev:skill-development:` only when no existing skill is a real home, the pattern recurs, and the topic deserves its own skill.
-+- Existing-skill-first: propose `new skill:` only when no existing skill is a real home, the pattern recurs, and the topic deserves its own skill.
- - Convergence: findings echoed by 2+ reviewers carry higher confidence. Singletons must clear a higher bar on the other criteria.
- - Decision-changing: a future agent does something different because of the edit, not just reads more text.
- - Structural-mechanism check: route to Backlog when a lint rule, script, metadata flag, or runtime check already enforces the rule or could enforce it cheaply. Skill prose is for things mechanisms cannot enforce.
-@@ -31,7 +31,7 @@ Keep (durable patterns):
- - "closed regex enums for trigger detection are brittle. Prefer schema-validated structures"
- - "skill descriptions front-load trigger keywords (60/40 trigger-vs-action)"
- - "skill-bundled scripts run under bun with own lockfile, not pnpm workspace"
--- "path-shaped triggers belong in `paths:`, not description prose"
-+- "file-scoped instructions should state their scope using the runtime's supported mechanism"
- 
- Output exactly the format below. No preamble, no narration. One sentence per cell. A reviewer should read each Problem/Proposal pair in 5 seconds.
- 
-@@ -41,7 +41,7 @@ Output exactly the format below. No preamble, no narration. One sentence per cel
- |---|---|---|
- | <failure mode in a skill the parent used> | <change to that skill's body> | <skill path + section> |
- | <skill existed but didn't trigger> | <tune the skill's description so it fires next time> | <tune description: <skill path>> |
--| <new pattern, no existing skill is a real home> | <draft a new skill via plugin-dev:skill-development> | <new skill via plugin-dev:skill-development: <kebab-name>> |
-+| <new pattern, no existing skill is a real home> | <draft a new skill using the available skill-authoring guidance> | <new skill: <kebab-name>> |
- 
- One row per finding. The user approves row by row.
- 
-@@ -53,4 +53,4 @@ For each rejected finding:
- 
- ## Backlog
- 
--For each item, describe the pattern, what was hit, and the suggested mechanism. The parent files each to whatever devex / backlog tracker the team uses.
-+For each item, describe the pattern, what was hit, and the suggested mechanism. The parent proposes these items to the user and files them only when authorized.
-diff --git a/references/tooling-reviewer.md b/references/tooling-reviewer.md
-index 8c400fc..ee23ad0 100644
---- a/references/tooling-reviewer.md
-+++ b/references/tooling-reviewer.md
-@@ -28,7 +28,11 @@ Scan for:
- 
- ## Scope to skills and tools the session actually used
- 
--Route findings only to skills, tools, or MCPs this transcript used. A skill counts as used when the transcript shows a `Read` of its `SKILL.md` (under `.claude/skills/`, `${CLAUDE_CONFIG_DIR:-$HOME/.claude}/skills/`, or `${CLAUDE_CODE_PLUGIN_CACHE_DIR:-${CLAUDE_CONFIG_DIR:-$HOME/.claude}/plugins}/`), a `Agent` prompt naming its path, or a tool call (Shell, Grep, MCP, etc.) matching its documented commands. Speculative routings to skills the parent never opened do not count.
-+Findings must point to skills, tools, or MCPs invoked in this transcript. Speculative routings to skills the parent never opened do not count. To check whether a skill was used, scan the transcript for:
-+
-+- File reads (including shell reads) of a `SKILL.md` at a discovered workspace, user, or plugin skill path
-+- Subagent prompts that name a skill path
-+- Tool calls (Shell, Grep, MCP, etc.) that match a skill's documented commands
- 
- Two finding shapes are valid:
- - The parent invoked the skill and you found a real gap in its body. Route to the skill's relevant section.
++Tool availability and argument names vary between Codex surfaces. Use
++[runtime.md](runtime.md) for this skill's transcript procedure.

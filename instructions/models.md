@@ -14,10 +14,10 @@ Name the choice and the reason in the subagent's report. Use nothing outside the
 {{rows}}
 
 - `explore`: searching and reading broadly.
-- `audit`: reading code or a transcript to report findings: improve's and architecture review's auditors, reflect's reviewers, dispatched improve and architecture runs.
+- `audit`: reading code or a transcript to report findings: improve's and architecture review's auditors, dispatched improve and architecture runs.
 - `implement`: changing code: issue-to-pr runs, improve's executor.
 - `review`: reviewing a diff: each review-loop round.
 - `design`: designing or planning: interfaces, design-it-twice, plans.
-- `judgment`: deciding: triage, reflect's synthesizer, a dispatcher's own decisions.
+- `judgment`: deciding: triage, a dispatcher's own decisions.
 
 {{cross}}
