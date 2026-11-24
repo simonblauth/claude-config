@@ -26,6 +26,7 @@ A capture is a quick save. Interrupt the user's current work as little as possib
    When an item reports that a thread of today's Brief is done, also tick that plan line, as `CLAUDE.md` says.
 3. Add one line per item under `## Captures` in today's daily note, linking to where the item went. If the note does not exist, create it with the sections from `CLAUDE.md`, all empty except Captures.
 4. Commit all items from one message as one commit, `Capture: <short summary>`, and push.
-5. Reply with one line per item, naming where it went. Then return to the work at hand.
+5. Refresh the dashboard with the `dashboard` skill.
+6. Reply with one line per item, naming where it went. Then return to the work at hand.
 
 Write vault content only into the vault. The current repo, its commits, and its issues stay free of it.
