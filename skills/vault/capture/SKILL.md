@@ -21,7 +21,7 @@ A capture is a quick save. Interrupt the user's current work as little as possib
    | Finding or event in a known project | A dated line in that project's `## Log` |
    | Anything with no clear project | `inbox.md`, as a dated line |
 
-   Keep the user's wording. Add `due:` or `@owner` only when the user gave them.
+   Keep the user's wording. Add `due:` only when the user gave it. Capture only the user's own tasks: work that belongs to someone else becomes a `waiting:` tag on the user's task, or nothing.
 
    When an item reports that a thread of today's Brief is done, also tick that plan line, as `CLAUDE.md` says.
 3. Add one line per item under `## Captures` in today's daily note, linking to where the item went. If the note does not exist, create it with the sections from `CLAUDE.md`, all empty except Captures.
