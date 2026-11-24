@@ -1002,6 +1002,8 @@ def cmd_install(args) -> int:
         install_target(target, planned)
     if "codex" in plans:
         print("Codex: review and trust the drift-check hook with /hooks.")
+    for line in branch_notice():
+        print(f"Note: {line}.")
     return 0
 
 
@@ -1107,12 +1109,39 @@ def check_repo(offline: bool) -> list[str]:
         out.append(f"{behind} commit(s) behind {tracked}, git pull then install")
     if int(ahead):
         out.append(f"{ahead} commit(s) ahead of {tracked}, not pushed")
-    # `tracked` has no remote part when the upstream is a local branch.
+    # A feature branch can match its own remote branch long after it merged,
+    # while the default branch has moved on.
     head = run(["git", "symbolic-ref", "--short", "HEAD"], cwd=REPO)
+    default = default_branch()
+    if default and default != tracked:
+        behind = run(["git", "rev-list", "--count", f"HEAD..{default}"], cwd=REPO)
+        if int(behind):
+            out.append(f"on {head}, {behind} commit(s) behind {default}, switch or rebase then install")
+    # `tracked` has no remote part when the upstream is a local branch.
     if run(["git", "config", f"branch.{head}.remote"], cwd=REPO) != "upstream":
         merge = run(["git", "config", f"branch.{head}.merge"], cwd=REPO)
         out += check_fork(merge.removeprefix("refs/heads/"))
     return out
+
+
+def default_branch() -> str | None:
+    """origin's default branch as a remote-tracking ref, such as origin/main, if the clone recorded one."""
+    try:
+        return run(["git", "symbolic-ref", "--short", "refs/remotes/origin/HEAD"], cwd=REPO)
+    except RuntimeError:
+        return None
+
+
+def branch_notice() -> list[str]:
+    """Does install render from a branch other than the default one? Local only: install must not wait on a fetch."""
+    try:
+        head = run(["git", "symbolic-ref", "--short", "HEAD"], cwd=REPO)
+    except RuntimeError:
+        return []
+    default = default_branch()
+    if default and default.split("/", 1)[1] != head:
+        return [f"installing from {head}, not {default}"]
+    return []
 
 
 def check_fork(branch: str) -> list[str]:
