@@ -14,6 +14,8 @@ Scratch: <a directory only this target writes to, such as <your scratchpad>/runs
 or <your scratchpad>/runs/<repo>-<n> for an issue target>.
 Use absolute paths. Before anything else, read the repository's AGENTS.md
 and CLAUDE.md if they exist.
+Every clone in the dispatch cache is fetched, but its local branches and
+working tree are stale: read and cut from `origin/<branch>`.
 
 Read <installed skill dir>/SKILL.md and follow it. Its "Dispatched run"
 section overrides every step that waits for the user. The repository is an
