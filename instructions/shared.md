@@ -76,6 +76,10 @@ Acceptable verification, in order of preference:
 
 If none of those are possible in the current environment, say so explicitly and hedge ("I can't verify this from here — based on training data, …") rather than asserting with confidence. If the user pushes back on a factual claim, do not double down — verify and correct.
 
+## Check remote state before stating it
+
+Whether a PR is open or merged, whether a branch exists, what the default branch holds, how far a checkout trails it: answer each from a command run in the same turn, such as `git fetch` followed by `git status -sb`, or `gh pr view` / `gh pr list`. The session-start git status and anything read earlier in the session are snapshots, taken before others pushed and merged.
+
 ## Surface friction, don't absorb it
 
 Keep durable workarounds in visible, maintained instruction files; do not silently save them to agent memory.
