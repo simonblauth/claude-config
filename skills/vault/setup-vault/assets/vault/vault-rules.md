@@ -34,10 +34,10 @@ Skip the push while the repo has no remote.
 ### Task lines
 
 ```text
-- [ ] profile the large input @ada due:2026-01-09 every:friday
+- [ ] profile the large input due:2026-01-09 every:friday
 ```
 
-`@owner` is optional and defaults to the user. `due:` takes a `YYYY-MM-DD` date. `every:` takes a value from `task_every` in `schema.yaml`.
+Next tracks only the user's own tasks. Leave other people's work to them: it enters the vault only as `waiting:` on a task of the user's. `due:` takes a `YYYY-MM-DD` date. `every:` takes a value from `task_every` in `schema.yaml`.
 
 A task that waits on someone carries `waiting:` with the slug of that person or org. Set a project to `status: waiting` with `waiting_on` only when all of its work waits. While some of its tasks can move, keep it `active` and tag the waiting tasks.
 
