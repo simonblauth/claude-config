@@ -608,6 +608,32 @@ class RepoCheckTests(unittest.TestCase):
                 self.assertEqual(cc.check_repo(False),
                                  ['1 commit(s) behind upstream/main, merge it then install'])
 
+    def topic_behind_main(self, root):
+        """A clone on a pushed branch `topic`, with one commit on origin/main that `topic` lacks."""
+        _, repo = self.fork(root)
+        self.git('-C', str(repo), 'checkout', '-q', '-b', 'topic')
+        self.git('-C', str(repo), 'push', '-q', '-u', 'origin', 'topic')
+        self.git('-C', str(repo), 'checkout', '-q', 'main')
+        self.git('-C', str(repo), 'commit', '--allow-empty', '-qm', 'two')
+        self.git('-C', str(repo), 'push', '-q', 'origin', 'main')
+        self.git('-C', str(repo), 'checkout', '-q', 'topic')
+        return repo
+
+    def test_branch_behind_the_default_branch_reports_it(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = self.topic_behind_main(Path(tmp))
+            with patch.object(cc, 'REPO', repo):
+                self.assertEqual(cc.check_repo(False),
+                                 ['on topic, 1 commit(s) behind origin/main, switch or rebase then install'])
+
+    def test_install_names_a_branch_other_than_the_default(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = self.topic_behind_main(Path(tmp))
+            with patch.object(cc, 'REPO', repo):
+                self.assertEqual(cc.branch_notice(), ['installing from topic, not origin/main'])
+                self.git('-C', str(repo), 'checkout', '-q', 'main')
+                self.assertEqual(cc.branch_notice(), [])
+
     def test_unreachable_upstream_is_reported_not_raised(self):
         with tempfile.TemporaryDirectory() as tmp:
             _, repo = self.fork(Path(tmp))
