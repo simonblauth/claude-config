@@ -105,7 +105,7 @@ A repo where label creation fails is skipped for this run, with the error in the
 
 ### Working copies
 
-Each target gets a clone in the dispatch cache, `~/.cache/dispatch/repos/<owner>/<repo>`. Clone the repo the first time it is needed, then run `git fetch origin` before every run.
+Each target gets a clone in the dispatch cache, `~/.cache/dispatch/repos/<owner>/<repo>`. Clone the repo the first time it is needed. Before the first subagent starts, run `git fetch origin` in every clone under `~/.cache/dispatch/repos/`, not only the targets': a run reads sibling clones too, such as a conformance repo, and the preamble tells it every clone is fetched.
 
 - **Repo target:** `git worktree add --detach ~/.cache/dispatch/worktrees/<run>/<repo> origin/<default>`. `<run>` is the run's start time as `YYYYmmdd-HHMMSS`.
 - **Issue target:** first claim it with `gh issue edit <n> -R <repo> --add-label agent:claimed`. Read the labels back with `gh issue view`. If the claim is missing, drop the target. `issue-to-pr` cuts its own worktree from the cache clone, at `~/.cache/dispatch/worktrees/<run>/<repo>-<n>`.
